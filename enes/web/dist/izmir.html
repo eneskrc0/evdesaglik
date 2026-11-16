@@ -31,7 +31,10 @@ button.btn.sm{padding:5px 9px;font-size:12px}
 .seg button{flex:1;padding:7px 4px;border:0;background:none;color:var(--ink2);font:inherit;font-size:12px;cursor:pointer}
 .seg button.on{background:var(--accent);color:#fff}
 #map line,#map polyline,#map path,#map polygon,#map circle,#map rect{vector-effect:non-scaling-stroke}
-#map{transition:none;width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:manipulation;cursor:crosshair}
+#map{transition:none;width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:none;cursor:crosshair}
+.mapwrap{position:relative}.zoomBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+.zoomBtns button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;font-weight:700;cursor:pointer;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.zoomBtns button:hover{border-color:var(--blue)}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink2);margin-top:6px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 .clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px}
@@ -86,7 +89,9 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
    </div>
    <div class="seg" id="viewSeg" style="margin-bottom:4px"><button data-v="genel" class="on">Genel (yönetici)</button><button data-v="hasta">Hasta gözüyle</button><button data-v="calisan">Çalışan gözüyle</button></div>
    <div class="tiny" id="viewNote" style="min-height:2.4em;margin-bottom:4px">Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.</div>
-   <svg id="map" viewBox="0 0 600 470"></svg>
+   <div class="mapwrap"><svg id="map" viewBox="0 0 600 470"></svg>
+    <div class="zoomBtns"><button id="zIn" title="Yakınlaştır" aria-label="Yakınlaştır">+</button><button id="zOut" title="Uzaklaştır" aria-label="Uzaklaştır">−</button><button id="zFit" title="Tümünü göster / ortala" aria-label="Ortala">⤢</button></div></div>
+   <div class="tiny" style="margin-top:3px">Fareyle tekerlek ya da telefonda iki parmakla yakınlaştırın, sürükleyerek kaydırın; ⤢ ile geri dönün.</div>
    <div class="legend">
      <span><i class="dot" style="background:var(--aqua)"></i>Hemşire</span>
      <span><i class="dot" style="background:var(--blue)"></i>Doktor</span>
@@ -430,7 +435,7 @@ function initDemo(){
   el("path",{d:ROADS.minor,fill:"none",stroke:"var(--line)","stroke-width":0.6},map);
   el("path",{d:ROADS.major,fill:"none",stroke:"var(--ink3)","stroke-width":1.1,opacity:.75},map);
   el("path",{d:ROADS.border,fill:"none",stroke:"var(--orange)","stroke-width":ROADS.labels?1:1.3,"stroke-dasharray":"6 4",opacity:.6},map);
-  if(ROADS.labels)ROADS.labels.forEach(l=>{const[x,y]=proj([l.lat,l.lon]);const t=el("text",{x,y,"font-size":10,"font-weight":600,fill:"var(--ink3)","text-anchor":"middle",opacity:.9},map);t.textContent=l.ad;});
+  if(ROADS.labels)ROADS.labels.forEach(l=>{const[x,y]=proj([l.lat,l.lon]);const t=el("text",{x,y,"font-size":10,"data-fs":10,"font-weight":600,fill:"var(--ink3)","text-anchor":"middle",opacity:.9},map);t.textContent=l.ad;});
   D.gHex=el("g",{},map);
  }else{const h=Math.ceil(proj([BB.minLat,BB.maxLon])[1]+VB.pad);VB.h=h;map.setAttribute("viewBox",`0 0 600 ${h}`);}
  const gHex=D.gHex||el("g",{},map);D.gHex=gHex;
@@ -457,9 +462,9 @@ $("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.
 function drawWorkers(){if(D.view&&D.view!=="genel"){drawViewLayer();drawPatient();return;}const g=D.gWorkers;g.innerHTML="";
  for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=w.posFree(D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
   const col=pf.inVisit?"var(--busy)":roleColorV(w.role);
-  if(notified)el("circle",{cx:x,cy:y,r:11,fill:"none",stroke:"var(--orange)","stroke-width":2},g);
-  if(w.id===D.controlled)el("circle",{cx:x,cy:y,r:8.5,fill:"none",stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"2 2"},g);
-  const c=el("circle",{cx:x,cy:y,r:5.5,fill:col,stroke:"var(--card)","stroke-width":2},g);
+  if(notified)el("circle",{cx:x,cy:y,r:11*zz(),fill:"none",stroke:"var(--orange)","stroke-width":2},g);
+  if(w.id===D.controlled)el("circle",{cx:x,cy:y,r:8.5*zz(),fill:"none",stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"2 2"},g);
+  const c=el("circle",{cx:x,cy:y,r:5.5*zz(),fill:col,stroke:"var(--card)","stroke-width":2},g);
   c.addEventListener("mousemove",e=>showTip(e,`<b>${roleNameV(w.role)} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
   c.addEventListener("click",e=>{$("wSelect").value=w.id;D.controlled=w.id;renderWorker();drawWorkers();});}
  const gl=D.gLines;gl.innerHTML="";if(D.req&&!D.booked){for(const id of D.notified){const w=D.workers[id];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);
@@ -595,16 +600,15 @@ const VIEW_NOTE={genel:"Yönetici görünümü: tüm çalışanlar, talepler ve 
  calisan:"Seçili çalışanın telefonunda gördüğü: kendi konumu, bugünkü durakları ve rotası. Gelen talebin açık adresi kabulden önce gizli, yalnızca bölgesi görünür."};
 function zz(){return D.z||1;}
 function kmUnit(loc){const a=proj(loc),b=proj([loc[0]+0.009,loc[1]]);return Math.abs(b[1]-a[1])||1;}
-function setViewBox(pts,minKm){const m=$("map");if(!pts.length){m.setAttribute("viewBox","0 0 600 470");D.z=1;return;}
+function setViewBox(pts,minKm){if(D.manual)return;const m=$("map");const H=baseH();if(!pts.length){applyVB(0,0,600,H,false);return;}
  const P=pts.map(proj);let x0=Math.min(...P.map(p=>p[0])),x1=Math.max(...P.map(p=>p[0])),y0=Math.min(...P.map(p=>p[1])),y1=Math.max(...P.map(p=>p[1]));
- const u=kmUnit(pts[0])*minKm,cx=(x0+x1)/2,cy=(y0+y1)/2;let w=Math.max(x1-x0+u*0.8,2*u*600/470),h=Math.max(y1-y0+u*0.8,2*u);
- if(w/h>600/470)h=w*470/600;else w=h*600/470;if(w>600){w=600;h=470;}
- const vx=Math.min(Math.max(cx-w/2,0),600-w),vy=Math.min(Math.max(cy-h/2,0),470-h);
- m.setAttribute("viewBox",`${vx.toFixed(1)} ${vy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);D.z=w/600;
- if(D.gHosp)D.gHosp.querySelectorAll("g[data-x]").forEach(g=>g.setAttribute("transform",`translate(${g.dataset.x},${g.dataset.y}) scale(${D.z})`));}
+ const u=kmUnit(pts[0])*minKm,cx=(x0+x1)/2,cy=(y0+y1)/2;let w=Math.max(x1-x0+u*0.8,2*u*600/H),h=Math.max(y1-y0+u*0.8,2*u);
+ if(w/h>600/H)h=w*H/600;else w=h*600/H;if(w>600){w=600;h=H;}
+ const vx=Math.min(Math.max(cx-w/2,0),600-w),vy=Math.min(Math.max(cy-h/2,0),H-h);
+ applyVB(vx,vy,w,h,false);}
 function jitter(loc,id){const h=(id*2654435761)>>>0,a=(h%360)*Math.PI/180,r=0.0012+((h>>>9)%100)/100*0.0014;return[loc[0]+r*Math.sin(a),loc[1]+r*Math.cos(a)/0.78];}
 function cachedRoute(a,b){D.rc=D.rc||{};const k=(a[2]??a.join())+"-"+(b[2]??b.join());return D.rc[k]||(D.rc[k]=makeRoute(a,b));}
-function setView(v){hideTip();D.view=v;[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
+function setView(v){hideTip();D.manual=false;D.view=v;[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
  D.gHex.style.display=v==="genel"?"":"none";D.gLines.style.display=v==="genel"?"":"none";
  if(D.gHosp)D.gHosp.style.display=(v==="calisan"||!$("hospToggle").checked)?"none":"";
  if(v==="genel")setViewBox([],0);drawWorkers();drawPatient();if(D.track)updateTracking(true);}
@@ -642,6 +646,32 @@ const roleNameV=r=>(typeof roleName==="function")?roleName(r):({hemsire:"Hemşir
 const roleColorV=r=>(typeof roleColor==="function")?roleColor(r):(r==="hemsire"?"var(--aqua)":r==="doktor"?"var(--blue)":"#8b5cf6");
 
 $("viewSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;setView(b.dataset.v);};
+// ---------- Yakınlaştırma / kaydırma: tekerlek, iki parmak, sürükleme, +/− düğmeleri ----------
+function baseH(){if(!window.__VBH){const a=$("map").getAttribute("viewBox").split(/\s+/).map(Number);window.__VBH=a[3]*600/a[2]||470;}return window.__VBH;}
+function applyVB(x,y,w,h,manual){const m=$("map"),H=baseH();w=Math.min(600,Math.max(30,w));h=w*H/600;x=Math.min(Math.max(x,0),600-w);y=Math.min(Math.max(y,0),H-h);
+ m.setAttribute("viewBox",`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}`);if(!D)return;D.z=w/600;
+ if(D.gHosp)D.gHosp.querySelectorAll("g[data-x]").forEach(g=>g.setAttribute("transform",`translate(${g.dataset.x},${g.dataset.y}) scale(${D.z})`));
+ m.querySelectorAll("text[data-fs]").forEach(t=>t.setAttribute("font-size",(+t.dataset.fs*Math.max(D.z,0.35)).toFixed(2)));
+ if(manual){D.manual=true;drawWorkers();drawPatient();if(D.track)updateTracking(true);}}
+(function(){const map=$("map"),pts=new Map();let start=null,moved=false;
+ const vb=()=>{const a=map.getAttribute("viewBox").split(/\s+/).map(Number);return{x:a[0],y:a[1],w:a[2],h:a[3]};};
+ function zoomAt(f,cx,cy){if(!D)return;const v=vb(),r=map.getBoundingClientRect();if(cx==null){cx=r.left+r.width/2;cy=r.top+r.height/2;}
+  const fx=(cx-r.left)/r.width,fy=(cy-r.top)/r.height,px=v.x+fx*v.w,py=v.y+fy*v.h;const w=Math.min(600,Math.max(30,v.w/f)),h=w*baseH()/600;applyVB(px-fx*w,py-fy*h,w,h,true);}
+ function panPx(dx,dy){if(!D)return;const v=vb(),r=map.getBoundingClientRect();applyVB(v.x-dx/r.width*v.w,v.y-dy/r.height*v.h,v.w,v.h,true);}
+ map.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.deltaY<0?1.25:0.8,e.clientX,e.clientY);},{passive:false});
+ map.addEventListener("pointerdown",e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===1){start=[e.clientX,e.clientY];moved=false;}});
+ map.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);
+  if(pts.size===2){const o=[...pts.keys()].find(i=>i!==e.pointerId),q=pts.get(o);const d0=Math.hypot(prev[0]-q[0],prev[1]-q[1]),d1=Math.hypot(e.clientX-q[0],e.clientY-q[1]);
+   if(d0>0)zoomAt(d1/d0,(e.clientX+q[0])/2,(e.clientY+q[1])/2);moved=true;}
+  else if(pts.size===1&&start){if(!moved&&Math.hypot(e.clientX-start[0],e.clientY-start[1])>6){moved=true;try{map.setPointerCapture(e.pointerId);}catch(_){}}
+   if(moved){hideTip();panPx(e.clientX-prev[0],e.clientY-prev[1]);}}
+  pts.set(e.pointerId,[e.clientX,e.clientY]);});
+ const up=e=>{pts.delete(e.pointerId);if(moved&&pts.size===0&&D){D.justDragged=true;setTimeout(()=>{if(D)D.justDragged=false;},60);}if(!pts.size)start=null;};
+ map.addEventListener("pointerup",up);map.addEventListener("pointercancel",up);map.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")up(e);});
+ map.addEventListener("click",e=>{if(D&&D.justDragged){e.stopPropagation();e.preventDefault();}},true);
+ $("zIn").onclick=()=>zoomAt(1.6);$("zOut").onclick=()=>zoomAt(1/1.6);
+ $("zFit").onclick=()=>{if(!D)return;D.manual=false;if(!D.view||D.view==="genel")applyVB(0,0,600,baseH(),false);drawWorkers();drawPatient();if(D.track)updateTracking(true);};})();
+
 let lastDraw=0;
 function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.clock+dt,DAY_END-60);}
  $("clock").textContent=fmtT(D.clock);
