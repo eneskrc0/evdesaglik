@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evde Sağlık Test Prototipi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Yerleşim: üstte sabit başlık + sekmeler; her sekme kendi ızgarası. Klinik, sakin, taranabilir. */
+:root {
+  --bg: #f2f5f6;
+  --surface: #ffffff;
+  --ink: #12222a;
+  --muted: #586a72;
+  --line: #d6dfe2;
+  --accent: #0b6b72;
+  --accent-soft: #e0efef;
+  --crit: #b8322a; --crit-soft: #fbe9e7;
+  --warn: #a96410; --warn-soft: #fbf0df;
+  --ok: #2b7a4b; --ok-soft: #e4f3ea;
+  --info: #2c5d9b; --info-soft: #e5eef9;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1619; --surface: #162125; --ink: #e4edef; --muted: #93a6ac; --line: #28373c;
+    --accent: #4db3b9; --accent-soft: #17393b;
+    --crit: #ff7366; --crit-soft: #3a1c1a; --warn: #e8a64a; --warn-soft: #3a2a12;
+    --ok: #63c48f; --ok-soft: #173326; --info: #82abe8; --info-soft: #1b2b42;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1619; --surface: #162125; --ink: #e4edef; --muted: #93a6ac; --line: #28373c;
+  --accent: #4db3b9; --accent-soft: #17393b;
+  --crit: #ff7366; --crit-soft: #3a1c1a; --warn: #e8a64a; --warn-soft: #3a2a12;
+  --ok: #63c48f; --ok-soft: #173326; --info: #82abe8; --info-soft: #1b2b42;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+header.top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-inner { max-width: 1240px; margin: 0 auto; padding: 12px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand .meta { font-size: 13px; color: var(--muted); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; }
+nav.tabs a { padding: 8px 14px; text-decoration: none; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; font-weight: 500; }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs a .count { font-family: var(--font-mono); font-size: 12px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 0 6px; margin-left: 4px; }
+
+main { max-width: 1240px; margin: 0 auto; padding: 20px; }
+section.view { display: none; }
+section.view.active { display: block; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grid-2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 500; }
+textarea, input[type=text], select { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 84px; resize: vertical; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #06191b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #06191b; } }
+.btn.small { padding: 3px 9px; font-size: 13px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 14px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 4px; padding: 1px 7px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.tag.crit { background: var(--crit-soft); color: var(--crit); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.info { background: var(--info-soft); color: var(--info); }
+.tag.plain { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.slider { display: grid; grid-template-columns: 76px 1fr 18px; gap: 8px; align-items: center; font-size: 14px; }
+.slider input { width: 100%; accent-color: var(--accent); }
+
+/* Triyaj sonucu */
+.level { border-left: 6px solid var(--accent); }
+.level.crit { border-left-color: var(--crit); background: linear-gradient(90deg, var(--crit-soft), var(--surface) 40%); }
+.level.warn { border-left-color: var(--warn); }
+.level.ok { border-left-color: var(--ok); }
+.level.info { border-left-color: var(--info); }
+.level .big { font-family: var(--font-display); font-size: 24px; font-weight: 600; }
+ul.reasons { margin: 0; padding-left: 18px; }
+ul.reasons li { margin: 2px 0; }
+
+.cand { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.rank { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--muted); }
+.cand .price { text-align: right; }
+.cand .price .amt { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.bars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.bar { font-size: 12px; color: var(--muted); }
+.bar .track { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.bar .fill { height: 100%; background: var(--accent); }
+.split { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.split div { background: var(--bg); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+.split b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+.detail { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+
+/* Rota */
+.timeline { position: relative; height: 46px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.timeline .blk { position: absolute; top: 8px; height: 28px; border-radius: 4px; font-size: 11px; padding: 2px 4px; overflow: hidden; white-space: nowrap; color: #fff; }
+.timeline .blk.visit { background: var(--accent); }
+.timeline .blk.new { background: var(--warn); }
+.timeline .blk.travel { background: transparent; border: 1px dashed var(--muted); color: var(--muted); top: 16px; height: 12px; padding: 0; }
+.timeline .win { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+.timeline .tick { position: absolute; bottom: 0; font-size: 10px; color: var(--muted); transform: translateX(-50%); }
+svg.map { width: 100%; height: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+svg.map text { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+
+/* Tablolar */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--bg); font-weight: 600; position: sticky; top: 0; }
+td.kw { max-width: 360px; }
+.kwp { display: inline-block; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin: 1px; font-family: var(--font-mono); font-size: 12px; }
+tr.fail td { background: var(--crit-soft); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.tile .v { font-family: var(--font-display); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .l { font-size: 13px; color: var(--muted); }
+
+.dbgrid { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .dbgrid { grid-template-columns: 1fr; } }
+.tlist button { display: flex; justify-content: space-between; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.tlist button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tlist .grp { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 10px 10px 4px; }
+
+.req { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.req:last-child { border-bottom: 0; }
+.fb { border-bottom: 1px solid var(--line); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
+.fb:last-child { border-bottom: 0; }
+.notice { background: var(--info-soft); color: var(--ink); border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+.notice.warn { background: var(--warn-soft); }
+.weekrow { display: grid; grid-template-columns: 90px 1fr 1fr; gap: 8px; align-items: center; font-size: 14px; }
+.empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chip { transition: border-color .15s; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Evde Sağlık Test Prototipi</h1>
+      <span class="meta">v0.1 · sentetik Ankara verisi · demo günü 16 Kasım 2026 · teşhis koymaz</span>
+    </div>
+    <nav class="tabs" aria-label="Bölümler">
+      <a href="#senaryo" data-view="senaryo">Senaryo testi</a>
+      <a href="#test-seti" data-view="test-seti">Test seti</a>
+      <a href="#veritabani" data-view="veritabani">Veritabanı</a>
+      <a href="#saglayici" data-view="saglayici">Doktor / hemşire paneli</a>
+      <a href="#geri-bildirim" data-view="geri-bildirim">Eksikler ve notlar <span class="count" id="fbCount">0</span></a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- SENARYO -->
+  <section class="view" id="view-senaryo">
+    <div class="grid-2">
+      <form class="panel stack" id="scnForm" autocomplete="off">
+        <label class="field" for="complaint">Hastanın yazdığı şikayet
+          <textarea id="complaint">Annemin sırtında bası yarası var, pansuman lazım</textarea>
+        </label>
+        <div>
+          <div class="small muted" style="margin-bottom:6px">Hazır örnekler</div>
+          <div class="chips" id="exampleChips"></div>
+        </div>
+        <label class="field" for="patientSel">Hasta (sentetik)
+          <select id="patientSel"></select>
+        </label>
+        <div class="row">
+          <label class="check" for="bedridden"><input type="checkbox" id="bedridden"> Yatağa bağımlı</label>
+          <label class="check" for="hasPlan"><input type="checkbox" id="hasPlan"> Hekim planı / reçete var</label>
+        </div>
+        <label class="field" for="nowSel">Talep saati
+          <select id="nowSel"></select>
+        </label>
+        <fieldset class="stack" style="border:0;padding:0;margin:0;gap:6px">
+          <legend class="small muted" style="margin-bottom:6px;font-weight:500">Hastanın önceliği</legend>
+          <div class="slider"><label for="wC">Yetkinlik</label><input type="range" id="wC" min="0" max="5" value="1"><span id="wCv" class="num">1</span></div>
+          <div class="slider"><label for="wP">Fiyat</label><input type="range" id="wP" min="0" max="5" value="1"><span id="wPv" class="num">1</span></div>
+          <div class="slider"><label for="wS">Hız</label><input type="range" id="wS" min="0" max="5" value="1"><span id="wSv" class="num">1</span></div>
+        </fieldset>
+        <p class="small muted" style="margin:0">Sonuç yazdıkça güncellenir.</p>
+      </form>
+      <div class="stack" id="scnResult"></div>
+    </div>
+  </section>
+
+  <!-- TEST SETİ -->
+  <section class="view" id="view-test-seti">
+    <div class="stack">
+      <div class="tiles" id="evalTiles"></div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>Yeni test cümlesi dene</h2>
+          <span class="small muted">Kurallardan habersiz biri yazarsa ölçüm bağımsız olur</span>
+        </div>
+        <form class="stack" id="newCaseForm" autocomplete="off">
+          <label class="field" for="ncText">Cümle
+            <input type="text" id="ncText" placeholder="ör. Babamın kolu uyuştu, konuşurken kelimeleri karıştırıyor">
+          </label>
+          <div class="row">
+            <label class="check" for="ncBed"><input type="checkbox" id="ncBed"> Yatağa bağımlı</label>
+            <label class="check" for="ncPlan"><input type="checkbox" id="ncPlan"> Hekim planı var</label>
+            <label class="field" for="ncExp" style="flex-direction:row;align-items:center;gap:8px">Beklenen seviye
+              <select id="ncExp" style="width:auto"></select>
+            </label>
+          </div>
+          <div id="ncResult"></div>
+          <div class="row">
+            <button class="btn primary" type="submit" id="ncSave">Test vakası olarak kaydet</button>
+            <span class="small muted" id="ncMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>48 etiketli vaka</h2>
+          <label class="check" for="onlyFail"><input type="checkbox" id="onlyFail"> Yalnızca hatalılar</label>
+        </div>
+        <div class="tablewrap"><table id="evalTable"></table></div>
+      </div>
+      <div class="panel stack">
+        <h2>Keşif cümleleri: bilinen açıklar</h2>
+        <p class="small muted" style="margin:0">Etiketli sete girmemiş, sistemin zayıf yanını gösteren örnekler. Doğru davranışa ekip karar vermeli.</p>
+        <div class="tablewrap"><table id="probeTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERİTABANI -->
+  <section class="view" id="view-veritabani">
+    <div class="dbgrid">
+      <div class="panel tlist" id="tableList"></div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <div><h2 id="tblTitle"></h2><div class="small muted" id="tblDesc"></div></div>
+          <input type="text" id="tblSearch" placeholder="Bu tabloda ara" style="max-width:260px" aria-label="Tabloda ara">
+        </div>
+        <div class="tablewrap" style="max-height:640px"><table id="dbTable"></table></div>
+        <div class="row">
+          <button class="btn" type="button" id="tblReport">Bu tabloda eksik var</button>
+          <span class="small muted">Eksik satırı ya da yanlış kuralı not olarak bırakır.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAĞLAYICI PANELİ -->
+  <section class="view" id="view-saglayici">
+    <div class="stack">
+      <div class="notice">İlk taslak. Doktor ve hemşirenin telefonda göreceği ekranın içeriğini test etmek için. Kabul ettiğiniz talepler yalnızca bu sayfada, sizin tarayıcınızda tutulur; veritabanına yazılmaz.</div>
+      <div class="panel row" style="justify-content:space-between">
+        <label class="field" for="provSel" style="min-width:260px">Sağlayıcı olarak gör
+          <select id="provSel"></select>
+        </label>
+        <div class="row" id="provBadges"></div>
+      </div>
+      <div class="tiles" id="provTiles"></div>
+      <div class="grid-2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+        <div class="panel stack">
+          <div class="row" style="justify-content:space-between"><h2>Bugünkü rotam</h2><span class="small muted" id="provDay"></span></div>
+          <div class="timeline" id="provTimeline"></div>
+          <svg class="map" id="provMap" viewBox="0 0 520 300" role="img" aria-label="Rota haritası"></svg>
+          <div id="provStops"></div>
+        </div>
+        <div class="panel stack">
+          <div class="row" style="justify-content:space-between"><h2>Gelen talepler</h2><span class="small muted">rotama en az yol ekleyen önce</span></div>
+          <div id="provRequests"></div>
+        </div>
+      </div>
+      <div class="grid-2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+        <div class="panel stack">
+          <h2>Çalışma saatlerim</h2>
+          <div class="small muted">Boş saatlerinizi seçin; sistem talepleri yalnızca bu aralıklara yerleştirir.</div>
+          <div class="stack" id="provWeek" style="gap:6px"></div>
+        </div>
+        <div class="panel stack">
+          <h2>Hizmetlerim ve deneyimim</h2>
+          <div class="tablewrap"><table id="provServices"></table></div>
+          <div class="row">
+            <button class="btn" type="button" id="panelReport">Panel için not bırak</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GERİ BİLDİRİM -->
+  <section class="view" id="view-geri-bildirim">
+    <div class="stack">
+      <div class="notice" id="fbStatus">Notlar yükleniyor…</div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>Eksikler ve notlar</h2>
+          <div class="row">
+            <select id="fbFilter" style="width:auto" aria-label="Türe göre süz">
+              <option value="">Tüm türler</option>
+              <option value="yanlis_sonuc">Yanlış sonuç</option>
+              <option value="test_vakasi">Test vakası</option>
+              <option value="veritabani">Veritabanı eksiği</option>
+              <option value="panel">Panel</option>
+              <option value="genel">Genel</option>
+            </select>
+            <button class="btn" type="button" id="fbCopy">Tümünü kopyala</button>
+          </div>
+        </div>
+        <form class="stack" id="fbForm" autocomplete="off">
+          <label class="field" for="fbText">Yeni not
+            <textarea id="fbText" placeholder="ör. Diyaliz hastası için evde hizmet yok; ev tipi periton diyalizi desteği eklenmeli"></textarea>
+          </label>
+          <div class="row">
+            <select id="fbType" style="width:auto" aria-label="Not türü">
+              <option value="genel">Genel</option>
+              <option value="veritabani">Veritabanı eksiği</option>
+              <option value="yanlis_sonuc">Yanlış sonuç</option>
+              <option value="panel">Panel</option>
+            </select>
+            <button class="btn primary" type="submit">Notu kaydet</button>
+            <span class="small muted" id="fbMsg"></span>
+          </div>
+        </form>
+        <div id="fbList"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="dialog" class="panel" role="dialog" aria-modal="true" aria-labelledby="dlgTitle"
+     style="display:none;position:fixed;left:50%;top:12vh;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:20;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+  <form class="stack" id="dlgForm" autocomplete="off">
+    <h2 id="dlgTitle">Not bırak</h2>
+    <div class="small muted" id="dlgContext"></div>
+    <label class="field" for="dlgExp" id="dlgExpWrap">Olması gereken seviye
+      <select id="dlgExp"></select>
+    </label>
+    <label class="field" for="dlgText">Not
+      <textarea id="dlgText" placeholder="Ne eksik ya da yanlış? Kaynağınız varsa ekleyin."></textarea>
+    </label>
+    <div class="row">
+      <button class="btn primary" type="submit">Kaydet</button>
+      <button class="btn" type="button" id="dlgCancel">Vazgeç</button>
+      <span class="small muted" id="dlgMsg"></span>
+    </div>
+  </form>
+</div>
+
+<script>window.EVDE_DATA = {"sources":[{"id":"S01","title":"Bilinç Bozuklukları ve Ciddi Hastalık Durumunda İlk Yardım (modül 7)","publisher":"MEB İlk Yardım","url":"https://ilkyardim.meb.gov.tr/media/husjv502/7-bilin%C3%A7-bozukluklari-ve-ciddi-hastalik-durumunda-ilk-yardim.pdf","kind":"resmi_rehber","accessed":"2026-11-14"},{"id":"S02","title":"Sağlık Bakanlığı inme belirtileri uyarısı (Dünya İnme Günü)","publisher":"Milliyet","url":"https://www.milliyet.com.tr/gundem/saglik-bakanligi-uyardi-iste-inme-belirtileri-ve-yapilmasi-gerekenler-7473581","kind":"haber","accessed":"2026-11-14"},{"id":"S03","title":"Acil çağrı numaraları: ne zaman 112 aranmalı (Türkçe)","publisher":"gesund.bund.de (Almanya Federal Sağlık Bakanlığı portalı)","url":"https://gesund.bund.de/tr/notfallnummern","kind":"resmi_rehber","accessed":"2026-11-14"},{"id":"S04","title":"Göğüs sırt ya da karında ani yırtılır gibi ağrıda 112 (kardiyoloji uzmanı)","publisher":"Diken","url":"https://www.diken.com.tr/gogus-sirt-ya-da-karinda-ani-yirtilir-gibi-agri-varsa-derhal-112yi-arayin/","kind":"haber","accessed":"2026-11-14"},{"id":"S05","title":"Zehirlenme Tanı ve Tedavi Rehberi (UZEM 114)","publisher":"Sağlık Bakanlığı","url":"https://hsgm.saglik.gov.tr/media/attachments/2025/07/03/zehirlenme-tani-ve-tedavi-rehberi.pdf","kind":"resmi_rehber","accessed":"2026-11-14"},{"id":"S06","title":"İlk Yardım veli sunumu: dış kanamalarda ilk yardım","publisher":"MEB (Hatay İHL)","url":"https://hatayihl.meb.k12.tr/meb_iys_dosyalar/31/01/362715/dosyalar/2022_05/05121224_Ilk-Yardim-Veli-Sunumu.pdf","kind":"resmi_rehber","accessed":"2026-11-14"},{"id":"S07","title":"Sağlık Meslek Mensuplarının Serbest Meslek İcrası Hakkında Yönetmelik (RG 29.03.2025/32856)","publisher":"Alomaliye (Resmi Gazete metni)","url":"https://www.alomaliye.com/2025/03/29/saglik-meslek-mensuplarinin-serbest-meslek-icrasi-hakkinda-yonetmelik/","kind":"mevzuat","accessed":"2026-11-14"},{"id":"S08","title":"Serbest meslek yönetmeliği: hekim yönlendirmesi şartı","publisher":"Hukuki Haber","url":"https://www.hukukihaber.net/saglik-meslek-mensuplarina-getirilen-yeni-yukumlulukler","kind":"haber","accessed":"2026-11-14"},{"id":"S09","title":"Evde Sağlık ve Palyatif Bakım Hizmetlerinin Sunumu ve Koordinasyonuna İlişkin Yönetmelik (haber)","publisher":"Milliyet","url":"https://www.milliyet.com.tr/7610337","kind":"haber","accessed":"2026-11-14"},{"id":"S10","title":"Evde Bakım Doktoru hizmet kapsamı","publisher":"Memorial Sağlık Grubu","url":"https://www.memorial.com.tr/tibbi-birimlerimiz/evde-bakim-saglik/evde-bakim-doktoru","kind":"haber","accessed":"2026-11-14"},{"id":"S11","title":"Hemşirelik Yönetmeliği (RG 08.03.2010/27515)","publisher":"Sağlık Bakanlığı","url":"https://esdb.saglik.gov.tr/Eklenti/4174/0/4hemsirelik-yonetmeligipdf.pdf","kind":"mevzuat","accessed":"2026-11-14"},{"id":"S12","title":"A Concise Review of the Home Health Care Routing and Scheduling Problem (Atta vd. 2025)","publisher":"Operations Research Perspectives","url":"https://doi.org/10.1016/j.orp.2025.100347","kind":"makale","accessed":"2026-11-14"},{"id":"S13","title":"Deep transfer learning-based visual classification of pressure injuries stages — PIID veri seti (Ay vd. 2022)","publisher":"Neural Computing & Applications","url":"https://doi.org/10.1007/s00521-022-07274-6","kind":"veri_seti","accessed":"2026-11-14"},{"id":"S14","title":"Evde sağlık eşleştirme — ekip tasarım varsayımı (klinisyen doğrulaması bekliyor)","publisher":"Ekip","url":null,"kind":"tasarim","accessed":"2026-11-14"}],"professions":[{"code":"hekim","name_tr":"Hekim (pratisyen / aile hekimi)","can_diagnose":1,"requires_physician_order":0,"note":"Tanı koyar ve tedavi planı / reçete düzenler","source_id":"S08"},{"code":"uzman_hekim","name_tr":"Uzman hekim","can_diagnose":1,"requires_physician_order":0,"note":"Branşına göre tanı ve tedavi planı","source_id":"S08"},{"code":"hemsire","name_tr":"Hemşire","can_diagnose":0,"requires_physician_order":1,"note":"Serbest çalışmada yalnızca hekimin tanı koyduğu hastaya plan veya reçeteyle hizmet","source_id":"S07"},{"code":"ebe","name_tr":"Ebe","can_diagnose":0,"requires_physician_order":1,"note":"Serbest meslek kapsamına dahil","source_id":"S07"},{"code":"fizyoterapist","name_tr":"Fizyoterapist","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S08"},{"code":"odyolog","name_tr":"Odyolog","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"},{"code":"diyetisyen","name_tr":"Diyetisyen","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"},{"code":"dil_konusma","name_tr":"Dil ve konuşma terapisti","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"},{"code":"ergoterapist","name_tr":"Ergoterapist (iş ve uğraşı terapisti)","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"},{"code":"klinik_psikolog","name_tr":"Klinik psikolog","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"},{"code":"podolog","name_tr":"Podolog","can_diagnose":0,"requires_physician_order":1,"note":"Hekim tanısı ve tedavi planı gerekli","source_id":"S07"}],"services":[{"code":"tele_muayene","name_tr":"Hekimle video görüşme (ön değerlendirme)","category":"tele","duration_min":20,"needs_physician_order":0,"needs_prescription":0,"remote_possible":1,"base_fee_tl":600,"note":"Teşhis ve plan hekimde; ev ziyareti gerekip gerekmediğine hekim karar verir","source_id":"S09"},{"code":"tele_hemsire_destekli","name_tr":"Hemşire evde + hekim videoda","category":"tele","duration_min":40,"needs_physician_order":0,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1400,"note":"Hemşire ölçüm yapar; hekim uzaktan değerlendirir","source_id":"S14"},{"code":"ev_muayene","name_tr":"Hekim ev muayenesi","category":"muayene","duration_min":40,"needs_physician_order":0,"needs_prescription":0,"remote_possible":0,"base_fee_tl":2500,"note":"Özel sektörde evde doktor hizmeti örneği","source_id":"S10"},{"code":"palyatif_degerlendirme","name_tr":"Palyatif bakım / ağrı kontrolü değerlendirmesi","category":"muayene","duration_min":60,"needs_physician_order":0,"needs_prescription":0,"remote_possible":0,"base_fee_tl":3000,"note":"Evde palyatif bakım kapsamı","source_id":"S09"},{"code":"recete_rapor_yenileme","name_tr":"Reçete / rapor yenileme görüşmesi","category":"tele","duration_min":15,"needs_physician_order":0,"needs_prescription":0,"remote_possible":1,"base_fee_tl":400,"note":"Mama ilaç bez raporu yenileme evde sağlık kapsamında","source_id":"S09"},{"code":"kan_alma","name_tr":"Kan alma ve numune teslimi","category":"hemsirelik","duration_min":20,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":700,"note":"Numune alma evde sağlık kapsamında","source_id":"S09"},{"code":"im_enjeksiyon","name_tr":"Kas içi / deri altı enjeksiyon","category":"hemsirelik","duration_min":15,"needs_physician_order":1,"needs_prescription":1,"remote_possible":0,"base_fee_tl":500,"note":"Reçete gerekli","source_id":"S10"},{"code":"iv_serum","name_tr":"Serum takma (IV tedavi)","category":"hemsirelik","duration_min":60,"needs_physician_order":1,"needs_prescription":1,"remote_possible":0,"base_fee_tl":1200,"note":"Reçete gerekli","source_id":"S10"},{"code":"yara_pansuman","name_tr":"Yara bakımı ve pansuman","category":"hemsirelik","duration_min":30,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":800,"note":"Yara ve yanık bakımı evde sağlık kapsamında","source_id":"S09"},{"code":"basi_yarasi_bakimi","name_tr":"Bası yarası bakımı ve evre takibi","category":"hemsirelik","duration_min":40,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1000,"note":"Yatağa bağımlı hastada sık ihtiyaç","source_id":"S09"},{"code":"sonda_bakimi","name_tr":"İdrar sondası takma / bakım","category":"hemsirelik","duration_min":30,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":900,"note":"Sonda işlemleri evde sağlık kapsamında","source_id":"S09"},{"code":"beslenme_tupu_bakimi","name_tr":"Beslenme tüpü (NG / PEG) bakımı","category":"hemsirelik","duration_min":30,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":900,"note":"Sonda ve tüp işlemleri","source_id":"S09"},{"code":"vital_takip","name_tr":"Tansiyon / şeker / oksijen ölçümü ve kayıt","category":"hemsirelik","duration_min":20,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":450,"note":"Kronik hasta takibi","source_id":"S14"},{"code":"fizyoterapi_seansi","name_tr":"Evde fizyoterapi seansı","category":"rehabilitasyon","duration_min":60,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1500,"note":"Evde fizik tedavi örneği","source_id":"S10"},{"code":"solunum_fizyoterapisi","name_tr":"Solunum fizyoterapisi","category":"rehabilitasyon","duration_min":45,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1300,"note":"KOAH / uzun yatış sonrası","source_id":"S14"},{"code":"odyolojik_tarama","name_tr":"Evde işitme taraması","category":"isitme","duration_min":45,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1100,"note":"Odyolog hizmeti","source_id":"S07"},{"code":"isitme_cihazi_ayar","name_tr":"İşitme cihazı ayarı ve bakımı","category":"isitme","duration_min":40,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":900,"note":"Odyolog hizmeti","source_id":"S07"},{"code":"beslenme_degerlendirme","name_tr":"Beslenme değerlendirmesi ve plan","category":"beslenme","duration_min":45,"needs_physician_order":1,"needs_prescription":0,"remote_possible":1,"base_fee_tl":1000,"note":"Diyetisyen hizmeti","source_id":"S07"},{"code":"yutma_degerlendirme","name_tr":"Yutma ve konuşma değerlendirmesi","category":"rehabilitasyon","duration_min":45,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1300,"note":"Dil ve konuşma terapisti","source_id":"S07"},{"code":"ev_guvenligi_dusme","name_tr":"Ev güvenliği ve düşme riski düzenlemesi","category":"rehabilitasyon","duration_min":60,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":1200,"note":"Ergoterapist hizmeti","source_id":"S07"},{"code":"psikolojik_destek","name_tr":"Psikolojik destek görüşmesi","category":"psikoloji","duration_min":50,"needs_physician_order":1,"needs_prescription":0,"remote_possible":1,"base_fee_tl":1500,"note":"Klinik psikolog hizmeti","source_id":"S07"},{"code":"ayak_bakimi","name_tr":"Ayak bakımı (diyabetik ayak dahil)","category":"ayak","duration_min":40,"needs_physician_order":1,"needs_prescription":0,"remote_possible":0,"base_fee_tl":900,"note":"Podolog hizmeti","source_id":"S07"}],"profession_services":[{"profession_code":"hekim","service_code":"tele_muayene","source_id":"S09"},{"profession_code":"hekim","service_code":"ev_muayene","source_id":"S10"},{"profession_code":"hekim","service_code":"palyatif_degerlendirme","source_id":"S09"},{"profession_code":"hekim","service_code":"recete_rapor_yenileme","source_id":"S09"},{"profession_code":"uzman_hekim","service_code":"tele_muayene","source_id":"S09"},{"profession_code":"uzman_hekim","service_code":"ev_muayene","source_id":"S10"},{"profession_code":"uzman_hekim","service_code":"palyatif_degerlendirme","source_id":"S09"},{"profession_code":"hemsire","service_code":"tele_hemsire_destekli","source_id":"S14"},{"profession_code":"hemsire","service_code":"kan_alma","source_id":"S11"},{"profession_code":"hemsire","service_code":"im_enjeksiyon","source_id":"S11"},{"profession_code":"hemsire","service_code":"iv_serum","source_id":"S11"},{"profession_code":"hemsire","service_code":"yara_pansuman","source_id":"S11"},{"profession_code":"hemsire","service_code":"basi_yarasi_bakimi","source_id":"S11"},{"profession_code":"hemsire","service_code":"sonda_bakimi","source_id":"S11"},{"profession_code":"hemsire","service_code":"beslenme_tupu_bakimi","source_id":"S11"},{"profession_code":"hemsire","service_code":"vital_takip","source_id":"S11"},{"profession_code":"ebe","service_code":"kan_alma","source_id":"S07"},{"profession_code":"ebe","service_code":"im_enjeksiyon","source_id":"S07"},{"profession_code":"ebe","service_code":"vital_takip","source_id":"S07"},{"profession_code":"fizyoterapist","service_code":"fizyoterapi_seansi","source_id":"S07"},{"profession_code":"fizyoterapist","service_code":"solunum_fizyoterapisi","source_id":"S07"},{"profession_code":"odyolog","service_code":"odyolojik_tarama","source_id":"S07"},{"profession_code":"odyolog","service_code":"isitme_cihazi_ayar","source_id":"S07"},{"profession_code":"diyetisyen","service_code":"beslenme_degerlendirme","source_id":"S07"},{"profession_code":"dil_konusma","service_code":"yutma_degerlendirme","source_id":"S07"},{"profession_code":"ergoterapist","service_code":"ev_guvenligi_dusme","source_id":"S07"},{"profession_code":"klinik_psikolog","service_code":"psikolojik_destek","source_id":"S07"},{"profession_code":"podolog","service_code":"ayak_bakimi","source_id":"S07"}],"red_flags":[{"code":"RF_BILINC","name_tr":"Bilinç kaybı / yanıt vermeme","keywords":"bilinci kapalı|bilinç kaybı|bilincini kaybet|yanıt vermiyor|tepki vermiyor|uyandıramıyor|kendinde değil","action":"112","message_tr":"Bilinç bozukluğu acil durumdur. Hemen 112'yi arayın.","source_id":"S01"},{"code":"RF_BAYILMA","name_tr":"Bayılma","keywords":"bayıldı|bayılıp|bayılma geçir|bayıldım","action":"112","message_tr":"Bayılma ciddi bir hastalığın belirtisi olabilir. 112'yi arayın.","source_id":"S01"},{"code":"RF_NOBET","name_tr":"Nöbet / kasılma","keywords":"nöbet geçir|havale geçir|kasılıyor|kasılma nöbet|sara nöbet","action":"112","message_tr":"Nöbet sırasında ve sonrasında 112'yi arayın; hastanın başında kalın.","source_id":"S01"},{"code":"RF_COCUK_HAVALE","name_tr":"Çocukta ateşli havale","keywords":"ateşli havale|ateş;havale|bebek;kasıl|çocuk;kasıl","action":"112","message_tr":"Çocukta ateşe bağlı nöbette 112 mutlaka aranır.","source_id":"S01"},{"code":"RF_INME","name_tr":"İnme belirtisi (yüz-kol-konuşma)","keywords":"yüzü kay|ağzı kay|yüzünde kayma|kolunu kaldıramıyor|kolunda güçsüzlük|kolu tutmuyor|konuşması bozul|konuşamıyor|peltek konuş|ani görme kaybı|aniden göremiyor|tek taraf;uyuş|felç geçir|inme geçir","action":"112","message_tr":"İnme şüphesi: her dakika önemli. Hemen 112'yi arayın.","source_id":"S01"},{"code":"RF_BAS_AGRISI","name_tr":"Ani ve çok şiddetli baş ağrısı","keywords":"hayatımın en şiddetli baş ağrısı|ani şiddetli baş ağrısı|aniden başlayan şiddetli baş ağrısı|aniden çok şiddetli baş ağrısı","action":"112","message_tr":"Ani başlayan çok şiddetli baş ağrısı inme belirtisi olabilir. 112'yi arayın.","source_id":"S01"},{"code":"RF_GOGUS","name_tr":"Göğüs ağrısı / baskı / sıkışma","keywords":"göğüs;ağr|göğs;ağr|göğüs;bask|göğs;bask|göğüs;sıkış|göğs;sıkış|göğüs;sıkıl|göğs;sıkıl|göğüs;yanma;terl|göğs;yanma;terl|sol kol;uyuş;terl|kalp krizi|kalbim sıkış","action":"112","message_tr":"Göğüs ağrısı / baskısı kalp krizi belirtisi olabilir. Kendi aracınızla gitmeyin; 112'yi arayın.","source_id":"S03"},{"code":"RF_NEFES_KOTU","name_tr":"Kötüleşen nefes darlığı","keywords":"nefes darlığı;kötüleş|nefes darlığı;artıyor|nefes darlığı;ani|nefes darlığı;geçmiyor|nefes darlığı;ilaca rağmen","action":"112","message_tr":"İlaca rağmen geçmeyen ya da kötüleşen nefes darlığında 112'yi arayın.","source_id":"S01"},{"code":"RF_YIRTILMA","name_tr":"Yırtılır gibi ani ağrı (göğüs / sırt / karın)","keywords":"yırtılır gibi|yırtılıyor gibi","action":"112","message_tr":"Ani yırtılır gibi ağrı damar acili olabilir. Hemen 112'yi arayın.","source_id":"S04"},{"code":"RF_ANAFILAKSI","name_tr":"Şiddetli alerji (anafilaksi)","keywords":"dudağı şiş|dudakları şiş|dudaklarım şiş|dili şiş|dilim şiş|boğazı şiş|boğazım şiş|boğazım kapan|alerji;nefes|arı sok;nefes|göz kapağı şiş;nefes","action":"112","message_tr":"Şiddetli alerji belirtisi. Hemen 112'yi arayın.","source_id":"S01"},{"code":"RF_NEFES","name_tr":"Ağır nefes darlığı / morarma","keywords":"nefes alamıyor|cümle kuramıyor|dudakları morar|dudaklar morar|morarıyor|boğuluyor|nefesi kesil","action":"112","message_tr":"Ağır nefes darlığı acil durumdur. 112'yi arayın.","source_id":"S01"},{"code":"RF_SEKER","name_tr":"Şeker düşüklüğü / yüksekliği + bilinç bulanıklığı","keywords":"şeker;bilinç|şeker;bayıl|şeker;kendinde değil|hipoglisemi;bilinç|aseton koku","action":"112","message_tr":"Kan şekeri acili olabilir. 112'yi arayın.","source_id":"S01"},{"code":"RF_KANAMA","name_tr":"Durmayan / şiddetli kanama","keywords":"kanama durmuyor|durmayan kanama|şiddetli kanama|çok kan kaybı|kan fışkır","action":"112","message_tr":"Şiddetli kanamada bası uygulayın ve 112'yi arayın.","source_id":"S06"},{"code":"RF_ZEHIR","name_tr":"Zehirlenme şüphesi","keywords":"zehirlen|çamaşır suyu iç|fazla ilaç iç|yanlışlıkla ilaç|mantar yedi;bulantı|kimyasal iç","action":"114","message_tr":"Ulusal Zehir Danışma Merkezi 114'ü arayın. Bilinç kaybı nöbet veya nefes sorunu varsa 112.","source_id":"S05"},{"code":"RF_KENDINE_ZARAR","name_tr":"Kendine zarar verme / intihar düşüncesi","keywords":"kendime zarar|kendine zarar|intihar|kendimi öldür|kendini öldür|yaşamak istemiyorum","action":"112","message_tr":"Şu an güvende olmanız önemli. Hemen 112'yi arayın ya da yanınızdaki birinden yardım isteyin.","source_id":"S14"}],"complaint_routes":[{"code":"CR_NEFES","name_tr":"Nefes darlığı (acil bulgu yok)","keywords":"nefes darlığı|nefesim daral|nefesi daral|nefes almakta zorlan","level_no_plan":"TELE","level_with_plan":"TELE","services":"tele_muayene","priority":90,"note":"Yatağa bağımlı hastada hemşire oksijen ölçer; kötüleşirse 112","source_id":"S14"},{"code":"CR_DUSTU","name_tr":"Düşme sonrası ağrı / kalkamama","keywords":"düştü;kalkamıyor|düştü;ağrı|düştü;şiş|düştü;morar","level_no_plan":"HEKIM_EV","level_with_plan":"HEKIM_EV","services":"ev_muayene","priority":85,"note":"Kırık şüphesinde hekim değerlendirmesi önce gelir","source_id":"S14"},{"code":"CR_BASI_YARASI","name_tr":"Bası yarası / yatak yarası","keywords":"bası yarası|yatak yarası|basınç yarası","level_no_plan":"HEKIM_EV","level_with_plan":"PLANLI","services":"basi_yarasi_bakimi","priority":80,"note":"Görüntüden evre takibi ileride (PIID veri seti)","source_id":"S14"},{"code":"CR_SONDA","name_tr":"Sonda / kateter","keywords":"sonda|kateter|idrar torbası","level_no_plan":"HEKIM_EV","level_with_plan":"PLANLI","services":"sonda_bakimi","priority":75,"note":null,"source_id":"S14"},{"code":"CR_TUP","name_tr":"Beslenme tüpü (PEG / NG)","keywords":"peg|mama tüpü|beslenme tüpü|nazogastrik","level_no_plan":"HEKIM_EV","level_with_plan":"PLANLI","services":"beslenme_tupu_bakimi","priority":75,"note":null,"source_id":"S14"},{"code":"CR_PALYATIF","name_tr":"Palyatif bakım / ağrı kontrolü","keywords":"palyatif|ağrı kontrol|kanser;ağrı|ağrı kesici;yetmiyor","level_no_plan":"HEKIM_EV","level_with_plan":"HEKIM_EV","services":"palyatif_degerlendirme","priority":75,"note":null,"source_id":"S14"},{"code":"CR_YUTMA","name_tr":"Yutma güçlüğü","keywords":"yutma güçlüğü|yutamıyor|yutkunam","level_no_plan":"HEKIM_EV","level_with_plan":"PLANLI","services":"yutma_degerlendirme","priority":70,"note":"Ani başlarsa inme açısından hekim önce değerlendirmeli","source_id":"S14"},{"code":"CR_ISITME_CIHAZ","name_tr":"İşitme cihazı sorunu","keywords":"işitme cihaz|kulak cihaz","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"isitme_cihazi_ayar","priority":70,"note":null,"source_id":"S14"},{"code":"CR_SERUM","name_tr":"Serum / damar yolu tedavisi","keywords":"serum|damar yolu|iv tedavi","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"iv_serum","priority":65,"note":"Reçete gerekli","source_id":"S14"},{"code":"CR_IGNE","name_tr":"Enjeksiyon","keywords":"iğne|enjeksiyon|iğnemi","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"im_enjeksiyon","priority":60,"note":"Reçete gerekli","source_id":"S14"},{"code":"CR_KAN","name_tr":"Kan alma / tahlil","keywords":"kan tahlil|kan aldır|tahlil|kan testi|kan verme","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"kan_alma","priority":60,"note":"Hekim istemi gerekli","source_id":"S14"},{"code":"CR_YARA","name_tr":"Yara bakımı / pansuman","keywords":"yara|pansuman|dikiş","level_no_plan":"HEKIM_EV","level_with_plan":"PLANLI","services":"yara_pansuman","priority":55,"note":null,"source_id":"S14"},{"code":"CR_SOLUNUM_FIZYO","name_tr":"Solunum fizyoterapisi","keywords":"solunum egzersiz|balgam çıkaramıyor|koah;egzersiz","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"solunum_fizyoterapisi","priority":55,"note":null,"source_id":"S14"},{"code":"CR_FIZYO","name_tr":"Fizik tedavi / rehabilitasyon","keywords":"fizik tedavi|fizyoterapi|egzersiz|protez sonrası|ameliyat sonrası;yürü|felç sonrası|inme sonrası|yürüme güçlüğü","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"fizyoterapi_seansi","priority":50,"note":null,"source_id":"S14"},{"code":"CR_ISITME","name_tr":"İşitme kaybı","keywords":"işitme|duyamıyor|duymuyor|kulağı ağır","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"odyolojik_tarama","priority":50,"note":"Ani işitme kaybında hekim önce","source_id":"S14"},{"code":"CR_AYAK","name_tr":"Ayak bakımı","keywords":"nasır|tırnak batma|diyabetik ayak|ayak bakım","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"ayak_bakimi","priority":50,"note":"Diyabetik ayakta yara varsa hekim değerlendirmesi","source_id":"S14"},{"code":"CR_DUSME_RISKI","name_tr":"Düşme riski / ev güvenliği","keywords":"düşme risk|sık düşüyor|tutunma|ev düzenle|evde güvenlik","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"ev_guvenligi_dusme","priority":45,"note":null,"source_id":"S14"},{"code":"CR_BESLENME","name_tr":"Beslenme / kilo kaybı","keywords":"kilo kayb|iştahsız|beslenme|yemek yemiyor","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"beslenme_degerlendirme","priority":40,"note":null,"source_id":"S14"},{"code":"CR_VITAL","name_tr":"Tansiyon / şeker / oksijen takibi","keywords":"tansiyon ölç|şeker ölç|şeker takib|tansiyon takib|oksijen ölç|saturasyon","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"vital_takip","priority":40,"note":null,"source_id":"S14"},{"code":"CR_PSIKO","name_tr":"Psikolojik destek","keywords":"kaygı|anksiyete|depres|moralim bozuk|uyuyamıyor|panik atak","level_no_plan":"TELE","level_with_plan":"PLANLI","services":"psikolojik_destek","priority":35,"note":null,"source_id":"S14"},{"code":"CR_RECETE","name_tr":"Reçete / rapor yenileme","keywords":"reçete|rapor yenile|ilaç raporu|mama raporu|bez raporu","level_no_plan":"TELE","level_with_plan":"TELE","services":"recete_rapor_yenileme","priority":30,"note":null,"source_id":"S14"},{"code":"CR_AKUT_HAFIF","name_tr":"Hafif akut şikayet (ateş / öksürük / ishal vb.)","keywords":"ateş|öksürük|boğaz ağr|ishal|kusma|grip|soğuk algınlığı|halsiz|baş ağrı|karın ağrı|bulantı","level_no_plan":"TELE","level_with_plan":"TELE","services":"tele_muayene","priority":20,"note":"Yatağa bağımlı hastada hemşire destekli görüşmeye yükseltilir","source_id":"S14"}],"districts":[{"name":"Çankaya","lat":39.903,"lon":32.8597},{"name":"Keçiören","lat":39.98,"lon":32.864},{"name":"Yenimahalle","lat":39.969,"lon":32.807},{"name":"Mamak","lat":39.93,"lon":32.915},{"name":"Altındağ","lat":39.95,"lon":32.88},{"name":"Etimesgut","lat":39.948,"lon":32.668},{"name":"Sincan","lat":39.97,"lon":32.58},{"name":"Pursaklar","lat":40.038,"lon":32.9},{"name":"Gölbaşı","lat":39.79,"lon":32.805}],"providers":[{"id":"HEM-01","display_name":"Hemşire HEM-01","profession_code":"hemsire","years_experience":8,"rating":4.6,"fee_multiplier":1.02,"home_district":"Keçiören","home_lat":39.97933,"home_lon":32.86951,"licence_verified":1},{"id":"HEM-02","display_name":"Hemşire HEM-02","profession_code":"hemsire","years_experience":12,"rating":4.6,"fee_multiplier":1.12,"home_district":"Etimesgut","home_lat":39.9417,"home_lon":32.67572,"licence_verified":1},{"id":"HEM-03","display_name":"Hemşire HEM-03","profession_code":"hemsire","years_experience":15,"rating":4.3,"fee_multiplier":1.15,"home_district":"Mamak","home_lat":39.91165,"home_lon":32.93744,"licence_verified":1},{"id":"HEM-04","display_name":"Hemşire HEM-04","profession_code":"hemsire","years_experience":19,"rating":4.3,"fee_multiplier":1.29,"home_district":"Sincan","home_lat":39.97339,"home_lon":32.5977,"licence_verified":1},{"id":"HEM-05","display_name":"Hemşire HEM-05","profession_code":"hemsire","years_experience":20,"rating":4.9,"fee_multiplier":1.33,"home_district":"Sincan","home_lat":39.95436,"home_lon":32.59804,"licence_verified":1},{"id":"HEM-06","display_name":"Hemşire HEM-06","profession_code":"hemsire","years_experience":10,"rating":4.5,"fee_multiplier":1.01,"home_district":"Etimesgut","home_lat":39.96044,"home_lon":32.63921,"licence_verified":1},{"id":"HEM-07","display_name":"Hemşire HEM-07","profession_code":"hemsire","years_experience":15,"rating":4.8,"fee_multiplier":1.13,"home_district":"Sincan","home_lat":39.95414,"home_lon":32.55155,"licence_verified":1},{"id":"HEM-08","display_name":"Hemşire HEM-08","profession_code":"hemsire","years_experience":12,"rating":4.3,"fee_multiplier":1.08,"home_district":"Mamak","home_lat":39.92551,"home_lon":32.9059,"licence_verified":1},{"id":"HEM-09","display_name":"Hemşire HEM-09","profession_code":"hemsire","years_experience":13,"rating":4.6,"fee_multiplier":1.06,"home_district":"Sincan","home_lat":39.97425,"home_lon":32.60394,"licence_verified":1},{"id":"HEM-10","display_name":"Hemşire HEM-10","profession_code":"hemsire","years_experience":19,"rating":4.4,"fee_multiplier":1.27,"home_district":"Keçiören","home_lat":39.95625,"home_lon":32.84949,"licence_verified":1},{"id":"HEM-11","display_name":"Hemşire HEM-11","profession_code":"hemsire","years_experience":21,"rating":4.1,"fee_multiplier":1.31,"home_district":"Altındağ","home_lat":39.97107,"home_lon":32.87779,"licence_verified":1},{"id":"HEM-12","display_name":"Hemşire HEM-12","profession_code":"hemsire","years_experience":21,"rating":4.4,"fee_multiplier":1.35,"home_district":"Çankaya","home_lat":39.90321,"home_lon":32.85762,"licence_verified":1},{"id":"HEM-13","display_name":"Hemşire HEM-13","profession_code":"hemsire","years_experience":11,"rating":4.6,"fee_multiplier":1.08,"home_district":"Sincan","home_lat":39.96964,"home_lon":32.57447,"licence_verified":1},{"id":"HEM-14","display_name":"Hemşire HEM-14","profession_code":"hemsire","years_experience":12,"rating":4.2,"fee_multiplier":1.11,"home_district":"Altındağ","home_lat":39.94566,"home_lon":32.87607,"licence_verified":1},{"id":"HEK-01","display_name":"Dr. HEK-01","profession_code":"hekim","years_experience":10,"rating":4.4,"fee_multiplier":1.06,"home_district":"Keçiören","home_lat":39.97287,"home_lon":32.89244,"licence_verified":1},{"id":"HEK-02","display_name":"Dr. HEK-02","profession_code":"hekim","years_experience":10,"rating":4.3,"fee_multiplier":1.02,"home_district":"Altındağ","home_lat":39.95865,"home_lon":32.86057,"licence_verified":1},{"id":"HEK-03","display_name":"Dr. HEK-03","profession_code":"hekim","years_experience":25,"rating":4.8,"fee_multiplier":1.41,"home_district":"Çankaya","home_lat":39.88979,"home_lon":32.86241,"licence_verified":1},{"id":"HEK-04","display_name":"Dr. HEK-04","profession_code":"hekim","years_experience":23,"rating":4.6,"fee_multiplier":1.35,"home_district":"Keçiören","home_lat":39.98464,"home_lon":32.89452,"licence_verified":1},{"id":"HEK-05","display_name":"Dr. HEK-05","profession_code":"hekim","years_experience":17,"rating":3.9,"fee_multiplier":1.2,"home_district":"Pursaklar","home_lat":40.03394,"home_lon":32.87288,"licence_verified":1},{"id":"HEK-06","display_name":"Dr. HEK-06","profession_code":"hekim","years_experience":15,"rating":4.8,"fee_multiplier":1.12,"home_district":"Gölbaşı","home_lat":39.79127,"home_lon":32.82943,"licence_verified":1},{"id":"UZM-01","display_name":"Uzm. Dr. UZM-01","profession_code":"uzman_hekim","years_experience":10,"rating":4.5,"fee_multiplier":1.09,"home_district":"Sincan","home_lat":39.98747,"home_lon":32.57143,"licence_verified":1},{"id":"UZM-02","display_name":"Uzm. Dr. UZM-02","profession_code":"uzman_hekim","years_experience":19,"rating":3.9,"fee_multiplier":1.27,"home_district":"Gölbaşı","home_lat":39.78651,"home_lon":32.80857,"licence_verified":1},{"id":"EBE-01","display_name":"Ebe EBE-01","profession_code":"ebe","years_experience":8,"rating":4.2,"fee_multiplier":1.01,"home_district":"Gölbaşı","home_lat":39.79589,"home_lon":32.80261,"licence_verified":1},{"id":"EBE-02","display_name":"Ebe EBE-02","profession_code":"ebe","years_experience":13,"rating":4.1,"fee_multiplier":1.1,"home_district":"Altındağ","home_lat":39.96718,"home_lon":32.86539,"licence_verified":1},{"id":"FIZ-01","display_name":"Fzt. FIZ-01","profession_code":"fizyoterapist","years_experience":4,"rating":4.6,"fee_multiplier":0.85,"home_district":"Altındağ","home_lat":39.92988,"home_lon":32.86082,"licence_verified":1},{"id":"FIZ-02","display_name":"Fzt. FIZ-02","profession_code":"fizyoterapist","years_experience":24,"rating":4.1,"fee_multiplier":1.39,"home_district":"Gölbaşı","home_lat":39.76679,"home_lon":32.81178,"licence_verified":1},{"id":"FIZ-03","display_name":"Fzt. FIZ-03","profession_code":"fizyoterapist","years_experience":22,"rating":4.4,"fee_multiplier":1.36,"home_district":"Mamak","home_lat":39.90881,"home_lon":32.90203,"licence_verified":1},{"id":"FIZ-04","display_name":"Fzt. FIZ-04","profession_code":"fizyoterapist","years_experience":8,"rating":4.5,"fee_multiplier":0.98,"home_district":"Pursaklar","home_lat":40.05807,"home_lon":32.91735,"licence_verified":1},{"id":"FIZ-05","display_name":"Fzt. FIZ-05","profession_code":"fizyoterapist","years_experience":24,"rating":4.1,"fee_multiplier":1.39,"home_district":"Mamak","home_lat":39.91749,"home_lon":32.91663,"licence_verified":0},{"id":"ODY-01","display_name":"Ody. ODY-01","profession_code":"odyolog","years_experience":2,"rating":4.2,"fee_multiplier":0.82,"home_district":"Pursaklar","home_lat":40.04519,"home_lon":32.92146,"licence_verified":1},{"id":"ODY-02","display_name":"Ody. ODY-02","profession_code":"odyolog","years_experience":10,"rating":4.4,"fee_multiplier":1.09,"home_district":"Altındağ","home_lat":39.97502,"home_lon":32.87795,"licence_verified":1},{"id":"DIY-01","display_name":"Dyt. DIY-01","profession_code":"diyetisyen","years_experience":6,"rating":4.5,"fee_multiplier":0.89,"home_district":"Yenimahalle","home_lat":39.95646,"home_lon":32.80146,"licence_verified":1},{"id":"DIY-02","display_name":"Dyt. DIY-02","profession_code":"diyetisyen","years_experience":6,"rating":4.6,"fee_multiplier":0.98,"home_district":"Altındağ","home_lat":39.97214,"home_lon":32.8939,"licence_verified":1},{"id":"DIL-01","display_name":"DKT DIL-01","profession_code":"dil_konusma","years_experience":16,"rating":4.1,"fee_multiplier":1.18,"home_district":"Sincan","home_lat":39.94376,"home_lon":32.5799,"licence_verified":1},{"id":"DIL-02","display_name":"DKT DIL-02","profession_code":"dil_konusma","years_experience":19,"rating":4.4,"fee_multiplier":1.28,"home_district":"Çankaya","home_lat":39.91093,"home_lon":32.85718,"licence_verified":1},{"id":"ERG-01","display_name":"Ergoterapist ERG-01","profession_code":"ergoterapist","years_experience":23,"rating":4.5,"fee_multiplier":1.35,"home_district":"Keçiören","home_lat":39.96797,"home_lon":32.89264,"licence_verified":1},{"id":"ERG-02","display_name":"Ergoterapist ERG-02","profession_code":"ergoterapist","years_experience":17,"rating":4.2,"fee_multiplier":1.22,"home_district":"Gölbaşı","home_lat":39.80731,"home_lon":32.81299,"licence_verified":1},{"id":"KLI-01","display_name":"Psk. KLI-01","profession_code":"klinik_psikolog","years_experience":1,"rating":4.9,"fee_multiplier":0.87,"home_district":"Pursaklar","home_lat":40.01275,"home_lon":32.90318,"licence_verified":1},{"id":"KLI-02","display_name":"Psk. KLI-02","profession_code":"klinik_psikolog","years_experience":8,"rating":4.3,"fee_multiplier":0.96,"home_district":"Sincan","home_lat":39.9945,"home_lon":32.57601,"licence_verified":1},{"id":"POD-01","display_name":"Podolog POD-01","profession_code":"podolog","years_experience":11,"rating":4.5,"fee_multiplier":1.11,"home_district":"Altındağ","home_lat":39.96449,"home_lon":32.85544,"licence_verified":1},{"id":"POD-02","display_name":"Podolog POD-02","profession_code":"podolog","years_experience":16,"rating":4.3,"fee_multiplier":1.19,"home_district":"Pursaklar","home_lat":40.01426,"home_lon":32.91082,"licence_verified":1}],"provider_services":[{"provider_id":"HEM-01","service_code":"basi_yarasi_bakimi","visits_done":23},{"provider_id":"HEM-01","service_code":"beslenme_tupu_bakimi","visits_done":19},{"provider_id":"HEM-01","service_code":"im_enjeksiyon","visits_done":62},{"provider_id":"HEM-01","service_code":"iv_serum","visits_done":41},{"provider_id":"HEM-01","service_code":"kan_alma","visits_done":17},{"provider_id":"HEM-01","service_code":"sonda_bakimi","visits_done":23},{"provider_id":"HEM-01","service_code":"yara_pansuman","visits_done":19},{"provider_id":"HEM-02","service_code":"im_enjeksiyon","visits_done":42},{"provider_id":"HEM-02","service_code":"kan_alma","visits_done":54},{"provider_id":"HEM-02","service_code":"sonda_bakimi","visits_done":24},{"provider_id":"HEM-02","service_code":"vital_takip","visits_done":28},{"provider_id":"HEM-03","service_code":"basi_yarasi_bakimi","visits_done":59},{"provider_id":"HEM-03","service_code":"im_enjeksiyon","visits_done":51},{"provider_id":"HEM-03","service_code":"iv_serum","visits_done":64},{"provider_id":"HEM-03","service_code":"kan_alma","visits_done":103},{"provider_id":"HEM-03","service_code":"tele_hemsire_destekli","visits_done":81},{"provider_id":"HEM-03","service_code":"vital_takip","visits_done":35},{"provider_id":"HEM-04","service_code":"basi_yarasi_bakimi","visits_done":173},{"provider_id":"HEM-04","service_code":"beslenme_tupu_bakimi","visits_done":53},{"provider_id":"HEM-04","service_code":"iv_serum","visits_done":44},{"provider_id":"HEM-04","service_code":"kan_alma","visits_done":2083},{"provider_id":"HEM-04","service_code":"sonda_bakimi","visits_done":61},{"provider_id":"HEM-04","service_code":"tele_hemsire_destekli","visits_done":40},{"provider_id":"HEM-04","service_code":"vital_takip","visits_done":39},{"provider_id":"HEM-04","service_code":"yara_pansuman","visits_done":41},{"provider_id":"HEM-05","service_code":"basi_yarasi_bakimi","visits_done":310},{"provider_id":"HEM-05","service_code":"im_enjeksiyon","visits_done":160},{"provider_id":"HEM-05","service_code":"iv_serum","visits_done":49},{"provider_id":"HEM-05","service_code":"kan_alma","visits_done":63},{"provider_id":"HEM-05","service_code":"sonda_bakimi","visits_done":45},{"provider_id":"HEM-05","service_code":"tele_hemsire_destekli","visits_done":203},{"provider_id":"HEM-05","service_code":"vital_takip","visits_done":156},{"provider_id":"HEM-05","service_code":"yara_pansuman","visits_done":50},{"provider_id":"HEM-06","service_code":"basi_yarasi_bakimi","visits_done":22},{"provider_id":"HEM-06","service_code":"beslenme_tupu_bakimi","visits_done":32},{"provider_id":"HEM-06","service_code":"sonda_bakimi","visits_done":37},{"provider_id":"HEM-06","service_code":"tele_hemsire_destekli","visits_done":184},{"provider_id":"HEM-06","service_code":"vital_takip","visits_done":116},{"provider_id":"HEM-07","service_code":"basi_yarasi_bakimi","visits_done":48},{"provider_id":"HEM-07","service_code":"beslenme_tupu_bakimi","visits_done":37},{"provider_id":"HEM-07","service_code":"im_enjeksiyon","visits_done":46},{"provider_id":"HEM-07","service_code":"iv_serum","visits_done":50},{"provider_id":"HEM-07","service_code":"sonda_bakimi","visits_done":70},{"provider_id":"HEM-07","service_code":"tele_hemsire_destekli","visits_done":124},{"provider_id":"HEM-07","service_code":"vital_takip","visits_done":53},{"provider_id":"HEM-07","service_code":"yara_pansuman","visits_done":36},{"provider_id":"HEM-08","service_code":"beslenme_tupu_bakimi","visits_done":35},{"provider_id":"HEM-08","service_code":"iv_serum","visits_done":34},{"provider_id":"HEM-08","service_code":"kan_alma","visits_done":29},{"provider_id":"HEM-08","service_code":"sonda_bakimi","visits_done":29},{"provider_id":"HEM-08","service_code":"vital_takip","visits_done":132},{"provider_id":"HEM-08","service_code":"yara_pansuman","visits_done":35},{"provider_id":"HEM-09","service_code":"im_enjeksiyon","visits_done":30},{"provider_id":"HEM-09","service_code":"iv_serum","visits_done":27},{"provider_id":"HEM-09","service_code":"tele_hemsire_destekli","visits_done":63},{"provider_id":"HEM-09","service_code":"vital_takip","visits_done":27},{"provider_id":"HEM-09","service_code":"yara_pansuman","visits_done":33},{"provider_id":"HEM-10","service_code":"basi_yarasi_bakimi","visits_done":48},{"provider_id":"HEM-10","service_code":"beslenme_tupu_bakimi","visits_done":48},{"provider_id":"HEM-10","service_code":"im_enjeksiyon","visits_done":96},{"provider_id":"HEM-10","service_code":"kan_alma","visits_done":39},{"provider_id":"HEM-10","service_code":"tele_hemsire_destekli","visits_done":57},{"provider_id":"HEM-10","service_code":"vital_takip","visits_done":2842},{"provider_id":"HEM-10","service_code":"yara_pansuman","visits_done":1532},{"provider_id":"HEM-11","service_code":"basi_yarasi_bakimi","visits_done":91},{"provider_id":"HEM-11","service_code":"im_enjeksiyon","visits_done":150},{"provider_id":"HEM-11","service_code":"sonda_bakimi","visits_done":67},{"provider_id":"HEM-11","service_code":"tele_hemsire_destekli","visits_done":50},{"provider_id":"HEM-11","service_code":"vital_takip","visits_done":206},{"provider_id":"HEM-11","service_code":"yara_pansuman","visits_done":43},{"provider_id":"HEM-12","service_code":"basi_yarasi_bakimi","visits_done":71},{"provider_id":"HEM-12","service_code":"im_enjeksiyon","visits_done":61},{"provider_id":"HEM-12","service_code":"iv_serum","visits_done":43},{"provider_id":"HEM-12","service_code":"sonda_bakimi","visits_done":56},{"provider_id":"HEM-12","service_code":"tele_hemsire_destekli","visits_done":254},{"provider_id":"HEM-12","service_code":"vital_takip","visits_done":457},{"provider_id":"HEM-12","service_code":"yara_pansuman","visits_done":43},{"provider_id":"HEM-13","service_code":"basi_yarasi_bakimi","visits_done":69},{"provider_id":"HEM-13","service_code":"beslenme_tupu_bakimi","visits_done":86},{"provider_id":"HEM-13","service_code":"iv_serum","visits_done":26},{"provider_id":"HEM-13","service_code":"kan_alma","visits_done":45},{"provider_id":"HEM-13","service_code":"sonda_bakimi","visits_done":30},{"provider_id":"HEM-13","service_code":"tele_hemsire_destekli","visits_done":27},{"provider_id":"HEM-13","service_code":"yara_pansuman","visits_done":23},{"provider_id":"HEM-14","service_code":"basi_yarasi_bakimi","visits_done":55},{"provider_id":"HEM-14","service_code":"beslenme_tupu_bakimi","visits_done":59},{"provider_id":"HEM-14","service_code":"im_enjeksiyon","visits_done":50},{"provider_id":"HEM-14","service_code":"iv_serum","visits_done":32},{"provider_id":"HEM-14","service_code":"kan_alma","visits_done":25},{"provider_id":"HEM-14","service_code":"tele_hemsire_destekli","visits_done":49},{"provider_id":"HEM-14","service_code":"yara_pansuman","visits_done":31},{"provider_id":"HEK-01","service_code":"ev_muayene","visits_done":23},{"provider_id":"HEK-01","service_code":"palyatif_degerlendirme","visits_done":41},{"provider_id":"HEK-01","service_code":"recete_rapor_yenileme","visits_done":27},{"provider_id":"HEK-01","service_code":"tele_muayene","visits_done":50},{"provider_id":"HEK-02","service_code":"ev_muayene","visits_done":35},{"provider_id":"HEK-02","service_code":"palyatif_degerlendirme","visits_done":40},{"provider_id":"HEK-02","service_code":"recete_rapor_yenileme","visits_done":30},{"provider_id":"HEK-02","service_code":"tele_muayene","visits_done":29},{"provider_id":"HEK-03","service_code":"ev_muayene","visits_done":110},{"provider_id":"HEK-03","service_code":"palyatif_degerlendirme","visits_done":78},{"provider_id":"HEK-03","service_code":"recete_rapor_yenileme","visits_done":60},{"provider_id":"HEK-03","service_code":"tele_muayene","visits_done":101},{"provider_id":"HEK-04","service_code":"ev_muayene","visits_done":55},{"provider_id":"HEK-04","service_code":"palyatif_degerlendirme","visits_done":161},{"provider_id":"HEK-04","service_code":"recete_rapor_yenileme","visits_done":69},{"provider_id":"HEK-04","service_code":"tele_muayene","visits_done":135},{"provider_id":"HEK-05","service_code":"ev_muayene","visits_done":127},{"provider_id":"HEK-05","service_code":"palyatif_degerlendirme","visits_done":50},{"provider_id":"HEK-05","service_code":"recete_rapor_yenileme","visits_done":86},{"provider_id":"HEK-05","service_code":"tele_muayene","visits_done":115},{"provider_id":"HEK-06","service_code":"ev_muayene","visits_done":37},{"provider_id":"HEK-06","service_code":"palyatif_degerlendirme","visits_done":38},{"provider_id":"HEK-06","service_code":"recete_rapor_yenileme","visits_done":50},{"provider_id":"HEK-06","service_code":"tele_muayene","visits_done":33},{"provider_id":"UZM-01","service_code":"ev_muayene","visits_done":50},{"provider_id":"UZM-01","service_code":"palyatif_degerlendirme","visits_done":33},{"provider_id":"UZM-01","service_code":"tele_muayene","visits_done":37},{"provider_id":"UZM-02","service_code":"ev_muayene","visits_done":55},{"provider_id":"UZM-02","service_code":"palyatif_degerlendirme","visits_done":145},{"provider_id":"UZM-02","service_code":"tele_muayene","visits_done":43},{"provider_id":"EBE-01","service_code":"im_enjeksiyon","visits_done":117},{"provider_id":"EBE-01","service_code":"kan_alma","visits_done":18},{"provider_id":"EBE-01","service_code":"vital_takip","visits_done":16},{"provider_id":"EBE-02","service_code":"im_enjeksiyon","visits_done":27},{"provider_id":"EBE-02","service_code":"kan_alma","visits_done":56},{"provider_id":"EBE-02","service_code":"vital_takip","visits_done":50},{"provider_id":"FIZ-01","service_code":"fizyoterapi_seansi","visits_done":16},{"provider_id":"FIZ-01","service_code":"solunum_fizyoterapisi","visits_done":8},{"provider_id":"FIZ-02","service_code":"fizyoterapi_seansi","visits_done":57},{"provider_id":"FIZ-02","service_code":"solunum_fizyoterapisi","visits_done":295},{"provider_id":"FIZ-03","service_code":"fizyoterapi_seansi","visits_done":51},{"provider_id":"FIZ-03","service_code":"solunum_fizyoterapisi","visits_done":127},{"provider_id":"FIZ-04","service_code":"fizyoterapi_seansi","visits_done":33},{"provider_id":"FIZ-04","service_code":"solunum_fizyoterapisi","visits_done":21},{"provider_id":"FIZ-05","service_code":"fizyoterapi_seansi","visits_done":158},{"provider_id":"FIZ-05","service_code":"solunum_fizyoterapisi","visits_done":60},{"provider_id":"ODY-01","service_code":"isitme_cihazi_ayar","visits_done":4},{"provider_id":"ODY-01","service_code":"odyolojik_tarama","visits_done":4},{"provider_id":"ODY-02","service_code":"isitme_cihazi_ayar","visits_done":52},{"provider_id":"ODY-02","service_code":"odyolojik_tarama","visits_done":38},{"provider_id":"DIY-01","service_code":"beslenme_degerlendirme","visits_done":21},{"provider_id":"DIY-02","service_code":"beslenme_degerlendirme","visits_done":17},{"provider_id":"DIL-01","service_code":"yutma_degerlendirme","visits_done":138},{"provider_id":"DIL-02","service_code":"yutma_degerlendirme","visits_done":67},{"provider_id":"ERG-01","service_code":"ev_guvenligi_dusme","visits_done":64},{"provider_id":"ERG-02","service_code":"ev_guvenligi_dusme","visits_done":39},{"provider_id":"KLI-01","service_code":"psikolojik_destek","visits_done":2},{"provider_id":"KLI-02","service_code":"psikolojik_destek","visits_done":39},{"provider_id":"POD-01","service_code":"ayak_bakimi","visits_done":69},{"provider_id":"POD-02","service_code":"ayak_bakimi","visits_done":41}],"availability":[{"provider_id":"HEM-01","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEM-02","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEM-03","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"HEM-04","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEM-05","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEM-06","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEM-07","date":"2026-11-16","start_min":600,"end_min":1140},{"provider_id":"HEM-08","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"HEM-09","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"HEM-10","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"HEM-11","date":"2026-11-16","start_min":600,"end_min":1140},{"provider_id":"HEM-12","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEM-13","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEM-14","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEK-01","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEK-02","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"HEK-03","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"HEK-04","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEK-05","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"HEK-06","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"UZM-01","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"UZM-02","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"EBE-01","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"EBE-02","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"FIZ-01","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"FIZ-02","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"FIZ-03","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"FIZ-04","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"FIZ-05","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"ODY-01","date":"2026-11-16","start_min":600,"end_min":1140},{"provider_id":"ODY-02","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"DIY-01","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"DIY-02","date":"2026-11-16","start_min":600,"end_min":1140},{"provider_id":"DIL-01","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"DIL-02","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"ERG-01","date":"2026-11-16","start_min":540,"end_min":780},{"provider_id":"ERG-02","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"KLI-01","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"KLI-02","date":"2026-11-16","start_min":780,"end_min":1200},{"provider_id":"POD-01","date":"2026-11-16","start_min":540,"end_min":1020},{"provider_id":"POD-02","date":"2026-11-16","start_min":780,"end_min":1200}],"scheduled_visits":[{"id":"V033","provider_id":"FIZ-05","date":"2026-11-16","start_min":540,"duration_min":60,"lat":39.94863,"lon":32.91104,"service_code":"fizyoterapi_seansi"},{"id":"V020","provider_id":"UZM-02","date":"2026-11-16","start_min":553,"duration_min":60,"lat":39.80523,"lon":32.7863,"service_code":"palyatif_degerlendirme"},{"id":"V007","provider_id":"HEM-12","date":"2026-11-16","start_min":555,"duration_min":40,"lat":39.88307,"lon":32.84943,"service_code":"basi_yarasi_bakimi"},{"id":"V039","provider_id":"DIY-01","date":"2026-11-16","start_min":558,"duration_min":45,"lat":39.94004,"lon":32.81823,"service_code":"beslenme_degerlendirme"},{"id":"V044","provider_id":"ERG-01","date":"2026-11-16","start_min":560,"duration_min":60,"lat":39.98173,"lon":32.84815,"service_code":"ev_guvenligi_dusme"},{"id":"V025","provider_id":"FIZ-01","date":"2026-11-16","start_min":566,"duration_min":60,"lat":39.93463,"lon":32.90357,"service_code":"fizyoterapi_seansi"},{"id":"V003","provider_id":"HEM-09","date":"2026-11-16","start_min":572,"duration_min":60,"lat":39.96142,"lon":32.57945,"service_code":"iv_serum"},{"id":"V005","provider_id":"HEM-10","date":"2026-11-16","start_min":572,"duration_min":30,"lat":40.00551,"lon":32.83308,"service_code":"beslenme_tupu_bakimi"},{"id":"V010","provider_id":"HEM-13","date":"2026-11-16","start_min":572,"duration_min":40,"lat":39.93523,"lon":32.56949,"service_code":"tele_hemsire_destekli"},{"id":"V002","provider_id":"HEM-08","date":"2026-11-16","start_min":574,"duration_min":30,"lat":39.95016,"lon":32.87819,"service_code":"beslenme_tupu_bakimi"},{"id":"V027","provider_id":"FIZ-03","date":"2026-11-16","start_min":578,"duration_min":45,"lat":39.90328,"lon":32.91135,"service_code":"solunum_fizyoterapisi"},{"id":"V030","provider_id":"FIZ-04","date":"2026-11-16","start_min":587,"duration_min":45,"lat":40.01752,"lon":32.908,"service_code":"solunum_fizyoterapisi"},{"id":"V036","provider_id":"ODY-01","date":"2026-11-16","start_min":640,"duration_min":40,"lat":40.04326,"lon":32.883,"service_code":"isitme_cihazi_ayar"},{"id":"V011","provider_id":"HEM-13","date":"2026-11-16","start_min":655,"duration_min":40,"lat":39.96762,"lon":32.62393,"service_code":"basi_yarasi_bakimi"},{"id":"V040","provider_id":"DIY-01","date":"2026-11-16","start_min":672,"duration_min":45,"lat":39.94639,"lon":32.77748,"service_code":"beslenme_degerlendirme"},{"id":"V006","provider_id":"HEM-10","date":"2026-11-16","start_min":673,"duration_min":15,"lat":39.9622,"lon":32.87351,"service_code":"im_enjeksiyon"},{"id":"V008","provider_id":"HEM-12","date":"2026-11-16","start_min":687,"duration_min":40,"lat":39.93086,"lon":32.84141,"service_code":"tele_hemsire_destekli"},{"id":"V028","provider_id":"FIZ-03","date":"2026-11-16","start_min":687,"duration_min":60,"lat":39.91527,"lon":32.9278,"service_code":"fizyoterapi_seansi"},{"id":"V021","provider_id":"UZM-02","date":"2026-11-16","start_min":688,"duration_min":60,"lat":39.80576,"lon":32.81659,"service_code":"palyatif_degerlendirme"},{"id":"V004","provider_id":"HEM-09","date":"2026-11-16","start_min":695,"duration_min":15,"lat":39.95741,"lon":32.54766,"service_code":"im_enjeksiyon"},{"id":"V034","provider_id":"FIZ-05","date":"2026-11-16","start_min":710,"duration_min":45,"lat":39.95111,"lon":32.94297,"service_code":"solunum_fizyoterapisi"},{"id":"V031","provider_id":"FIZ-04","date":"2026-11-16","start_min":711,"duration_min":45,"lat":40.0349,"lon":32.87777,"service_code":"solunum_fizyoterapisi"},{"id":"V026","provider_id":"FIZ-01","date":"2026-11-16","start_min":724,"duration_min":60,"lat":39.94758,"lon":32.84914,"service_code":"fizyoterapi_seansi"},{"id":"V037","provider_id":"ODY-01","date":"2026-11-16","start_min":758,"duration_min":40,"lat":40.06443,"lon":32.93179,"service_code":"isitme_cihazi_ayar"},{"id":"V045","provider_id":"KLI-01","date":"2026-11-16","start_min":780,"duration_min":50,"lat":40.04899,"lon":32.8993,"service_code":"psikolojik_destek"},{"id":"V041","provider_id":"DIY-01","date":"2026-11-16","start_min":782,"duration_min":45,"lat":39.97092,"lon":32.82273,"service_code":"beslenme_degerlendirme"},{"id":"V015","provider_id":"HEK-06","date":"2026-11-16","start_min":789,"duration_min":60,"lat":39.78236,"lon":32.81152,"service_code":"palyatif_degerlendirme"},{"id":"V009","provider_id":"HEM-12","date":"2026-11-16","start_min":797,"duration_min":30,"lat":39.90748,"lon":32.84169,"service_code":"yara_pansuman"},{"id":"V018","provider_id":"UZM-01","date":"2026-11-16","start_min":797,"duration_min":60,"lat":39.96684,"lon":32.58687,"service_code":"palyatif_degerlendirme"},{"id":"V022","provider_id":"EBE-01","date":"2026-11-16","start_min":810,"duration_min":15,"lat":39.79541,"lon":32.83951,"service_code":"im_enjeksiyon"},{"id":"V042","provider_id":"DIL-02","date":"2026-11-16","start_min":821,"duration_min":45,"lat":39.8898,"lon":32.84948,"service_code":"yutma_degerlendirme"},{"id":"V001","provider_id":"HEM-05","date":"2026-11-16","start_min":828,"duration_min":40,"lat":39.94218,"lon":32.5826,"service_code":"basi_yarasi_bakimi"},{"id":"V012","provider_id":"HEK-02","date":"2026-11-16","start_min":830,"duration_min":60,"lat":39.94384,"lon":32.9173,"service_code":"palyatif_degerlendirme"},{"id":"V032","provider_id":"FIZ-04","date":"2026-11-16","start_min":836,"duration_min":60,"lat":40.06759,"lon":32.88768,"service_code":"fizyoterapi_seansi"},{"id":"V035","provider_id":"FIZ-05","date":"2026-11-16","start_min":857,"duration_min":60,"lat":39.89992,"lon":32.8953,"service_code":"fizyoterapi_seansi"},{"id":"V029","provider_id":"FIZ-03","date":"2026-11-16","start_min":858,"duration_min":60,"lat":39.91178,"lon":32.88401,"service_code":"fizyoterapi_seansi"},{"id":"V046","provider_id":"KLI-01","date":"2026-11-16","start_min":884,"duration_min":50,"lat":40.01698,"lon":32.86333,"service_code":"psikolojik_destek"},{"id":"V038","provider_id":"ODY-01","date":"2026-11-16","start_min":891,"duration_min":40,"lat":40.01481,"lon":32.92831,"service_code":"isitme_cihazi_ayar"},{"id":"V023","provider_id":"EBE-01","date":"2026-11-16","start_min":897,"duration_min":20,"lat":39.77847,"lon":32.79301,"service_code":"kan_alma"},{"id":"V019","provider_id":"UZM-01","date":"2026-11-16","start_min":948,"duration_min":20,"lat":39.95567,"lon":32.58389,"service_code":"tele_muayene"},{"id":"V016","provider_id":"HEK-06","date":"2026-11-16","start_min":958,"duration_min":20,"lat":39.79623,"lon":32.83413,"service_code":"tele_muayene"},{"id":"V043","provider_id":"DIL-02","date":"2026-11-16","start_min":968,"duration_min":45,"lat":39.88228,"lon":32.87724,"service_code":"yutma_degerlendirme"},{"id":"V024","provider_id":"EBE-01","date":"2026-11-16","start_min":971,"duration_min":15,"lat":39.81754,"lon":32.83394,"service_code":"im_enjeksiyon"},{"id":"V047","provider_id":"KLI-01","date":"2026-11-16","start_min":993,"duration_min":50,"lat":40.02895,"lon":32.94389,"service_code":"psikolojik_destek"},{"id":"V013","provider_id":"HEK-02","date":"2026-11-16","start_min":1009,"duration_min":15,"lat":39.96052,"lon":32.87573,"service_code":"recete_rapor_yenileme"},{"id":"V017","provider_id":"HEK-06","date":"2026-11-16","start_min":1071,"duration_min":20,"lat":39.76039,"lon":32.78251,"service_code":"tele_muayene"},{"id":"V014","provider_id":"HEK-02","date":"2026-11-16","start_min":1094,"duration_min":15,"lat":39.95537,"lon":32.90115,"service_code":"recete_rapor_yenileme"}],"patients":[{"id":"P01","district":"Mamak","lat":39.93211,"lon":32.94151,"bedridden":0,"has_physician_plan":1},{"id":"P02","district":"Pursaklar","lat":40.04654,"lon":32.87253,"bedridden":0,"has_physician_plan":0},{"id":"P03","district":"Yenimahalle","lat":39.98751,"lon":32.81272,"bedridden":0,"has_physician_plan":0},{"id":"P04","district":"Keçiören","lat":39.95649,"lon":32.87608,"bedridden":0,"has_physician_plan":1},{"id":"P05","district":"Yenimahalle","lat":39.95925,"lon":32.78834,"bedridden":1,"has_physician_plan":1},{"id":"P06","district":"Altındağ","lat":39.94446,"lon":32.8608,"bedridden":0,"has_physician_plan":0},{"id":"P07","district":"Gölbaşı","lat":39.78322,"lon":32.82481,"bedridden":0,"has_physician_plan":0},{"id":"P08","district":"Gölbaşı","lat":39.79465,"lon":32.80778,"bedridden":0,"has_physician_plan":0},{"id":"P09","district":"Mamak","lat":39.90863,"lon":32.92728,"bedridden":1,"has_physician_plan":0},{"id":"P10","district":"Keçiören","lat":39.9738,"lon":32.84195,"bedridden":0,"has_physician_plan":1},{"id":"P11","district":"Çankaya","lat":39.89266,"lon":32.87321,"bedridden":1,"has_physician_plan":0},{"id":"P12","district":"Yenimahalle","lat":39.9788,"lon":32.81392,"bedridden":0,"has_physician_plan":0},{"id":"P13","district":"Mamak","lat":39.91348,"lon":32.90259,"bedridden":1,"has_physician_plan":0},{"id":"P14","district":"Pursaklar","lat":40.05163,"lon":32.90105,"bedridden":0,"has_physician_plan":0},{"id":"P15","district":"Gölbaşı","lat":39.77997,"lon":32.81,"bedridden":1,"has_physician_plan":0},{"id":"P16","district":"Sincan","lat":39.94837,"lon":32.58785,"bedridden":1,"has_physician_plan":0},{"id":"P17","district":"Pursaklar","lat":40.03151,"lon":32.90782,"bedridden":0,"has_physician_plan":1},{"id":"P18","district":"Altındağ","lat":39.95193,"lon":32.87542,"bedridden":0,"has_physician_plan":1},{"id":"P19","district":"Çankaya","lat":39.90222,"lon":32.8261,"bedridden":0,"has_physician_plan":0},{"id":"P20","district":"Mamak","lat":39.91738,"lon":32.93698,"bedridden":0,"has_physician_plan":0},{"id":"P21","district":"Yenimahalle","lat":39.9866,"lon":32.79106,"bedridden":0,"has_physician_plan":1},{"id":"P22","district":"Pursaklar","lat":40.03474,"lon":32.90484,"bedridden":1,"has_physician_plan":0},{"id":"P23","district":"Etimesgut","lat":39.95852,"lon":32.69521,"bedridden":1,"has_physician_plan":0},{"id":"P24","district":"Etimesgut","lat":39.96485,"lon":32.65472,"bedridden":0,"has_physician_plan":1},{"id":"P25","district":"Pursaklar","lat":40.03056,"lon":32.93333,"bedridden":0,"has_physician_plan":0},{"id":"P26","district":"Pursaklar","lat":40.05481,"lon":32.9268,"bedridden":0,"has_physician_plan":0},{"id":"P27","district":"Sincan","lat":39.97894,"lon":32.54734,"bedridden":0,"has_physician_plan":0},{"id":"P28","district":"Çankaya","lat":39.91291,"lon":32.8724,"bedridden":0,"has_physician_plan":0},{"id":"P29","district":"Altındağ","lat":39.95908,"lon":32.85579,"bedridden":0,"has_physician_plan":1},{"id":"P30","district":"Mamak","lat":39.91644,"lon":32.89848,"bedridden":0,"has_physician_plan":1},{"id":"P31","district":"Mamak","lat":39.91566,"lon":32.89368,"bedridden":0,"has_physician_plan":0},{"id":"P32","district":"Sincan","lat":39.97886,"lon":32.58339,"bedridden":1,"has_physician_plan":0},{"id":"P33","district":"Keçiören","lat":39.9864,"lon":32.85685,"bedridden":1,"has_physician_plan":1},{"id":"P34","district":"Gölbaşı","lat":39.78915,"lon":32.78226,"bedridden":1,"has_physician_plan":1},{"id":"P35","district":"Keçiören","lat":39.96156,"lon":32.8426,"bedridden":0,"has_physician_plan":1},{"id":"P36","district":"Etimesgut","lat":39.93616,"lon":32.6736,"bedridden":1,"has_physician_plan":1},{"id":"P37","district":"Etimesgut","lat":39.96775,"lon":32.66439,"bedridden":0,"has_physician_plan":1},{"id":"P38","district":"Mamak","lat":39.95524,"lon":32.90408,"bedridden":0,"has_physician_plan":1},{"id":"P39","district":"Mamak","lat":39.91226,"lon":32.89882,"bedridden":1,"has_physician_plan":0},{"id":"P40","district":"Mamak","lat":39.93619,"lon":32.88089,"bedridden":1,"has_physician_plan":0},{"id":"P41","district":"Gölbaşı","lat":39.79261,"lon":32.82064,"bedridden":0,"has_physician_plan":1},{"id":"P42","district":"Yenimahalle","lat":39.94923,"lon":32.78924,"bedridden":1,"has_physician_plan":0},{"id":"P43","district":"Yenimahalle","lat":39.97496,"lon":32.78228,"bedridden":1,"has_physician_plan":0},{"id":"P44","district":"Yenimahalle","lat":39.96982,"lon":32.80284,"bedridden":1,"has_physician_plan":1},{"id":"P45","district":"Yenimahalle","lat":39.97874,"lon":32.81999,"bedridden":0,"has_physician_plan":1},{"id":"P46","district":"Keçiören","lat":39.98327,"lon":32.84004,"bedridden":0,"has_physician_plan":1},{"id":"P47","district":"Gölbaşı","lat":39.78046,"lon":32.79404,"bedridden":0,"has_physician_plan":0},{"id":"P48","district":"Gölbaşı","lat":39.78078,"lon":32.78986,"bedridden":1,"has_physician_plan":0},{"id":"P49","district":"Sincan","lat":39.98374,"lon":32.59445,"bedridden":0,"has_physician_plan":1},{"id":"P50","district":"Keçiören","lat":39.98915,"lon":32.88007,"bedridden":1,"has_physician_plan":0},{"id":"P51","district":"Gölbaşı","lat":39.77329,"lon":32.8252,"bedridden":0,"has_physician_plan":1},{"id":"P52","district":"Gölbaşı","lat":39.80708,"lon":32.82097,"bedridden":0,"has_physician_plan":0},{"id":"P53","district":"Gölbaşı","lat":39.795,"lon":32.83414,"bedridden":0,"has_physician_plan":1},{"id":"P54","district":"Etimesgut","lat":39.92823,"lon":32.68706,"bedridden":0,"has_physician_plan":1},{"id":"P55","district":"Etimesgut","lat":39.93248,"lon":32.68842,"bedridden":1,"has_physician_plan":0},{"id":"P56","district":"Keçiören","lat":39.98702,"lon":32.86944,"bedridden":0,"has_physician_plan":0},{"id":"P57","district":"Etimesgut","lat":39.92516,"lon":32.65698,"bedridden":0,"has_physician_plan":0},{"id":"P58","district":"Etimesgut","lat":39.92926,"lon":32.68334,"bedridden":0,"has_physician_plan":0},{"id":"P59","district":"Sincan","lat":39.96545,"lon":32.54768,"bedridden":0,"has_physician_plan":0},{"id":"P60","district":"Etimesgut","lat":39.93931,"lon":32.66747,"bedridden":1,"has_physician_plan":1}],"triage_cases":[{"id":"T01","text":"Babamın göğsünde baskı var terliyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_GOGUS","note":"demo hatasından"},{"id":"T02","text":"gogsum agriyor sol koluma vuruyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_GOGUS","note":"Türkçe karaktersiz"},{"id":"T03","text":"Göğüs ağrısı başladı yarım saattir geçmiyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_GOGUS","note":""},{"id":"T04","text":"Annemin göğsü sıkışıyor nefesi daralıyor","bedridden":"1","has_plan":"1","expected_level":"ACIL_112","expected_code":"RF_GOGUS","note":""},{"id":"T05","text":"Dedemin ağzı kaydı konuşması bozuldu","bedridden":"1","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_INME","note":""},{"id":"T06","text":"babamin yuzu kaydi kolunu kaldiramiyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_INME","note":"Türkçe karaktersiz"},{"id":"T07","text":"Annem aniden konuşamıyor","bedridden":"1","has_plan":"1","expected_level":"ACIL_112","expected_code":"RF_INME","note":""},{"id":"T08","text":"Hayatımın en şiddetli baş ağrısı aniden başladı","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_BAS_AGRISI","note":""},{"id":"T09","text":"Babam bayıldı şimdi uyanık","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_BAYILMA","note":""},{"id":"T10","text":"Annem yanıt vermiyor uyandıramıyoruz","bedridden":"1","has_plan":"1","expected_level":"ACIL_112","expected_code":"RF_BILINC","note":""},{"id":"T11","text":"Oğlum nöbet geçiriyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_NOBET","note":""},{"id":"T12","text":"Bebeğin ateşi var ve kasılıyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_NOBET","note":"RF_COCUK_HAVALE de eşleşebilir"},{"id":"T13","text":"Arı soktu dudakları şişti nefes alamıyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_ANAFILAKSI","note":"birden fazla bayrak"},{"id":"T14","text":"Nefes alamıyorum dudaklarım morarıyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_NEFES","note":""},{"id":"T15","text":"Nefes darlığı ilaca rağmen geçmiyor","bedridden":"0","has_plan":"1","expected_level":"ACIL_112","expected_code":"RF_NEFES_KOTU","note":""},{"id":"T16","text":"Annemin şekeri düştü bilinci bulanık","bedridden":"1","has_plan":"1","expected_level":"ACIL_112","expected_code":"RF_SEKER","note":""},{"id":"T17","text":"Bacağımdaki kesik kanama durmuyor","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_KANAMA","note":""},{"id":"T18","text":"Sırtımda yırtılır gibi ani ağrı var","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_YIRTILMA","note":""},{"id":"T19","text":"Çocuğum yanlışlıkla ilaç içti","bedridden":"0","has_plan":"0","expected_level":"ZEHIR_114","expected_code":"RF_ZEHIR","note":""},{"id":"T20","text":"Babam çamaşır suyu içmiş","bedridden":"0","has_plan":"0","expected_level":"ZEHIR_114","expected_code":"RF_ZEHIR","note":""},{"id":"T21","text":"Artık yaşamak istemiyorum","bedridden":"0","has_plan":"0","expected_level":"ACIL_112","expected_code":"RF_KENDINE_ZARAR","note":""},{"id":"T22","text":"Annemin sırtında bası yarası var pansuman lazım","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_BASI_YARASI","note":""},{"id":"T23","text":"annemin yatak yarasi kotulesti","bedridden":"1","has_plan":"0","expected_level":"HEKIM_EV","expected_code":"CR_BASI_YARASI","note":"plan yok -> hekim"},{"id":"T24","text":"Babamın sondası tıkandı değiştirilmesi lazım","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_SONDA","note":""},{"id":"T25","text":"PEG tüpünün etrafı kızardı","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_TUP","note":""},{"id":"T26","text":"Doktorun yazdığı serumu evde taktırmak istiyorum","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_SERUM","note":""},{"id":"T27","text":"Reçeteli iğnemi evde yaptırmak istiyorum","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_IGNE","note":""},{"id":"T28","text":"Kan tahlili için evden kan aldırmak istiyorum","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_KAN","note":""},{"id":"T29","text":"Kan tahlili yaptırmak istiyorum","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_KAN","note":"istem yok -> hekim"},{"id":"T30","text":"Diz protezi ameliyatı sonrası fizik tedavi istiyorum","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_FIZYO","note":""},{"id":"T31","text":"Felç sonrası yürüme güçlüğü var fizyoterapi lazım","bedridden":"1","has_plan":"0","expected_level":"TELE_HEMSIRE","expected_code":"CR_FIZYO","note":"yatalak + plan yok"},{"id":"T32","text":"Annemin işitme cihazı ötüyor","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_ISITME_CIHAZ","note":""},{"id":"T33","text":"Babam son zamanlarda duymuyor","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_ISITME","note":""},{"id":"T34","text":"Annem yemek yemiyor kilo kaybı var","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_BESLENME","note":""},{"id":"T35","text":"Babamın yutma güçlüğü var","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_YUTMA","note":""},{"id":"T36","text":"Ev düzenlemesi lazım babam sık düşüyor","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_DUSME_RISKI","note":""},{"id":"T37","text":"Annem düştü kalkamıyor kalçası ağrıyor","bedridden":"1","has_plan":"0","expected_level":"HEKIM_EV","expected_code":"CR_DUSTU","note":""},{"id":"T38","text":"Diyabetik ayak bakımı istiyorum","bedridden":"0","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_AYAK","note":""},{"id":"T39","text":"Babamın tansiyon takibi yapılsın","bedridden":"1","has_plan":"1","expected_level":"PLANLI","expected_code":"CR_VITAL","note":""},{"id":"T40","text":"Uzun zamandır kaygılıyım uyuyamıyorum","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_PSIKO","note":""},{"id":"T41","text":"Annemin mama raporunu yenilemem lazım","bedridden":"1","has_plan":"0","expected_level":"TELE","expected_code":"CR_RECETE","note":"yatalakta da uzaktan"},{"id":"T42","text":"Kanser hastası babamın ağrısı ağrı kesiciye rağmen geçmiyor","bedridden":"1","has_plan":"0","expected_level":"HEKIM_EV","expected_code":"CR_PALYATIF","note":""},{"id":"T43","text":"Ateşim var boğazım ağrıyor","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_AKUT_HAFIF","note":""},{"id":"T44","text":"Annemin ateşi var öksürüyor","bedridden":"1","has_plan":"0","expected_level":"TELE_HEMSIRE","expected_code":"CR_AKUT_HAFIF","note":""},{"id":"T45","text":"ishal ve kusma var","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_AKUT_HAFIF","note":""},{"id":"T46","text":"Nefes darlığım var","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"CR_NEFES","note":""},{"id":"T47","text":"Babamın nefesi daralıyor","bedridden":"1","has_plan":"0","expected_level":"TELE_HEMSIRE","expected_code":"CR_NEFES","note":""},{"id":"T48","text":"Elimde kaşıntı var","bedridden":"0","has_plan":"0","expected_level":"TELE","expected_code":"","note":"bilinmeyen kalıp -> hekim"}]};</script>
+<script>// Evde Sağlık — çekirdek mantık (app/*.py ile birebir aynı davranış).
+// DOM kullanmaz; hem tarayıcıda hem node'da çalışır.
+(function (root) {
+  "use strict";
+
+  // ---------- text.py ----------
+  const FOLD = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u" };
+  function normalize(text) {
+    let t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
+    t = t.replace(/[çğıöşüâîû]/g, (c) => FOLD[c]);
+    t = t.replace(/[^a-z0-9;|]+/g, " ").trim();
+    return " " + t + " ";
+  }
+  function parseKeywords(spec) {
+    const alts = [];
+    for (const alt of spec.split("|")) {
+      const parts = alt.split(";").filter((p) => p.trim()).map((p) => normalize(p).trim());
+      if (parts.length) alts.push(parts);
+    }
+    return alts;
+  }
+  function match(specOrParsed, normText) {
+    const alts = typeof specOrParsed === "string" ? parseKeywords(specOrParsed) : specOrParsed;
+    for (const parts of alts) {
+      if (parts.every((p) => normText.includes(" " + p))) return parts.join(" + ");
+    }
+    return null;
+  }
+
+  // ---------- db.py ----------
+  function Repo(data) {
+    this.raw = data;
+    this.services = {};
+    for (const s of data.services) {
+      this.services[s.code] = {
+        code: s.code, name_tr: s.name_tr, category: s.category, duration_min: s.duration_min,
+        needs_physician_order: !!s.needs_physician_order, needs_prescription: !!s.needs_prescription,
+        remote_possible: !!s.remote_possible, base_fee_tl: s.base_fee_tl,
+      };
+    }
+    this.professions = {};
+    for (const p of data.professions) this.professions[p.code] = p;
+    this.profession_services = {};
+    for (const r of data.profession_services) {
+      (this.profession_services[r.profession_code] ||= new Set()).add(r.service_code);
+    }
+    this.red_flags = data.red_flags.map((r) => ({ ...r, parsed: parseKeywords(r.keywords) }));
+    this.routes = data.complaint_routes.map((r) => ({
+      ...r, parsed: parseKeywords(r.keywords), service_list: r.services.split("|"),
+    }));
+    this.sources = {};
+    for (const s of data.sources) this.sources[s.id] = s;
+    this.providers = {};
+    for (const p of data.providers) this.providers[p.id] = { ...p, licence_verified: !!p.licence_verified };
+    this.provider_services = {};
+    for (const r of data.provider_services) (this.provider_services[r.provider_id] ||= {})[r.service_code] = r.visits_done;
+    this.availability = {};
+    for (const r of data.availability) this.availability[r.provider_id + "|" + r.date] = [r.start_min, r.end_min];
+    this.scheduled = {};
+    for (const r of data.scheduled_visits) (this.scheduled[r.provider_id + "|" + r.date] ||= []).push({ ...r });
+    this.patients = {};
+    for (const p of data.patients) {
+      this.patients[p.id] = { ...p, bedridden: !!p.bedridden, has_physician_plan: !!p.has_physician_plan };
+    }
+  }
+  Repo.prototype.professionsFor = function (serviceCode) {
+    const out = new Set();
+    for (const [p, s] of Object.entries(this.profession_services)) if (s.has(serviceCode)) out.add(p);
+    return out;
+  };
+
+  // ---------- triage.py ----------
+  const DISCLAIMER = "Bu bir teşhis değildir; yönlendirmedir. Durum kötüleşirse ya da emin değilseniz 112'yi arayın.";
+  const LEVEL_DEFAULT_SERVICE = { TELE: "tele_muayene", TELE_HEMSIRE: "tele_hemsire_destekli", HEKIM_EV: "ev_muayene" };
+  const LEVEL_TEXT = {
+    ACIL_112: "Acil: 112", ZEHIR_114: "Zehir danışma: 114", TELE: "Hekimle video görüşme",
+    TELE_HEMSIRE: "Hemşire evde + hekim videoda", HEKIM_EV: "Hekim ev ziyareti",
+    PLANLI: "Planlı ev hizmeti (hekim planına göre)",
+  };
+  const REMOTE_OK_ROUTES = new Set(["CR_RECETE", "CR_PSIKO"]);
+
+  function triage(repo, complaint, patient) {
+    const text = normalize(complaint);
+    const hits = [];
+    for (const rf of repo.red_flags) {
+      const m = match(rf.parsed, text);
+      if (m) hits.push([rf, m]);
+    }
+    if (hits.length) {
+      const urgent = hits.filter((h) => h[0].action === "112");
+      const [rf] = (urgent.length ? urgent : hits)[0];
+      const level = urgent.length ? "ACIL_112" : "ZEHIR_114";
+      let msg = rf.message_tr;
+      if (urgent.length && hits.some((h) => h[0].action === "114")) msg += " Zehirlenme şüphesini 112'ye söyleyin.";
+      return {
+        level, services: [], message: msg, red_flags: hits.map((h) => h[0].code), route: null,
+        reasons: hits.map((h) => `Kırmızı bayrak '${h[0].name_tr}' (eşleşen: ${h[1]})`),
+        other_routes: [], sources: [...new Set(hits.map((h) => h[0].source_id))].sort(),
+        is_emergency: true,
+      };
+    }
+    const matched = [];
+    for (const r of repo.routes) {
+      const m = match(r.parsed, text);
+      if (m) matched.push([r, m]);
+    }
+    if (!matched.length) {
+      const level = patient.bedridden ? "TELE_HEMSIRE" : "TELE";
+      return {
+        level, services: [LEVEL_DEFAULT_SERVICE[level]],
+        message: "Şikayetinizi bir hekimin değerlendirmesi en doğrusu. " + DISCLAIMER,
+        red_flags: [], route: null,
+        reasons: ["Bilinen bir şikayet kalıbı bulunamadı; güvenli varsayılan: hekim"],
+        other_routes: [], sources: ["S14"], is_emergency: false,
+      };
+    }
+    const [route, m] = matched[0];
+    const plan = patient.has_physician_plan;
+    let level = plan ? route.level_with_plan : route.level_no_plan;
+    const reasons = [`Şikayet kalıbı '${route.name_tr}' (eşleşen: ${m})`];
+    let services;
+    if (level === "PLANLI") {
+      services = route.service_list;
+      reasons.push("Hekim planı/reçetesi var: sağlık meslek mensubu atanabilir (S07, S08)");
+    } else {
+      if (!plan && route.level_with_plan === "PLANLI") reasons.push("Hekim planı yok: önce hekim değerlendirmesi gerekir (S08)");
+      if (level === "TELE" && patient.bedridden && !REMOTE_OK_ROUTES.has(route.code)) {
+        level = "TELE_HEMSIRE";
+        reasons.push("Yatağa bağımlı hasta: hemşire evde ölçüm yapar, hekim videoda");
+      }
+      const doc = repo.profession_services["hekim"] || new Set();
+      const routeDoc = route.service_list.filter((s) => doc.has(s));
+      if (routeDoc.length && (level === "HEKIM_EV" || level === "TELE") &&
+          (level !== "TELE" || repo.services[routeDoc[0]].remote_possible)) {
+        services = routeDoc;
+      } else {
+        services = [LEVEL_DEFAULT_SERVICE[level]];
+      }
+    }
+    const src = new Set([route.source_id, "S08"]);
+    if (level === "PLANLI") src.add("S07");
+    return {
+      level, services, message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER,
+      red_flags: [], route: route.code, reasons,
+      other_routes: matched.slice(1).map((x) => x[0].code), sources: [...src].sort(), is_emergency: false,
+    };
+  }
+
+  // ---------- routing.py ----------
+  const CFG = {
+    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, MIN_SAVED_KM: 1.0,
+    TRAVEL_TL_PER_KM: 12.0, COMMISSION: 0.10, SPLIT: { hasta: 0.5, saglikci: 0.3, platform: 0.2 },
+    PRICE_SENSITIVITY: 3.0, SPEED_HORIZON_MIN: 480,
+  };
+  const rad = (d) => (d * Math.PI) / 180;
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const p1 = rad(lat1), p2 = rad(lat2), dp = p2 - p1, dl = rad(lon2 - lon1);
+    const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return 2 * 6371.0 * Math.asin(Math.sqrt(a));
+  }
+  const roadKm = (a, b) => haversineKm(a[0], a[1], b[0], b[1]) * CFG.ROAD_FACTOR;
+  const travelMin = (km) => (km === 0 ? 0 : Math.ceil((km / CFG.CITY_SPEED_KMH) * 60) + CFG.PARKING_MIN);
+  const round2 = (x) => Math.round(x * 100) / 100;
+
+  function bestInsertion(home, window, stops, target, duration, earliest) {
+    const [start, end] = window;
+    const points = [{ loc: home, ready: start }];
+    for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
+    const standalone = 2 * roadKm(home, target);
+    let best = null;
+    for (let i = 0; i < points.length; i++) {
+      const prev = points[i];
+      const nxt = i + 1 < points.length ? points[i + 1] : null;
+      const nxtLoc = nxt ? nxt.loc : home;
+      const deadline = nxt ? nxt.start : end;
+      const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
+      const arrival = Math.max(prev.ready + travelMin(d1), earliest);
+      const finish = arrival + duration;
+      if (finish + travelMin(d2) > deadline) continue;
+      const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
+      const cand = {
+        arrival_min: arrival, added_km: round2(added), standalone_km: round2(standalone), position: i,
+        shared: stops.length > 0 && standalone - added >= CFG.MIN_SAVED_KM,
+      };
+      if (!best || cand.added_km < best.added_km || (cand.added_km === best.added_km && cand.arrival_min < best.arrival_min)) best = cand;
+    }
+    return best;
+  }
+
+  function priceVisit(baseFee, mult, ins) {
+    const fee = baseFee * mult;
+    if (!ins) return { service_fee: fee, patient_pays: fee, provider_gets: fee * (1 - CFG.COMMISSION), platform_gets: fee * CFG.COMMISSION, patient_saving: 0 };
+    const standaloneCost = ins.standalone_km * CFG.TRAVEL_TL_PER_KM;
+    const actualCost = ins.added_km * CFG.TRAVEL_TL_PER_KM;
+    const saving = Math.max(0, standaloneCost - actualCost);
+    return {
+      service_fee: fee,
+      patient_pays: fee + standaloneCost - CFG.SPLIT.hasta * saving,
+      provider_gets: fee * (1 - CFG.COMMISSION) + actualCost + CFG.SPLIT.saglikci * saving,
+      platform_gets: fee * CFG.COMMISSION + CFG.SPLIT.platform * saving,
+      patient_saving: CFG.SPLIT.hasta * saving,
+      standalone_travel: standaloneCost, actual_travel: actualCost, saving,
+    };
+  }
+
+  // ---------- matching.py ----------
+  const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+  function competenceScore(visits, years, rating) {
+    const v = Math.min(1, Math.log1p(visits) / Math.log1p(200));
+    const y = Math.min(1, years / 20);
+    const r = Math.max(0, Math.min(1, (rating - 3.5) / 1.5));
+    return 0.5 * v + 0.3 * y + 0.2 * r;
+  }
+  function normPrefs(p) {
+    const s = p.yetkinlik + p.fiyat + p.hiz;
+    if (s <= 0) return [1 / 3, 1 / 3, 1 / 3];
+    return [p.yetkinlik / s, p.fiyat / s, p.hiz / s];
+  }
+
+  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5) {
+    prefs = prefs || { yetkinlik: 1, fiyat: 1, hiz: 1 };
+    const svc = repo.services[serviceCode];
+    const notes = [];
+    if (svc.needs_physician_order && !patient.has_physician_plan) {
+      notes.push(`'${svc.name_tr}' hekim planı/reçetesi ister; hastanın planı yok (S08).`);
+      return { candidates: [], notes };
+    }
+    const profs = repo.professionsFor(serviceCode);
+    const earliest = nowMin + CFG.LEAD_TIME_MIN;
+    const target = [patient.lat, patient.lon];
+    const cands = [];
+    const elim = { ruhsat: 0, "müsaitlik": 0, mesafe: 0, rota: 0 };
+    for (const p of Object.values(repo.providers)) {
+      if (!profs.has(p.profession_code)) continue;
+      const visits = (repo.provider_services[p.id] || {})[serviceCode];
+      if (visits === undefined) continue;
+      if (!p.licence_verified) { elim.ruhsat++; continue; }
+      const win = repo.availability[p.id + "|" + date];
+      if (!win || win[1] <= earliest) { elim["müsaitlik"]++; continue; }
+      const home = [p.home_lat, p.home_lon];
+      const dist = roadKm(home, target);
+      let ins = null, arrival;
+      if (svc.remote_possible && svc.category === "tele") {
+        arrival = Math.max(win[0], earliest);
+      } else {
+        if (dist > maxKm) { elim.mesafe++; continue; }
+        const stops = repo.scheduled[p.id + "|" + date] || [];
+        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest);
+        if (!ins) { elim.rota++; continue; }
+        arrival = ins.arrival_min;
+      }
+      const price = priceVisit(svc.base_fee_tl, p.fee_multiplier, ins);
+      cands.push({
+        provider_id: p.id, name: p.display_name, profession: p.profession_code, service: serviceCode,
+        arrival_min: arrival, distance_km: Math.round(dist * 10) / 10, insertion: ins, price,
+        competence: competenceScore(visits, p.years_experience, p.rating), visits,
+      });
+    }
+    for (const [k, v] of Object.entries(elim)) if (v) notes.push(`${v} aday elendi: ${k}`);
+    if (!cands.length) return { candidates: [], notes };
+    const pmin = Math.min(...cands.map((c) => c.price.patient_pays));
+    const [wc, wp, ws] = normPrefs(prefs);
+    for (const c of cands) {
+      const priceS = Math.max(0, 1 - (CFG.PRICE_SENSITIVITY * (c.price.patient_pays - pmin)) / pmin);
+      const speedS = Math.max(0, 1 - (c.arrival_min - earliest) / CFG.SPEED_HORIZON_MIN);
+      c.scores = { yetkinlik: c.competence, fiyat: priceS, hiz: speedS };
+      // Python ile aynı: 4 basamağa yuvarla (eşitlikte varış saati belirler)
+      c.total = Math.round((wc * c.competence + wp * priceS + ws * speedS) * 1e4) / 1e4;
+      c.explanation = explain(repo, c);
+    }
+    cands.sort((a, b) => b.total - a.total || a.arrival_min - b.arrival_min);
+    return { candidates: cands.slice(0, topK), notes, all: cands };
+  }
+
+  function explain(repo, c) {
+    const p = repo.providers[c.provider_id];
+    const parts = [`bu hizmette ${c.visits} ziyaret, ${p.years_experience} yıl deneyim, puan ${p.rating}`];
+    if (!c.insertion) parts.push(`en erken görüşme ${hhmm(c.arrival_min)}`);
+    else {
+      parts.push(`tahmini varış ${hhmm(c.arrival_min)}`);
+      if (c.insertion.shared) {
+        parts.push(`ziyaretiniz o günkü rotasına eklenir: ek yol ${c.insertion.added_km} km (tek başına ${c.insertion.standalone_km} km), size ${Math.round(c.price.patient_saving)} TL indirim`);
+      }
+    }
+    parts.push(`ödeyeceğiniz ${Math.round(c.price.patient_pays)} TL`);
+    return parts.join("; ");
+  }
+
+  function handleRequest(repo, complaint, patient, date, nowMin, prefs, topK = 3) {
+    const t = triage(repo, complaint, patient);
+    const out = { triage: t, candidates: [], notes: [], service: null };
+    if (t.is_emergency) return out;
+    const service = t.services[0];
+    const r = findCandidates(repo, service, patient, date, nowMin, prefs, 20, topK);
+    out.service = service;
+    out.candidates = r.candidates;
+    out.notes = r.notes.slice();
+    if (t.level === "TELE_HEMSIRE") out.notes.push("Hekim video görüşmesi o saatte müsait bir hekime ayrıca atanır.");
+    return out;
+  }
+
+  const api = {
+    normalize, parseKeywords, match, Repo, triage, bestInsertion, priceVisit, findCandidates,
+    handleRequest, competenceScore, roadKm, travelMin, hhmm, LEVEL_TEXT, CFG,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.EvdeCore = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>/* Evde Sağlık Test Prototipi — arayüz. Mantık EvdeCore'da (core.js), veri EVDE_DATA'da. */
+(function () {
+  "use strict";
+  const C = window.EvdeCore;
+  const DATA = window.EVDE_DATA;
+  const repo = new C.Repo(DATA);
+  const DATE = "2026-11-16";
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const tl = (x) => Math.round(x).toLocaleString("tr-TR");
+  const LEVELS = ["ACIL_112", "ZEHIR_114", "HEKIM_EV", "TELE_HEMSIRE", "TELE", "PLANLI"];
+  const SEV = { ACIL_112: "crit", ZEHIR_114: "warn", HEKIM_EV: "info", TELE_HEMSIRE: "info", TELE: "info", PLANLI: "ok" };
+  const profName = (code) => (repo.professions[code] || {}).name_tr || code;
+  const svcName = (code) => (repo.services[code] || {}).name_tr || code;
+  const srcTag = (id) => {
+    const s = repo.sources[id];
+    if (!s) return `<span class="tag plain">${esc(id)}</span>`;
+    const label = `${esc(id)}`;
+    return s.url ? `<a class="tag plain" href="${esc(s.url)}" title="${esc(s.title)}">${label}</a>` : `<span class="tag plain" title="${esc(s.title)}">${label}</span>`;
+  };
+  const levelOptions = (sel) => LEVELS.map((l) => `<option value="${l}"${l === sel ? " selected" : ""}>${esc(C.LEVEL_TEXT[l])}</option>`).join("");
+
+  // ---------------- Yönlendirme (hash) ----------------
+  const VIEWS = ["senaryo", "test-seti", "veritabani", "saglayici", "geri-bildirim"];
+  function route() {
+    const h = location.hash.replace("#", "");
+    const v = VIEWS.includes(h) ? h : "senaryo";
+    for (const id of VIEWS) $("#view-" + id).classList.toggle("active", id === v);
+    document.querySelectorAll("nav.tabs a").forEach((a) => {
+      if (a.dataset.view === v) a.setAttribute("aria-current", "page");
+      else a.removeAttribute("aria-current");
+    });
+  }
+  window.addEventListener("hashchange", route);
+
+  // ---------------- Ortak: zaman çizelgesi ve harita ----------------
+  const T0 = 7 * 60, T1 = 21 * 60;
+  function timelineHTML(home, win, stops) {
+    const pct = (m) => ((Math.min(Math.max(m, T0), T1) - T0) / (T1 - T0)) * 100;
+    let h = `<div class="win" style="left:${pct(win[0])}%;width:${pct(win[1]) - pct(win[0])}%"></div>`;
+    let prevLoc = home, prevReady = win[0];
+    stops.forEach((s, i) => {
+      const loc = [s.lat, s.lon];
+      const tmin = C.travelMin(C.roadKm(prevLoc, loc));
+      const ts = s.start_min - tmin;
+      if (tmin > 0) h += `<div class="blk travel" style="left:${pct(ts)}%;width:${pct(s.start_min) - pct(ts)}%" title="yol ${tmin} dk"></div>`;
+      h += `<div class="blk ${s.isNew ? "new" : "visit"}" style="left:${pct(s.start_min)}%;width:${Math.max(1.2, pct(s.start_min + s.duration_min) - pct(s.start_min))}%" title="${esc(C.hhmm(s.start_min) + " " + svcName(s.service_code))}">${C.hhmm(s.start_min)}</div>`;
+      prevLoc = loc; prevReady = s.start_min + s.duration_min;
+      if (i === stops.length - 1) {
+        const back = C.travelMin(C.roadKm(loc, home));
+        h += `<div class="blk travel" style="left:${pct(prevReady)}%;width:${pct(prevReady + back) - pct(prevReady)}%" title="eve dönüş ${back} dk"></div>`;
+      }
+    });
+    for (let m = 8 * 60; m <= 20 * 60; m += 120) h += `<span class="tick" style="left:${pct(m)}%">${C.hhmm(m)}</span>`;
+    return h;
+  }
+
+  function mapSVG(svg, home, stops, extraPoints = []) {
+    const W = 520, H = 300, P = 28;
+    const pts = [home, ...stops.map((s) => [s.lat, s.lon]), ...extraPoints.map((e) => e.loc)];
+    const lat0 = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+    const kx = 111 * Math.cos((lat0 * Math.PI) / 180), ky = 111;
+    const xy = (p) => [p[1] * kx, -p[0] * ky];
+    const k = pts.map(xy);
+    let minX = Math.min(...k.map((q) => q[0])), maxX = Math.max(...k.map((q) => q[0]));
+    let minY = Math.min(...k.map((q) => q[1])), maxY = Math.max(...k.map((q) => q[1]));
+    const spanX = Math.max(maxX - minX, 2), spanY = Math.max(maxY - minY, 2);
+    const sc = Math.min((W - 2 * P) / spanX, (H - 2 * P) / spanY);
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const pr = (p) => { const q = xy(p); return [W / 2 + (q[0] - cx) * sc, H / 2 + (q[1] - cy) * sc]; };
+    const css = getComputedStyle(document.documentElement);
+    const col = (n) => css.getPropertyValue(n).trim();
+    const route = [home, ...stops.map((s) => [s.lat, s.lon]), home].map(pr);
+    let g = `<polyline points="${route.map((p) => p.join(",")).join(" ")}" fill="none" stroke="${col("--muted")}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    for (const e of extraPoints) {
+      const [x, y] = pr(e.loc);
+      g += `<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${col("--muted")}"/>`;
+    }
+    const [hx, hy] = pr(home);
+    g += `<rect x="${hx - 6}" y="${hy - 6}" width="12" height="12" fill="${col("--ink")}"/><text x="${hx + 9}" y="${hy + 4}">ev</text>`;
+    stops.forEach((s, i) => {
+      const [x, y] = pr([s.lat, s.lon]);
+      const c = s.isNew ? col("--warn") : col("--accent");
+      g += `<circle cx="${x}" cy="${y}" r="${s.isNew ? 8 : 6}" fill="${c}"/><text x="${x + 10}" y="${y + 4}">${i + 1}. ${C.hhmm(s.start_min)}</text>`;
+    });
+    // ölçek çubuğu: 2 km
+    const bar = 2 * sc;
+    g += `<line x1="${P}" y1="${H - 12}" x2="${P + bar}" y2="${H - 12}" stroke="${col("--ink")}" stroke-width="2"/><text x="${P}" y="${H - 18}">2 km</text>`;
+    svg.innerHTML = g;
+  }
+
+  function routeKm(home, stops) {
+    let km = 0, prev = home;
+    for (const s of stops) { km += C.roadKm(prev, [s.lat, s.lon]); prev = [s.lat, s.lon]; }
+    return stops.length ? km + C.roadKm(prev, home) : 0;
+  }
+
+  // ---------------- Geri bildirim deposu ----------------
+  const FB = { db: null, user: null, uid: null, items: [], canWrite: true, mode: "loading", names: {} };
+  async function fbInit() {
+    const use = window.claude && typeof window.claude.use === "function" ? window.claude.use.bind(window.claude) : null;
+    if (!use) return fbLocal("Bu görünümde ortak kayıt yok; notlar yalnızca bu tarayıcıda tutulur. Tümünü kopyala ile bana gönderebilirsiniz.");
+    try {
+      const [db, user] = await Promise.all([use("db"), use("user")]);
+      FB.user = user;
+      if (!db) return fbLocal("Ortak kayıt açılamadı (oturum kapalı olabilir). Notlar yalnızca bu tarayıcıda tutulur.");
+      FB.db = db;
+      if (user) {
+        FB.uid = await user.id();
+        const cw = await user.can("data.write");
+        if (cw === false) FB.canWrite = false;
+      }
+      const timer = setTimeout(() => setStatus("Ortak notlara henüz ulaşılamadı; bağlantı gelince liste kendiliğinden yenilenir.", "warn"), 10000);
+      db.collection("feedback").orderBy("created_at", "desc").limit(500).onSnapshot(async (snap) => {
+        if (!snap.metadata.fromCache) clearTimeout(timer);
+        FB.items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        FB.mode = "db";
+        await resolveNames();
+        setStatus(FB.canWrite
+          ? "Notlar ekipte ortak tutulur ve Claude okuyabilir. Sohbette \"notları işle\" deyin."
+          : "Notları okuyabilirsiniz; yazmak için sayfa sahibinden Katkıda bulunan (Contributor) erişimi isteyin.", FB.canWrite ? "" : "warn");
+        renderFeedback();
+      }, (e) => { clearTimeout(timer); fbLocal("Ortak notlar okunamadı (" + (e && e.code) + "). Notlar bu tarayıcıda tutulacak."); });
+    } catch (e) {
+      fbLocal("Ortak kayıt kullanılamıyor. Notlar yalnızca bu tarayıcıda tutulur.");
+    }
+  }
+  function fbLocal(msg) {
+    FB.mode = "local";
+    try { FB.items = JSON.parse(localStorage.getItem("evde_fb") || "[]"); } catch (e) { FB.items = []; }
+    setStatus(msg, "warn");
+    renderFeedback();
+  }
+  function setStatus(msg, cls) { const el = $("#fbStatus"); el.textContent = msg; el.className = "notice" + (cls ? " " + cls : ""); }
+  async function resolveNames() {
+    if (!FB.user) return;
+    const ids = [...new Set(FB.items.map((i) => i.author).filter(Boolean))];
+    if (!ids.length) return;
+    try { const ps = await FB.user.profiles(ids); for (const id of ids) FB.names[id] = (ps[id] && ps[id].name) || "Ekipten biri"; } catch (e) { /* adlar opsiyonel */ }
+  }
+  async function saveFeedback(item) {
+    item.created_at = new Date().toISOString();
+    item.status = "acik";
+    if (FB.mode === "db" && FB.db) {
+      if (FB.uid) item.author = FB.uid;
+      try { await FB.db.collection("feedback").add(item); return { ok: true }; }
+      catch (e) {
+        if (e && e.code === "invalid_argument") { FB.canWrite = false; return { ok: false, msg: "Yazma izniniz yok; sayfa sahibinden Katkıda bulunan erişimi isteyin." }; }
+        if (e && e.code === "quota_exceeded") return { ok: false, msg: "Not kotası doldu; çözülen notları silmek gerekiyor." };
+        return { ok: false, msg: "Kaydedilemedi, birazdan tekrar deneyin." };
+      }
+    }
+    item.id = "L" + Date.now();
+    FB.items.unshift(item);
+    try { localStorage.setItem("evde_fb", JSON.stringify(FB.items)); } catch (e) { /* yer yoksa yalnızca bellekte */ }
+    renderFeedback();
+    return { ok: true, local: true };
+  }
+  async function toggleResolved(id) {
+    const it = FB.items.find((i) => i.id === id);
+    if (!it) return;
+    const status = it.status === "cozuldu" ? "acik" : "cozuldu";
+    if (FB.mode === "db") { try { await FB.db.collection("feedback").doc(id).update({ status }); } catch (e) { /* izin yoksa değişmez */ } }
+    else { it.status = status; try { localStorage.setItem("evde_fb", JSON.stringify(FB.items)); } catch (e) { /**/ } renderFeedback(); }
+  }
+  const FB_TYPE = { yanlis_sonuc: ["Yanlış sonuç", "crit"], test_vakasi: ["Test vakası", "info"], veritabani: ["Veritabanı eksiği", "warn"], panel: ["Panel", "ok"], genel: ["Genel", "plain"] };
+  function fbLine(i) {
+    const parts = [`[${(FB_TYPE[i.type] || ["Not"])[0]}]`];
+    if (i.complaint) parts.push(`şikayet: "${i.complaint}"`);
+    if (i.patient) parts.push(`hasta: ${i.patient}`);
+    if (i.got_level) parts.push(`bulunan: ${i.got_level}${i.got_code ? " / " + i.got_code : ""}`);
+    if (i.expected_level) parts.push(`beklenen: ${i.expected_level}`);
+    if (i.table) parts.push(`tablo: ${i.table}`);
+    if (i.provider) parts.push(`sağlayıcı: ${i.provider}`);
+    if (i.note) parts.push(`not: ${i.note}`);
+    return parts.join(" · ");
+  }
+  function renderFeedback() {
+    const f = $("#fbFilter").value;
+    const items = FB.items.filter((i) => !f || i.type === f);
+    $("#fbCount").textContent = FB.items.filter((i) => i.status !== "cozuldu").length;
+    if (!items.length) { $("#fbList").innerHTML = `<div class="empty">Henüz not yok. Senaryo testinde "Bu sonucu bildir" ya da burada "Notu kaydet" ile ekleyin.</div>`; return; }
+    $("#fbList").innerHTML = items.map((i) => {
+      const [tname, tcls] = FB_TYPE[i.type] || ["Not", "plain"];
+      const who = i.author ? esc(FB.names[i.author] || "Ekipten biri") : (FB.mode === "local" ? "bu tarayıcı" : "");
+      const when = i.created_at ? new Date(i.created_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "";
+      const done = i.status === "cozuldu";
+      return `<div class="fb"${done ? ' style="opacity:.6"' : ""}>
+        <div class="row"><span class="tag ${tcls}">${tname}</span>${done ? '<span class="tag ok">Çözüldü</span>' : ""}<span class="small muted">${esc(when)} · ${who}</span>
+        ${FB.canWrite ? `<button class="btn small" data-resolve="${esc(i.id)}" type="button">${done ? "Yeniden aç" : "Çözüldü"}</button>` : ""}</div>
+        <div>${esc(fbLine(i).replace(/^\[[^\]]*\] · ?/, ""))}</div></div>`;
+    }).join("");
+  }
+  $("#fbList").addEventListener("click", (e) => { const b = e.target.closest("[data-resolve]"); if (b) toggleResolved(b.dataset.resolve); });
+  $("#fbFilter").addEventListener("change", renderFeedback);
+  $("#fbForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const note = $("#fbText").value.trim();
+    if (!note) { $("#fbMsg").textContent = "Önce notu yazın."; return; }
+    const r = await saveFeedback({ type: $("#fbType").value, note });
+    $("#fbMsg").textContent = r.ok ? "Kaydedildi." : r.msg;
+    if (r.ok) $("#fbText").value = "";
+  });
+  $("#fbCopy").addEventListener("click", async () => {
+    const text = FB.items.filter((i) => i.status !== "cozuldu").map((i, n) => `${n + 1}. ${fbLine(i)}`).join("\n") || "Açık not yok.";
+    try { await navigator.clipboard.writeText(text); $("#fbMsg").textContent = "Açık notlar panoya kopyalandı."; }
+    catch (err) { $("#fbText").value = text; $("#fbText").select(); $("#fbMsg").textContent = "Pano izni yok; metni kutudan kopyalayın."; }
+  });
+
+  // ---------------- Not penceresi ----------------
+  let dlgPayload = null;
+  function openDialog({ title, context, type, expected, payload }) {
+    dlgPayload = { type, ...payload };
+    $("#dlgTitle").textContent = title;
+    $("#dlgContext").textContent = context || "";
+    $("#dlgExpWrap").style.display = expected === undefined ? "none" : "";
+    $("#dlgExp").innerHTML = levelOptions(expected);
+    $("#dlgText").value = "";
+    $("#dlgMsg").textContent = FB.canWrite ? "" : "Yazma izniniz yok; not kaydedilemeyebilir.";
+    $("#dialog").style.display = "block";
+    $("#dlgText").focus();
+  }
+  const closeDialog = () => { $("#dialog").style.display = "none"; };
+  $("#dlgCancel").addEventListener("click", closeDialog);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDialog(); });
+  $("#dlgForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const item = { ...dlgPayload, note: $("#dlgText").value.trim() };
+    if ($("#dlgExpWrap").style.display !== "none") item.expected_level = $("#dlgExp").value;
+    if (!item.note && !item.expected_level) { $("#dlgMsg").textContent = "Kısa bir not yazın."; return; }
+    const r = await saveFeedback(item);
+    if (r.ok) { closeDialog(); flash("Not kaydedildi" + (r.local ? " (bu tarayıcıda)" : "") + "."); }
+    else $("#dlgMsg").textContent = r.msg;
+  });
+  function flash(msg) {
+    const el = document.createElement("div");
+    el.className = "notice"; el.textContent = msg; el.setAttribute("role", "status");
+    el.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:30;box-shadow:0 6px 20px rgba(0,0,0,.2)";
+    document.body.appendChild(el); setTimeout(() => el.remove(), 2600);
+  }
+
+  // ---------------- SENARYO ----------------
+  const EXAMPLES = [
+    ["Göğüs baskısı", "Babamın göğsünde baskı var, terliyor", false, false],
+    ["Bası yarası, planlı", "Annemin sırtında bası yarası var, pansuman lazım", true, true],
+    ["Ateş + öksürük, yatağa bağımlı", "Annemin ateşi var, öksürüyor", true, false],
+    ["Fizik tedavi, plansız", "Diz protezi ameliyatı sonrası fizik tedavi istiyorum", false, false],
+    ["Fizik tedavi, planlı", "Diz protezi ameliyatı sonrası fizik tedavi istiyorum", false, true],
+    ["Reçeteli serum", "Doktorun yazdığı serumu evde taktırmak istiyorum", false, true],
+    ["Çamaşır suyu", "Çocuğum yanlışlıkla çamaşır suyu içti", false, false],
+    ["Mama raporu", "Annemin mama raporunu yenilemem lazım", true, false],
+    ["Bilinmeyen şikayet", "Elimde kaşıntı var", false, false],
+  ];
+  $("#exampleChips").innerHTML = EXAMPLES.map((x, i) => `<button type="button" class="chip" data-ex="${i}">${esc(x[0])}</button>`).join("");
+  $("#exampleChips").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ex]"); if (!b) return;
+    const [, text, bed, plan] = EXAMPLES[+b.dataset.ex];
+    $("#complaint").value = text; $("#bedridden").checked = bed; $("#hasPlan").checked = plan;
+    renderScenario();
+  });
+  const patients = Object.values(repo.patients);
+  $("#patientSel").innerHTML = patients.map((p) => `<option value="${p.id}">${p.id} · ${esc(p.district)}${p.bedridden ? " · yatağa bağımlı" : ""}</option>`).join("");
+  $("#patientSel").value = "P16";
+  $("#bedridden").checked = true; $("#hasPlan").checked = true;
+  $("#patientSel").addEventListener("change", () => {
+    const p = repo.patients[$("#patientSel").value];
+    $("#bedridden").checked = p.bedridden; $("#hasPlan").checked = p.has_physician_plan; renderScenario();
+  });
+  let opts = "";
+  for (let m = 8 * 60; m <= 18 * 60; m += 30) opts += `<option value="${m}"${m === 570 ? " selected" : ""}>${C.hhmm(m)}</option>`;
+  $("#nowSel").innerHTML = opts;
+  for (const id of ["wC", "wP", "wS"]) $("#" + id).addEventListener("input", () => { $("#" + id + "v").textContent = $("#" + id).value; renderScenario(); });
+  let deb;
+  $("#scnForm").addEventListener("input", (e) => { if (e.target.type !== "range") { clearTimeout(deb); deb = setTimeout(renderScenario, 150); } });
+  $("#scnForm").addEventListener("submit", (e) => e.preventDefault());
+
+  let lastScn = null;
+  function currentPatient() {
+    const base = repo.patients[$("#patientSel").value];
+    return { ...base, bedridden: $("#bedridden").checked, has_physician_plan: $("#hasPlan").checked };
+  }
+  function renderScenario() {
+    const complaint = $("#complaint").value;
+    const p = currentPatient();
+    const now = +$("#nowSel").value;
+    const prefs = { yetkinlik: +$("#wC").value, fiyat: +$("#wP").value, hiz: +$("#wS").value };
+    if (!complaint.trim()) { $("#scnResult").innerHTML = `<div class="panel empty">Bir şikayet yazın ya da hazır örneklerden birini seçin.</div>`; return; }
+    const r = C.handleRequest(repo, complaint, p, DATE, now, prefs, 5);
+    lastScn = { complaint, p, now, prefs, r };
+    const t = r.triage;
+    const sev = SEV[t.level];
+    let h = `<div class="panel level ${sev} stack" style="gap:8px">
+      <div class="row" style="justify-content:space-between"><span class="big">${esc(C.LEVEL_TEXT[t.level])}</span>
+        <span class="row">${t.sources.map(srcTag).join("")}</span></div>
+      <div>${esc(t.message)}</div>
+      <ul class="reasons small">${t.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${t.other_routes.length ? `<div class="small muted">Ayrıca eşleşen kalıplar: ${t.other_routes.map((c) => `<span class="kwp">${esc(c)}</span>`).join(" ")} (en yüksek öncelikli seçildi)</div>` : ""}
+      <div class="row"><button class="btn small" type="button" id="repScn">Bu sonucu bildir</button>
+      <button class="btn small" type="button" id="caseScn">Bu cümleyi test vakası yap</button></div></div>`;
+    if (t.is_emergency) {
+      h += `<div class="panel"><b>Randevu önerilmez.</b> <span class="muted">Kırmızı bayrak varken sistem sağlık çalışanı eşleştirmez; kullanıcıyı acil hatta yönlendirir.</span></div>`;
+    } else {
+      h += `<div class="panel stack" style="gap:6px"><div class="row" style="justify-content:space-between"><h2>${esc(svcName(r.service))}</h2>
+        <span class="small muted">${r.candidates.length ? r.candidates.length + " öneri" : "öneri yok"} · ağırlıklar Y${prefs.yetkinlik} F${prefs.fiyat} H${prefs.hiz}</span></div>
+        ${r.notes.map((n) => `<div class="small muted">• ${esc(n)}</div>`).join("")}</div>`;
+      if (!r.candidates.length) h += `<div class="panel empty">Bu koşullarda uygun sağlık çalışanı bulunamadı. Talep saatini erkene alın, hekim planı kutusunu kontrol edin ya da bunu eksik olarak bildirin.</div>`;
+      r.candidates.forEach((c, i) => {
+        const shared = c.insertion && c.insertion.shared;
+        h += `<div class="panel">
+          <div class="cand"><div class="rank">${i + 1}</div>
+          <div class="stack" style="gap:4px">
+            <div class="row"><b>${esc(c.name)}</b><span class="small muted">${esc(profName(c.profession))}</span>
+              ${shared ? '<span class="tag ok">ziyaret paylaşımı</span>' : ""}${c.insertion ? "" : '<span class="tag info">uzaktan</span>'}</div>
+            <div class="small">${esc(c.explanation)}</div>
+            <div class="bars">${["yetkinlik", "fiyat", "hiz"].map((k) => `<div class="bar">${k === "hiz" ? "hız" : k} ${c.scores[k].toFixed(2)}<div class="track"><div class="fill" style="width:${(c.scores[k] * 100).toFixed(0)}%"></div></div></div>`).join("")}</div>
+          </div>
+          <div class="price"><div class="amt num">${tl(c.price.patient_pays)} TL</div><div class="small muted num">${C.hhmm(c.arrival_min)} · ${c.distance_km} km</div>
+            <div class="small muted num">toplam puan ${c.total.toFixed(3)}</div>
+            ${c.insertion ? `<button class="btn small" type="button" data-detail="${i}" style="margin-top:6px">Rota ve fiyat</button>` : ""}</div></div>
+          <div class="detail" id="det${i}" hidden></div></div>`;
+      });
+    }
+    $("#scnResult").innerHTML = h;
+    $("#repScn").addEventListener("click", () => openDialog({
+      title: "Bu sonucu bildir", type: "yanlis_sonuc", expected: t.level,
+      context: `"${complaint}" → ${C.LEVEL_TEXT[t.level]}${t.route ? " (" + t.route + ")" : ""}`,
+      payload: { complaint, patient: `${p.id}${p.bedridden ? " yatağa bağımlı" : ""}${p.has_physician_plan ? " planlı" : " plansız"}`, got_level: t.level, got_code: t.red_flags[0] || t.route || "" },
+    }));
+    $("#caseScn").addEventListener("click", () => openDialog({
+      title: "Test vakası olarak kaydet", type: "test_vakasi", expected: t.level,
+      context: `"${complaint}" — sistemin bulduğu: ${C.LEVEL_TEXT[t.level]}. Olması gerekeni seçin.`,
+      payload: { complaint, bedridden: p.bedridden, has_plan: p.has_physician_plan, got_level: t.level, got_code: t.red_flags[0] || t.route || "" },
+    }));
+  }
+  $("#scnResult").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-detail]"); if (!b || !lastScn) return;
+    const i = +b.dataset.detail, c = lastScn.r.candidates[i], el = $("#det" + i);
+    if (!el.hidden) { el.hidden = true; return; }
+    const pv = repo.providers[c.provider_id];
+    const base = repo.scheduled[c.provider_id + "|" + DATE] || [];
+    const win = repo.availability[c.provider_id + "|" + DATE];
+    const nv = { lat: lastScn.p.lat, lon: lastScn.p.lon, start_min: c.arrival_min, duration_min: repo.services[c.service].duration_min, service_code: c.service, isNew: true };
+    const stops = [...base, nv].sort((a, b) => a.start_min - b.start_min);
+    const pr = c.price;
+    el.innerHTML = `<div class="stack">
+      <div class="split">
+        <div>Hasta öder<b>${tl(pr.patient_pays)} TL</b></div>
+        <div>Sağlıkçı alır<b>${tl(pr.provider_gets)} TL</b></div>
+        <div>Platform alır<b>${tl(pr.platform_gets)} TL</b></div></div>
+      <div class="small muted">Hizmet bedeli ${tl(pr.service_fee)} TL (taban × ${pv.fee_multiplier}). Tek başına gidiş-dönüş ${c.insertion.standalone_km} km = ${tl(pr.standalone_travel)} TL; rotaya eklenince ek yol ${c.insertion.added_km} km = ${tl(pr.actual_travel)} TL.
+      ${pr.saving > 0 ? `Tasarruf ${tl(pr.saving)} TL: %50 hastaya, %30 sağlıkçıya, %20 platforma.` : "Tasarruf yok: o gün bu bölgede başka ziyareti yok."}</div>
+      <div class="small"><b>${esc(pv.display_name)}</b> günü (turuncu = bu talep)</div>
+      <div class="timeline">${timelineHTML([pv.home_lat, pv.home_lon], win, stops)}</div>
+      <svg class="map" viewBox="0 0 520 300" role="img" aria-label="Rota haritası"></svg></div>`;
+    el.hidden = false;
+    mapSVG($("svg", el), [pv.home_lat, pv.home_lon], stops);
+  });
+
+  // ---------------- TEST SETİ ----------------
+  function runCase(text, bed, plan) {
+    return C.triage(repo, text, { lat: 39.9, lon: 32.86, bedridden: bed, has_physician_plan: plan });
+  }
+  function renderEval() {
+    const rows = DATA.triage_cases.map((c) => {
+      const t = runCase(c.text, c.bedridden === "1", c.has_plan === "1");
+      const codes = new Set([...t.red_flags, ...(t.route ? [t.route] : [])]);
+      const okL = t.level === c.expected_level;
+      const okC = c.expected_code ? codes.has(c.expected_code) : !t.route;
+      return { c, t, ok: okL && okC };
+    });
+    const em = rows.filter((x) => ["ACIL_112", "ZEHIR_114"].includes(x.c.expected_level));
+    const hit = em.filter((x) => x.t.is_emergency).length;
+    const over = rows.filter((x) => !["ACIL_112", "ZEHIR_114"].includes(x.c.expected_level) && x.t.is_emergency).length;
+    const okLevel = rows.filter((x) => x.t.level === x.c.expected_level).length;
+    $("#evalTiles").innerHTML = [
+      [rows.length, "etiketli vaka (ekip yazdı, bağımsız değil)"],
+      [`${hit}/${em.length}`, "kırmızı bayrak duyarlılığı · hedef %100"],
+      [over, "aşırı triyaj (gereksiz acil)"],
+      [`%${Math.round((100 * okLevel) / rows.length)}`, "seviye doğruluğu"],
+    ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+    const only = $("#onlyFail").checked;
+    $("#evalTable").innerHTML = `<thead><tr><th>ID</th><th>Cümle</th><th>Durum</th><th>Beklenen</th><th>Bulunan</th><th>Eşleşen</th><th></th><th></th></tr></thead><tbody>` +
+      rows.filter((x) => !only || !x.ok).map((x) => `<tr class="${x.ok ? "" : "fail"}"><td class="mono">${x.c.id}</td><td>${esc(x.c.text)}</td>
+        <td class="small">${x.c.bedridden === "1" ? "yatağa bağımlı<br>" : ""}${x.c.has_plan === "1" ? "planlı" : "plansız"}</td>
+        <td><span class="tag ${SEV[x.c.expected_level]}">${x.c.expected_level}</span></td><td><span class="tag ${SEV[x.t.level]}">${x.t.level}</span></td>
+        <td class="mono small">${esc(x.t.red_flags[0] || x.t.route || "—")}</td><td>${x.ok ? "✓" : "✗"}</td>
+        <td><button class="btn small" type="button" data-open="${esc(x.c.id)}">Senaryoda aç</button></td></tr>`).join("") + "</tbody>";
+  }
+  $("#onlyFail").addEventListener("change", renderEval);
+  $("#evalTable").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-open]"); if (!b) return;
+    const c = DATA.triage_cases.find((x) => x.id === b.dataset.open);
+    $("#complaint").value = c.text; $("#bedridden").checked = c.bedridden === "1"; $("#hasPlan").checked = c.has_plan === "1";
+    location.hash = "senaryo"; renderScenario();
+  });
+  const PROBES = [
+    ["Göğsümde yanma var, reflü sanırım", "Göğüste yanma tek başına acil sayılmıyor. Doğru mu? Klinisyene sorulmalı."],
+    ["En sonda kaldık, sıra bize gelmedi", "'sonda' kelimesi sıradan bir cümlede sonda bakımı sanılıyor (yanlış pozitif)."],
+    ["Babam kelimeleri karıştırıyor, sağ eli tutmuyor", "İnme belirtisine benziyor; 'eli tutmuyor' anahtar kelimelerde yok."],
+    ["Nefesim daralıyor, dudaklarım mosmor", "'mosmor' yazımı 'morarma' kalıbına uymuyor; acil kaçabilir."],
+    ["Annemin şekeri 40'a düştü, terliyor", "Şeker düşüklüğü bilinç bulanıklığı olmadan acil sayılmıyor. Doğru mu?"],
+    ["Kızımın 39 derece ateşi var, ensesi tutuldu", "Ateş + ense sertliği hafif akut şikayet sayılıyor; klinisyene sorulmalı."],
+  ];
+  function renderProbes() {
+    $("#probeTable").innerHTML = `<thead><tr><th>Cümle</th><th>Sistemin cevabı</th><th>Şüphe</th><th></th></tr></thead><tbody>` +
+      PROBES.map(([text, why], i) => { const t = runCase(text, false, false);
+        return `<tr><td>${esc(text)}</td><td><span class="tag ${SEV[t.level]}">${t.level}</span> <span class="mono small">${esc(t.red_flags[0] || t.route || "")}</span></td>
+        <td class="small">${esc(why)}</td><td><button class="btn small" type="button" data-probe="${i}">Bildir</button></td></tr>`; }).join("") + "</tbody>";
+  }
+  $("#probeTable").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-probe]"); if (!b) return;
+    const [text, why] = PROBES[+b.dataset.probe]; const t = runCase(text, false, false);
+    openDialog({ title: "Keşif cümlesini bildir", type: "yanlis_sonuc", expected: t.level, context: `"${text}" → ${C.LEVEL_TEXT[t.level]}. ${why}`,
+      payload: { complaint: text, patient: "plansız", got_level: t.level, got_code: t.red_flags[0] || t.route || "" } });
+  });
+  $("#ncExp").innerHTML = levelOptions("TELE");
+  function renderNewCase() {
+    const text = $("#ncText").value.trim();
+    if (!text) { $("#ncResult").innerHTML = ""; return; }
+    const t = runCase(text, $("#ncBed").checked, $("#ncPlan").checked);
+    const ok = t.level === $("#ncExp").value;
+    $("#ncResult").innerHTML = `<div class="row small">Sistemin cevabı: <span class="tag ${SEV[t.level]}">${esc(C.LEVEL_TEXT[t.level])}</span>
+      <span class="mono">${esc(t.red_flags.join(", ") || t.route || "kalıp yok")}</span> ${ok ? '<span class="tag ok">beklenenle aynı</span>' : '<span class="tag crit">beklenenden farklı</span>'}</div>`;
+  }
+  ["ncText", "ncBed", "ncPlan", "ncExp"].forEach((id) => $("#" + id).addEventListener(id === "ncText" ? "input" : "change", renderNewCase));
+  $("#newCaseForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("#ncText").value.trim();
+    if (!text) { $("#ncMsg").textContent = "Önce bir cümle yazın."; return; }
+    const t = runCase(text, $("#ncBed").checked, $("#ncPlan").checked);
+    const r = await saveFeedback({ type: "test_vakasi", complaint: text, bedridden: $("#ncBed").checked, has_plan: $("#ncPlan").checked,
+      expected_level: $("#ncExp").value, got_level: t.level, got_code: t.red_flags[0] || t.route || "" });
+    $("#ncMsg").textContent = r.ok ? "Kaydedildi; bir sonraki sürümde test setine eklenecek." : r.msg;
+    if (r.ok) { $("#ncText").value = ""; renderNewCase(); }
+  });
+
+  // ---------------- VERİTABANI ----------------
+  const TABLES = [
+    ["Kaynaklı kurallar", [
+      ["sources", "Her tıbbi ve mevzuat satırının dayandığı kaynak. S14 = ekip tasarım varsayımı."],
+      ["professions", "Meslekler; tanı koyabilir mi, hekim istemi gerekir mi."],
+      ["services", "Evde verilebilen hizmetler. Fiyatlar demo varsayımıdır."],
+      ["profession_services", "Hangi meslek hangi hizmeti verebilir."],
+      ["red_flags", "Acil belirtiler. Biri eşleşirse randevu önerilmez. Kelime kalıbı: a;b = ikisi birlikte, | = ya da."],
+      ["complaint_routes", "Acil olmayan şikayetlerin hizmet seviyesine yönlendirilmesi (öncelik sırasıyla)."],
+    ]],
+    ["Sentetik demo verisi", [
+      ["districts", "Yaklaşık ilçe merkezleri."],
+      ["providers", "Sentetik sağlık çalışanları; gerçek kişi değildir."],
+      ["provider_services", "Her çalışanın verdiği hizmetler ve o hizmetteki ziyaret sayısı."],
+      ["availability", "16 Kasım müsaitlik aralıkları."],
+      ["scheduled_visits", "16 Kasım için önceden planlı ziyaretler (ziyaret paylaşımının dayanağı)."],
+      ["patients", "Sentetik hastalar."],
+    ]],
+    ["Değerlendirme", [["triage_cases", "Etiketli triyaj vakaları; YZ modeli için ilk ölçüm seti."]]],
+  ];
+  let curTable = "red_flags";
+  function renderTableList() {
+    $("#tableList").innerHTML = TABLES.map(([g, ts]) => `<div class="grp">${g}</div>` + ts.map(([t]) =>
+      `<button type="button" data-t="${t}" aria-pressed="${t === curTable}"><span class="mono">${t}</span><span class="muted num">${DATA[t].length}</span></button>`).join("")).join("");
+  }
+  const TIME_COLS = new Set(["start_min", "end_min"]);
+  const BOOL_COLS = new Set(["can_diagnose", "requires_physician_order", "needs_physician_order", "needs_prescription", "remote_possible", "licence_verified", "bedridden", "has_physician_plan"]);
+  function cell(k, v) {
+    if (v === null || v === undefined || v === "") return '<span class="muted">—</span>';
+    if (k === "source_id") return srcTag(v);
+    if (k === "url") return `<a href="${esc(v)}">bağlantı</a>`;
+    if (k === "keywords") return v.split("|").map((a) => `<span class="kwp">${esc(a)}</span>`).join("");
+    if (k === "services" && String(v).includes("_")) return String(v).split("|").map((a) => `<span class="kwp">${esc(a)}</span>`).join("");
+    if (TIME_COLS.has(k)) return `<span class="num">${C.hhmm(v)}</span>`;
+    if (BOOL_COLS.has(k)) return v === 1 || v === true || v === "1" ? "✓" : "—";
+    if (k.startsWith("level")) return `<span class="tag ${SEV[v] || "plain"}">${esc(v)}</span>`;
+    return esc(v);
+  }
+  function renderDbTable() {
+    renderTableList();
+    const desc = TABLES.flatMap((g) => g[1]).find((x) => x[0] === curTable)[1];
+    $("#tblTitle").innerHTML = `<span class="mono">${curTable}</span>`;
+    $("#tblDesc").textContent = desc;
+    const q = C.normalize($("#tblSearch").value).trim();
+    const rows = DATA[curTable].filter((r) => !q || C.normalize(Object.values(r).join(" ")).includes(q));
+    const cols = Object.keys(DATA[curTable][0] || {});
+    $("#dbTable").innerHTML = `<thead><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+      rows.slice(0, 500).map((r) => `<tr>${cols.map((c) => `<td class="${c === "keywords" ? "kw" : ""}">${cell(c, r[c])}</td>`).join("")}</tr>`).join("") +
+      (rows.length ? "" : `<tr><td colspan="${cols.length}" class="muted">Eşleşen satır yok.</td></tr>`) + "</tbody>";
+  }
+  $("#tableList").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (!b) return; curTable = b.dataset.t; $("#tblSearch").value = ""; renderDbTable(); });
+  $("#tblSearch").addEventListener("input", renderDbTable);
+  $("#tblReport").addEventListener("click", () => openDialog({ title: `${curTable} tablosunda eksik`, type: "veritabani",
+    context: "Eksik satır, yanlış kural ya da eklenmesi gereken alanı yazın. Kaynak linki varsa ekleyin.", payload: { table: curTable } }));
+
+  // ---------------- SAĞLAYICI PANELİ ----------------
+  const PS = { id: "HEM-12", accepted: {}, rejected: {}, windows: {} };
+  const provs = Object.values(repo.providers).sort((a, b) => a.profession_code.localeCompare(b.profession_code) || a.id.localeCompare(b.id));
+  $("#provSel").innerHTML = provs.map((p) => `<option value="${p.id}">${p.id} · ${esc(profName(p.profession_code))} · ${esc(p.home_district)}</option>`).join("");
+  $("#provSel").value = PS.id;
+  $("#provSel").addEventListener("change", () => { PS.id = $("#provSel").value; renderProvider(); });
+  const DAYS = ["Pzt 16", "Sal 17", "Çar 18", "Per 19", "Cum 20", "Cmt 21", "Paz 22"];
+  function provWindow(id) {
+    return PS.windows[id] || repo.availability[id + "|" + DATE] || [540, 1020];
+  }
+  function provStops(id) {
+    return [...(repo.scheduled[id + "|" + DATE] || []), ...(PS.accepted[id] || [])].sort((a, b) => a.start_min - b.start_min);
+  }
+  function provRequests(p) {
+    const offered = Object.keys(repo.provider_services[p.id] || {}).filter((s) => !(repo.services[s].remote_possible && repo.services[s].category === "tele"));
+    if (!offered.length) return { list: [], blocked: 0 };
+    const win = provWindow(p.id), stops = provStops(p.id), home = [p.home_lat, p.home_lon];
+    const taken = new Set((PS.accepted[p.id] || []).map((v) => v.patient_id));
+    const rej = PS.rejected[p.id] || new Set();
+    const seed = [...p.id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
+    let blocked = 0; const list = [];
+    patients.forEach((pt, idx) => {
+      if (taken.has(pt.id) || rej.has(pt.id)) return;
+      const svc = repo.services[offered[(idx + seed) % offered.length]];
+      if (svc.needs_physician_order && !pt.has_physician_plan) { blocked++; return; }
+      const dist = C.roadKm(home, [pt.lat, pt.lon]);
+      if (dist > 20) return;
+      const ins = C.bestInsertion(home, win, stops, [pt.lat, pt.lon], svc.duration_min, 570 + C.CFG.LEAD_TIME_MIN);
+      if (!ins) return;
+      const price = C.priceVisit(svc.base_fee_tl, p.fee_multiplier, ins);
+      list.push({ pt, svc, ins, price });
+    });
+    list.sort((a, b) => a.ins.added_km - b.ins.added_km);
+    return { list: list.slice(0, 6), blocked };
+  }
+  function renderProvider() {
+    const p = repo.providers[PS.id];
+    const home = [p.home_lat, p.home_lon];
+    const win = provWindow(p.id);
+    const stops = provStops(p.id);
+    $("#provBadges").innerHTML = `<span class="tag ${p.licence_verified ? "ok" : "crit"}">${p.licence_verified ? "ruhsat doğrulandı" : "ruhsat doğrulanmadı · talep almaz"}</span>
+      <span class="tag plain">${p.years_experience} yıl</span><span class="tag plain">puan ${p.rating}</span><span class="tag plain">ücret ×${p.fee_multiplier}</span><span class="tag plain">${esc(p.home_district)}</span>`;
+    const km = routeKm(home, stops);
+    const earn = stops.reduce((a, s) => a + (s.price ? s.price.provider_gets : repo.services[s.service_code].base_fee_tl * p.fee_multiplier * (1 - C.CFG.COMMISSION)), 0);
+    const busy = stops.reduce((a, s) => a + s.duration_min, 0);
+    let travel = 0, prev = home; for (const s of stops) { travel += C.travelMin(C.roadKm(prev, [s.lat, s.lon])); prev = [s.lat, s.lon]; }
+    if (stops.length) travel += C.travelMin(C.roadKm(prev, home));
+    const idle = Math.max(0, win[1] - win[0] - busy - travel);
+    $("#provTiles").innerHTML = [
+      [stops.length, "bugünkü ziyaret"], [`${km.toFixed(1)} km`, "toplam yol"],
+      [`${tl(earn)} TL`, "tahmini kazanç (komisyon sonrası)"], [`${Math.floor(idle / 60)} sa ${idle % 60} dk`, "boş süre"],
+    ].map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+    $("#provDay").textContent = `16 Kasım · çalışma ${C.hhmm(win[0])}–${C.hhmm(win[1])}`;
+    const vis = stops.map((s) => ({ ...s, isNew: !!s.accepted }));
+    $("#provTimeline").innerHTML = timelineHTML(home, win, vis);
+    const reqs = provRequests(p);
+    mapSVG($("#provMap"), home, vis, reqs.list.map((r) => ({ loc: [r.pt.lat, r.pt.lon] })));
+    $("#provStops").innerHTML = stops.length ? `<div class="tablewrap"><table><thead><tr><th>Saat</th><th>Hizmet</th><th>Süre</th><th></th></tr></thead><tbody>${stops.map((s) =>
+      `<tr><td class="num">${C.hhmm(s.start_min)}</td><td>${esc(svcName(s.service_code))}${s.patient_id ? ` <span class="small muted">· ${s.patient_id}</span>` : ""}</td><td class="num">${s.duration_min} dk</td><td>${s.accepted ? '<span class="tag warn">yeni kabul</span>' : '<span class="tag plain">planlı</span>'}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Bugün planlı ziyaret yok. Gelen taleplerden kabul ettikleriniz burada görünür.</div>`;
+    $("#provRequests").innerHTML = (p.licence_verified ? "" : `<div class="notice warn">Ruhsatı doğrulanmayan sağlayıcıya hasta önerilmez; aşağıdakiler yalnızca önizleme.</div>`) +
+      (reqs.list.length ? reqs.list.map((r, i) => `<div class="req"><div class="stack" style="gap:2px">
+        <div class="row"><b>${esc(r.svc.name_tr)}</b>${r.ins.shared ? '<span class="tag ok">rotanıza uygun</span>' : ""}${r.pt.bedridden ? '<span class="tag plain">yatağa bağımlı</span>' : ""}</div>
+        <div class="small muted">${r.pt.id} · ${esc(r.pt.district)} · ${C.hhmm(r.ins.arrival_min)} · ${r.svc.duration_min} dk · ek yol ${r.ins.added_km} km${r.ins.shared ? ` (tek başına ${r.ins.standalone_km} km)` : ""}</div>
+        <div class="small">Kazancınız <b class="num">${tl(r.price.provider_gets)} TL</b> <span class="muted">· hasta öder ${tl(r.price.patient_pays)} TL</span></div></div>
+        <div class="row"><button class="btn small primary" type="button" data-acc="${i}">Kabul et</button><button class="btn small" type="button" data-rej="${i}">Reddet</button></div></div>`).join("")
+      : `<div class="empty">Çalışma saatlerinize sığan talep yok. Saatlerinizi genişletmeyi deneyin.</div>`) +
+      (reqs.blocked ? `<div class="small muted" style="margin-top:8px">${reqs.blocked} talep hekim planı olmadığı için size gösterilmedi (önce hekime yönlendirildi).</div>` : "");
+    $("#provRequests").onclick = (e) => {
+      const a = e.target.closest("[data-acc]"), rj = e.target.closest("[data-rej]");
+      if (a) { const r = reqs.list[+a.dataset.acc];
+        (PS.accepted[p.id] ||= []).push({ id: "A" + Date.now(), lat: r.pt.lat, lon: r.pt.lon, start_min: r.ins.arrival_min, duration_min: r.svc.duration_min, service_code: r.svc.code, patient_id: r.pt.id, accepted: true, price: r.price });
+        renderProvider(); }
+      if (rj) { const r = reqs.list[+rj.dataset.rej]; (PS.rejected[p.id] ||= new Set()).add(r.pt.id); renderProvider(); }
+    };
+    let hours = ""; for (let m = 7 * 60; m <= 21 * 60; m += 30) hours += `<option value="${m}">${C.hhmm(m)}</option>`;
+    $("#provWeek").innerHTML = DAYS.map((d, i) => `<div class="weekrow"><label class="check" for="wd${i}"><input type="checkbox" id="wd${i}" ${i < 5 ? "checked" : ""}> ${d}</label>
+      <select id="ws${i}" aria-label="${d} başlangıç">${hours}</select><select id="we${i}" aria-label="${d} bitiş">${hours}</select></div>`).join("") +
+      `<div class="small muted">Pazartesi 16 Kasım değişince rota ve talepler hemen yeniden hesaplanır. Diğer günler taslaktır.</div>`;
+    for (let i = 0; i < 7; i++) { $("#ws" + i).value = win[0]; $("#we" + i).value = win[1]; }
+    const onMon = () => { const s = +$("#ws0").value, e = +$("#we0").value;
+      if (e - s >= 60) { PS.windows[p.id] = [s, e]; renderProvider(); } };
+    $("#ws0").onchange = onMon; $("#we0").onchange = onMon;
+    $("#wd0").onchange = () => { if (!$("#wd0").checked) { PS.windows[p.id] = [win[0], win[0]]; } else { delete PS.windows[p.id]; } renderProvider(); };
+    $("#wd0").checked = win[1] > win[0];
+    const ps = repo.provider_services[p.id] || {};
+    $("#provServices").innerHTML = `<thead><tr><th>Hizmet</th><th>Ziyaret</th><th>Sizin bedeliniz</th><th>Hekim istemi</th></tr></thead><tbody>` +
+      Object.entries(ps).sort((a, b) => b[1] - a[1]).map(([s, v]) => `<tr><td>${esc(svcName(s))}</td><td class="num">${v}</td>
+        <td class="num">${tl(repo.services[s].base_fee_tl * p.fee_multiplier)} TL</td><td>${repo.services[s].needs_physician_order ? "gerekir" : "—"}</td></tr>`).join("") + "</tbody>";
+  }
+  $("#panelReport").addEventListener("click", () => openDialog({ title: "Doktor / hemşire paneli için not", type: "panel",
+    context: `${PS.id} olarak bakarken: eksik bilgi, yanlış hesap ya da eklenmesi gereken ekran.`, payload: { provider: PS.id } }));
+
+  // ---------------- Başlat ----------------
+  route();
+  renderScenario();
+  renderEval();
+  renderProbes();
+  renderDbTable();
+  renderProvider();
+  renderFeedback();
+  fbInit();
+})();
+</script>
+</body>
+</html>

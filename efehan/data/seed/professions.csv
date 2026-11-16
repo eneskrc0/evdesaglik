@@ -1,0 +1,12 @@
+code,name_tr,can_diagnose,requires_physician_order,note,source_id
+hekim,Hekim (pratisyen / aile hekimi),1,0,Tanı koyar ve tedavi planı / reçete düzenler,S08
+uzman_hekim,Uzman hekim,1,0,Branşına göre tanı ve tedavi planı,S08
+hemsire,Hemşire,0,1,Serbest çalışmada yalnızca hekimin tanı koyduğu hastaya plan veya reçeteyle hizmet,S07
+ebe,Ebe,0,1,Serbest meslek kapsamına dahil,S07
+fizyoterapist,Fizyoterapist,0,1,Hekim tanısı ve tedavi planı gerekli,S08
+odyolog,Odyolog,0,1,Hekim tanısı ve tedavi planı gerekli,S07
+diyetisyen,Diyetisyen,0,1,Hekim tanısı ve tedavi planı gerekli,S07
+dil_konusma,Dil ve konuşma terapisti,0,1,Hekim tanısı ve tedavi planı gerekli,S07
+ergoterapist,Ergoterapist (iş ve uğraşı terapisti),0,1,Hekim tanısı ve tedavi planı gerekli,S07
+klinik_psikolog,Klinik psikolog,0,1,Hekim tanısı ve tedavi planı gerekli,S07
+podolog,Podolog,0,1,Hekim tanısı ve tedavi planı gerekli,S07
