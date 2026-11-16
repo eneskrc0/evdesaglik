@@ -1,0 +1,41 @@
+{
+  "id": "011_v4",
+  "world": "izmir",
+  "versiyon": "v4",
+  "name": "v4",
+  "model": "v4_mesafe",
+  "note": "v3 + mesafe farkındalığı",
+  "set": "dev",
+  "date": "2026-11-14T14:37",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "f723c2a393c3",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "61987c43d1cb",
+    "sim/geo.py": "78c2c781da8f",
+    "sim/models.py": "b63bc584f04b"
+  }
+}

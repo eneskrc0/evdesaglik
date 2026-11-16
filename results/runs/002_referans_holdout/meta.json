@@ -1,0 +1,39 @@
+{
+  "id": "002_referans_holdout",
+  "name": "referans",
+  "model": "gbm_v1",
+  "note": "Referans, ayrılmış tohumlar",
+  "set": "holdout",
+  "date": "2026-11-13T17:30",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "5b13247c6dac",
+  "files": {
+    "data/pool.npz": "4ef861e1cbde",
+    "sim/engine.py": "ff1d0ab506b9",
+    "sim/world.py": "b631349df8bd",
+    "sim/geo.py": "382074215921",
+    "sim/models.py": "2809e2d767ef"
+  }
+}

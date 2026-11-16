@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evde Sağlık Eşleştirme — Demo ve Deney Seti</title>
+<script src="https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1d1d1b;--ink2:#5d5d58;--ink3:#8b8b84;--line:#e3e2dd;
+--blue:#2a78d6;--orange:#eb6834;--aqua:#1baf7a;--busy:#b9b8b0;--accent:#2a78d6;--warn:#b25d00;--ok:#1a7f4b}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--ink:#f0efec;--ink2:#c3c2b7;--ink3:#8f8e86;--line:#34342f;--busy:#55554f}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:14px 16px 0;max-width:1200px;margin:auto}
+h1{font-size:18px;margin:0 0 2px}header p{margin:0;color:var(--ink2);font-size:13px}
+.tabs{display:flex;gap:6px;margin:12px 0 0;border-bottom:1px solid var(--line)}
+.tab{padding:9px 14px;border:0;background:none;color:var(--ink2);font:inherit;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:var(--ink);border-color:var(--accent)}
+main{max-width:1200px;margin:auto;padding:12px 16px 40px}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:12px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.card h2{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.muted{color:var(--ink2)}.small{font-size:12px}.tiny{font-size:11px;color:var(--ink3)}
+label{display:block;font-size:12px;color:var(--ink2);margin:8px 0 3px}
+select,input{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);font:inherit}
+.row{display:flex;gap:8px}.row>*{flex:1}
+button.btn{padding:8px 12px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.btn.sec{background:transparent;color:var(--accent)}button.btn:disabled{opacity:.45;cursor:default}
+button.btn.sm{padding:5px 9px;font-size:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;padding:7px 4px;border:0;background:none;color:var(--ink2);font:inherit;font-size:12px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+#map{width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:manipulation;cursor:crosshair}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink2);margin-top:6px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px}
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;border:1px solid var(--line);color:var(--ink2)}
+.pill.ok{color:var(--ok);border-color:currentColor}.pill.warn{color:var(--warn);border-color:currentColor}
+.list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.item{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.item b{font-variant-numeric:tabular-nums}
+.rank{font-variant-numeric:tabular-nums;font-size:12px;width:100%;border-collapse:collapse}
+.rank td,.rank th{padding:3px 4px;border-bottom:1px solid var(--line);text-align:left}.rank th{color:var(--ink3);font-weight:500}
+.rank tr.sent td{font-weight:600}
+.track{margin-top:10px;padding:12px;border-radius:10px;border:1px solid var(--line);background:color-mix(in srgb,var(--aqua) 6%,transparent)}
+.trackTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.trackHead{font-weight:600;margin-top:2px}
+.eta{text-align:right}.etaBig{font-size:26px;font-weight:700;line-height:1;color:var(--aqua)}
+.steps{display:flex;gap:4px;margin:10px 0 6px;flex-wrap:wrap}.st{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);flex:1;min-width:64px}
+.st span{width:9px;height:9px;border-radius:50%;border:2px solid var(--ink3);flex:none}.st.ok{color:var(--ink2)}.st.ok span{background:var(--aqua);border-color:var(--aqua)}
+.st.now{color:var(--ink);font-weight:600}.st.now span{border-color:var(--aqua);box-shadow:0 0 0 3px color-mix(in srgb,var(--aqua) 30%,transparent)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.bar div{height:100%;background:var(--aqua);border-radius:3px;transition:width .3s}
+.banner{padding:9px 10px;border-radius:8px;background:color-mix(in srgb,var(--aqua) 14%,transparent);border:1px solid color-mix(in srgb,var(--aqua) 50%,transparent);margin-top:8px}
+.banner.warn{background:color-mix(in srgb,var(--orange) 12%,transparent);border-color:color-mix(in srgb,var(--orange) 45%,transparent)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media (max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:8px}.kpi .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.chart svg{width:100%;height:auto;display:block}
+.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--accent);width:0}
+table.res{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+table.res td,table.res th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}table.res td:first-child,table.res th:first-child{text-align:left}
+.tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.12);display:none;z-index:9}
+.hide{display:none!important}
+details summary{cursor:pointer;color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Evde Sağlık Anlık Teklif ve Eşleştirme</h1>
+  <p>Bornova pilotu — gerçek yol ağı (OpenStreetMap), sentetik hasta ve çalışan verisi. Ücretler temsilidir.</p>
+  <div class="tabs">
+    <button class="tab on" data-tab="demo">Uygulama demosu</button>
+    <button class="tab" data-tab="deney">Deney seti</button>
+    <button class="tab" data-tab="gelisim">Model gelişimi</button>
+    <button class="tab" data-tab="nasil">Nasıl çalışıyor?</button>
+  </div>
+</header>
+<main>
+<!-- ================= DEMO ================= -->
+<section id="tab-demo">
+ <div class="grid">
+  <div class="card">
+   <h2>Bornova haritası <span class="pill" id="loadPill">model eğitiliyor…</span></h2>
+   <div class="row small" style="align-items:center;margin-bottom:6px">
+     <div>Saat: <span class="clock" id="clock">10:00</span></div>
+     <div class="seg" id="speedSeg" style="flex:1.4"><button data-s="0">Durdur</button><button data-s="1" class="on">1 dk/sn</button><button data-s="4">4 dk/sn</button></div>
+   </div>
+   <svg id="map" viewBox="0 0 600 470"></svg>
+   <div class="legend">
+     <span><i class="dot" style="background:var(--aqua)"></i>Hemşire</span>
+     <span><i class="dot" style="background:var(--blue)"></i>Doktor</span>
+     <span><i class="dot" style="background:var(--busy)"></i>Ziyarette</span>
+     <span><i class="dot" style="background:var(--orange)"></i>Hasta</span>
+     <label style="display:inline;margin:0;color:var(--ink2)"><input type="checkbox" id="hospToggle" checked style="width:auto;vertical-align:-2px"> Hastaneler</label>
+     <span id="hospLegend"></span>
+     <span class="tiny">Haritaya dokunarak hasta konumunu seçin (en yakın yol noktasına yapışır). Turuncu kesikli çizgi: Bornova idari sınırı. Talep açınca taranan H3 hücreleri görünür.</span>
+   </div>
+   <div id="rankBox" class="hide" style="margin-top:10px">
+     <div class="small muted" id="rankTitle"></div>
+     <table class="rank"><thead><tr><th>#</th><th>Çalışan</th><th>Uzaklık</th><th>En erken varış</th><th>Model olasılığı</th><th></th></tr></thead><tbody id="rankBody"></tbody></table>
+   </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+   <div class="card">
+    <h2>🧑 Hasta ekranı</h2>
+    <div id="patientForm">
+     <div class="row">
+      <div><label>Hizmet</label><select id="fService"><option value="pansuman">Planlı pansuman (hemşire)</option><option value="doktor">Planlı doktor ziyareti</option></select></div>
+      <div><label>Zaman aralığı (60 dk)</label><select id="fWindow"></select></div>
+     </div>
+     <div class="row">
+      <div><label>Bütçe (TL, isteğe bağlı)</label><input id="fBudget" type="number" inputmode="numeric" placeholder="ör. 600"></div>
+      <div><label>Bildirim yöntemi</label><select id="fPolicy"><option value="model5">Yapay zekâ v5 (dengeli)</option><option value="model">Yapay zekâ v1 (sade)</option><option value="en_erken">En erken varış</option><option value="en_yakin">En yakın</option></select></div>
+     </div>
+     <div style="margin-top:10px;display:flex;gap:8px;align-items:center"><button class="btn" id="btnRequest" disabled>Talep aç</button><span class="tiny" id="locHint">Konum: haritadan seçin</span></div>
+     <div id="etaNear"></div><div id="hospNear" class="small" style="margin-top:8px"></div>
+    </div>
+    <div id="patientLive" class="hide">
+      <div class="small" id="reqSummary"></div>
+      <div class="small muted" id="reqStatus" style="margin-top:4px"></div>
+      <div class="list" id="offerList"></div>
+      <div id="patientBanner"></div><div id="trackCard"></div>
+      <div style="margin-top:8px"><button class="btn sec sm" id="btnNew">Yeni talep</button></div>
+    </div>
+   </div>
+
+   <div class="card">
+    <h2>🩺 Sağlık çalışanı ekranı</h2>
+    <label>Bu ekranda hangi çalışan sizsiniz?</label>
+    <select id="wSelect"></select>
+    <div class="small muted" id="wStatus" style="margin-top:6px"></div>
+    <div id="wInbox"></div>
+    <details style="margin-top:8px"><summary>Bugünkü takvim</summary><div class="list small" id="wCal"></div></details>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= DENEY ================= -->
+<section id="tab-deney" class="hide">
+ <div class="grid">
+  <div class="card">
+   <h2>Deney ayarları</h2>
+   <div class="row">
+    <div><label>Senaryo</label><select id="xScn">
+      <option value="baz">Baz</option><option value="homojen">Homojen çalışanlar</option>
+      <option value="yuksek_degiskenlik">Yüksek değişkenlik</option><option value="belirsiz_yol">Belirsiz yol süreleri</option></select></div>
+    <div><label>Tohum sayısı (tekrar)</label><select id="xSeeds"><option>3</option><option selected>5</option><option>10</option></select></div>
+   </div>
+   <div class="row">
+    <div><label>Hemşire sayısı: <b id="vN">40</b></label><input type="range" id="xN" min="10" max="80" value="40"></div>
+    <div><label>Doktor sayısı: <b id="vD">15</b></label><input type="range" id="xD" min="5" max="40" value="15"></div>
+   </div>
+   <div class="row">
+    <div><label>Günlük talep: <b id="vR">70</b></label><input type="range" id="xR" min="20" max="160" value="70"></div>
+    <div><label>Bütçe belirten hasta: <b id="vB">60</b>%</label><input type="range" id="xB" min="0" max="100" value="60"></div>
+   </div>
+   <div class="row">
+    <div><label>Bildirim / tur: <b id="vK">3</b></label><input type="range" id="xK" min="1" max="6" value="3"></div>
+    <div><label>Model adalet cezası: <b id="vF">0</b></label><input type="range" id="xF" min="0" max="10" value="0"></div>
+   </div>
+   <p class="tiny">Her tohumda: 12 gün rastgele bildirimle çalışan geçmişi, 12 gün model eğitim verisi, 10 yeni test günü. Üç yöntem aynı talepler ve takvimlerle çalışır. Adalet cezası, gün içinde çok bildirim almış çalışanın model skorunu düşürür.</p>
+   <div style="display:flex;gap:8px;align-items:center"><button class="btn" id="btnRun">Deneyi çalıştır</button><span class="small muted" id="runInfo"></span></div>
+   <div class="prog"><i id="progBar"></i></div>
+  </div>
+  <div class="card">
+   <h2>Özet (model v5 − en erken varış)</h2>
+   <div class="kpis" id="kpis"><div class="kpi"><div class="tiny">Henüz çalıştırılmadı</div></div></div>
+   <p class="tiny" id="kpiNote" style="margin-top:8px">Fark, aynı tohumlarda eşleştirilmiş olarak hesaplanır; ± değer %95 güven aralığıdır.</p>
+  </div>
+ </div>
+ <div class="card chart" style="margin-top:12px">
+  <h2>Yöntem karşılaştırması</h2>
+  <div class="legend" style="margin:0 0 6px"><span><i class="dot" style="background:var(--blue)"></i>En yakın 3</span><span><i class="dot" style="background:var(--orange)"></i>En erken varış 3</span><span><i class="dot" style="background:var(--aqua)"></i>Model v1 (sade)</span><span><i class="dot" style="background:#7a5af5"></i>Model v5 (dengeli)</span></div>
+  <div id="chart"><p class="tiny">Deneyi çalıştırınca grafik burada görünür.</p></div>
+ </div>
+ <div class="grid" style="margin-top:12px">
+  <div class="card"><h2>Sonuç tablosu</h2><div id="resTable" class="tiny">—</div></div>
+  <div class="card chart"><h2>Bildirim yükü dağılımı (son tohum)</h2><div id="loadChart" class="tiny">—</div><p class="tiny">Her çubuk bir çalışan; test günlerinde aldığı bildirim sayısı (büyükten küçüğe).</p></div>
+ </div>
+</section>
+
+<!-- ================= GELİŞİM ================= -->
+<section id="tab-gelisim" class="hide">
+ <div class="card">
+  <h2>Referans (v0.3) ve sonraki model denemeleri</h2>
+  <p class="small muted" style="margin:0 0 8px">Her model denemesi, dondurulmuş referansla <b>aynı senaryo ve tohumlarda</b> karşılaştırılır (Python simülasyonu, gradient boosting vb.). Geliştirme tohumları 0–9; ayrılmış tohumlar 1000–1009 yalnızca dönüm noktalarında çalıştırılır. Farklar yüzde puandır, ± değer %95 güven aralığıdır.</p>
+  <div class="row" style="max-width:520px"><div><label>Senaryo</label><select id="gScn"><option value="baz">Baz</option><option value="homojen">Homojen</option><option value="yuksek_degiskenlik">Yüksek değişkenlik</option><option value="belirsiz_yol">Belirsiz yol</option></select></div>
+   <div><label><input type="checkbox" id="gAll" style="width:auto"> Tüm denemeler (kota vb.)</label></div>
+   <div><label>Tohum kümesi</label><select id="gSet"><option value="dev">Geliştirme (0–9)</option><option value="holdout">Ayrılmış (1000–1009)</option></select></div></div>
+  <div class="chart" id="gChart" style="margin-top:10px"></div>
+  <div id="gTable" style="margin-top:10px;overflow-x:auto"></div>
+ </div>
+</section>
+
+<!-- ================= NASIL ================= -->
+<section id="tab-nasil" class="hide">
+ <div class="card" style="max-width:820px">
+  <h2>Akış</h2>
+  <ol class="small" style="padding-left:18px;margin:0">
+   <li><b>Talep:</b> hasta hizmeti, yaklaşık konumu, 60 dakikalık zaman aralığını ve isterse bütçesini girer.</li>
+   <li><b>Aday bulma:</b> hastanın H3 hücresi ve çevresindeki 6 halka taranır; mesleği uyan ve takvimi bozulmadan aralığa yetişebilecek çalışanlar aday olur.</li>
+   <li><b>Sıralama:</b> seçilen yöntem adayları sıralar ve ilk 3 kişiye bildirim gider. 5 dakika içinde uygun teklif gelmezse sıradaki 3 kişiye ikinci tur gönderilir.</li>
+   <li><b>Teklif:</b> çalışan ücret ve varış saatini birlikte önerir. Bütçeye yakınsa hastanın teklifini kabul edebilir.</li>
+   <li><b>Kabul:</b> hasta seçer; kabul anında çalışanın takvimi yeniden kontrol edilir (atomik kabul). Uygunsa zaman dilimi ayrılır, açık adres yalnızca seçilen çalışanla paylaşılır.</li>
+  </ol>
+  <h2 style="margin-top:14px">Model</h2>
+  <p class="small">Her (talep, aday) çifti için "bu çalışan 5 dk içinde, aralığa uyan ve bütçeyi aşmayan bir teklif verir mi?" olasılığını tahmin eder. Girdiler: yol süresi, mevcut ziyaretin bitişine kalan süre, aralık payı, saat, yoğun saat, ziyarette olma, geçmiş yanıt oranı, geçmiş hızlı yanıt oranı, yoğun saat yanıt oranı, bütçe ile çalışanın geçmiş ücret düzeyi farkı. Bu sayfada lojistik regresyon tarayıcıda eğitilir; Python sürümü gradient boosting kullanır.</p>
+  <h2 style="margin-top:14px">Sınırlamalar</h2>
+  <ul class="small" style="padding-left:18px;margin:0">
+   <li>Yol süreleri OpenStreetMap yol ağı üzerinde en kısa rotadır (tek yönlü yollar dahil, serbest akış hızları). Trafik için saate bağlı katsayı uygulanır: yoğun saatlerde ×1,8, gündüz ×1,35, diğer saatlerde ×1,15; park/hazırlık için +3 dk. Gerçek trafik verisi kullanılmamıştır.</li><li>Hasta ve çalışan konumları Bornova sınırı içindeki 600 yol noktasından seçilir; yol yoğunluğu nüfus yoğunluğunun yaklaşık bir göstergesi olarak kullanılır.</li>
+   <li>Çalışan davranışı varsayımlarla üretilir; modelin kazancı bu varsayımlara bağlıdır. "Homojen" senaryo, çalışanlar aynı davrandığında modelin fayda sağlamadığını gösterir.</li>
+   <li>Tüm hasta, çalışan, adres ve ücret verileri sentetiktir.</li>
+  </ul>
+ </div>
+</section>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+/* ======================= RNG ======================= */
+function cyrb53(str, seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
+function makeRng(seed){let a=seed>>>0;const r={};
+ r.random=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+ r.uniform=(lo,hi)=>lo+(hi-lo)*r.random();
+ r.int=(lo,hi)=>Math.floor(r.uniform(lo,hi)); // [lo,hi)
+ r.normal=(m=0,s=1)=>{let u=0,v=0;while(u===0)u=r.random();while(v===0)v=r.random();return m+s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+ r.gamma=(k)=>{if(k<1){return r.gamma(k+1)*Math.pow(r.random(),1/k);}const d=k-1/3,c=1/Math.sqrt(9*d);for(;;){let x,v;do{x=r.normal();v=1+c*x;}while(v<=0);v=v*v*v;const u=r.random();if(u<1-0.0331*x*x*x*x)return d*v;if(Math.log(u)<0.5*x*x+d*(1-v+Math.log(v)))return d*v;}};
+ r.beta=(a,b)=>{const x=r.gamma(a),y=r.gamma(b);return x/(x+y);};
+ r.perm=(n)=>{const p=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(r.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}return p;};
+ return r;}
+const rngFor=(...k)=>makeRng(cyrb53(k.join("|")));
+
+/* ======================= GEO ======================= */
+const ROADS=/*ROADS_JSON*/null; // sim/build_roads.py çıktısı: gerçek yol ağı (OpenStreetMap)
+let POOL=null,TT=null;
+const WORLD=(ROADS&&ROADS.world)||"bornova";
+const DISTRICT_POP={"Buca":525402,"Karabağlar":475251,"Bornova":445162,"Karşıyaka":341253,"Konak":325211,"Bayraklı":299859,"Çiğli":215697,"Gaziemir":137768,"Balçova":76613,"Narlıdere":61732,"Güzelbahçe":38500};
+let BY_D=null,DNAMES=null,DCUM=null;
+if(ROADS){POOL=ROADS.pool.map((p,i)=>[p[0],p[1],i]);
+ if(ROADS.ilce){BY_D={};ROADS.ilce.forEach((d,i)=>{(BY_D[d]=BY_D[d]||[]).push(POOL[i]);});DNAMES=Object.keys(BY_D).sort();const w=DNAMES.map(d=>DISTRICT_POP[d]||1);const tot=w.reduce((a,b)=>a+b,0);let c=0;DCUM=w.map(x=>(c+=x/tot));}const bin=atob(ROADS.tt);const buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);TT=new Uint16Array(buf.buffer);}
+const POLY=[[38.488,27.195],[38.492,27.230],[38.480,27.268],[38.450,27.262],[38.440,27.235],[38.447,27.200]]; // [lat,lon]
+const H3_RES=8, DETOUR=1.35, SEARCH_K=6;
+const HAS_H3=typeof h3!=="undefined";
+function inPoly(lat,lon){let c=false;for(let i=0,j=POLY.length-1;i<POLY.length;j=i++){const [yi,xi]=POLY[i],[yj,xj]=POLY[j];if(((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi))c=!c;}return c;}
+const LATS=POLY.map(p=>p[0]),LONS=POLY.map(p=>p[1]);
+const BB={minLat:Math.min(...LATS),maxLat:Math.max(...LATS),minLon:Math.min(...LONS),maxLon:Math.max(...LONS)};
+function samplePoint(r){if(BY_D){const u=r.random();let k=DCUM.findIndex(c=>u<=c);if(k<0)k=DNAMES.length-1;const L=BY_D[DNAMES[k]];return L[r.int(0,L.length)];}
+ if(POOL)return POOL[r.int(0,POOL.length)];for(;;){const lon=r.uniform(BB.minLon,BB.maxLon),lat=r.uniform(BB.minLat,BB.maxLat);if(inPoly(lat,lon))return[lat,lon];}}
+function haversine(a,b){const R=Math.PI/180,dl=(b[0]-a[0])*R,dn=(b[1]-a[1])*R;const d=Math.sin(dl/2)**2+Math.cos(a[0]*R)*Math.cos(b[0]*R)*Math.sin(dn/2)**2;return 6371*2*Math.asin(Math.sqrt(d));}
+function speedKmh(m){const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 16;if(h>=9.5&&h<17)return 24;return 30;}
+function congestion(m){const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 1.8;if(h>=9.5&&h<17)return 1.35;return 1.15;}
+function travelMin(a,b,m){if(TT&&a.length>2&&b.length>2)return 3+TT[a[2]*POOL.length+b[2]]/60*congestion(m);return 3+60*haversine(a,b)*DETOUR/speedKmh(m);}
+const cellCache=new Map();
+function cellOf(p){const k=p[0]+","+p[1];let c=cellCache.get(k);if(c)return c;
+ c=HAS_H3?h3.latLngToCell(p[0],p[1],H3_RES):(Math.round(p[0]/0.006)+":"+Math.round(p[1]/0.0075));cellCache.set(k,c);return c;}
+const diskCache=new Map();
+function nearCells(c){let s=diskCache.get(c);if(s)return s;
+ if(HAS_H3)s=new Set(h3.gridDisk(c,SEARCH_K));else{const[a,b]=c.split(":").map(Number);s=new Set();for(let i=-SEARCH_K;i<=SEARCH_K;i++)for(let j=-SEARCH_K;j<=SEARCH_K;j++)s.add((a+i)+":"+(b+j));}
+ diskCache.set(c,s);return s;}
+
+/* ======================= WORLD ======================= */
+const SERVICES={pansuman:{role:"hemsire",dur:30,base:600,label:"Planlı pansuman"},doktor:{role:"doktor",dur:40,base:1500,label:"Planlı doktor ziyareti"}};
+const DAY_START=480,DAY_END=1200;
+const BASE_SC={name:"baz",nNurses:40,nDoctors:15,reqPerDay:70,budgetShare:0.6,respA:4,respB:3,peakSensShare:0.4,peakFactor:0.45,
+ longDelayShare:0.4,shortDelay:[0.3,3],longDelay:[3,12],priceSd:0.12,homogeneous:false,travelNoiseSd:0.15,overrunSd:6,lateShare:0.25,notifyK:3,fairness:0};
+if(WORLD==="izmir")Object.assign(BASE_SC,{nNurses:260,nDoctors:100,reqPerDay:450});
+const SCENARIOS={baz:{},homojen:{homogeneous:true},yuksek_degiskenlik:{respA:2,respB:2,peakSensShare:0.6,longDelayShare:0.55,priceSd:0.2},belirsiz_yol:{travelNoiseSd:0.35,overrunSd:12}};
+const clip=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+class Worker{
+ constructor(o){Object.assign(this,o);this.blocks=[];}
+ clone(){const w=new Worker(this);w.blocks=this.blocks.map(b=>({...b}));return w;}
+ resetDay(r){this.blocks=[];const n=r.int(0,4);for(let i=0;i<n;i++){const s=r.uniform(DAY_START,DAY_END-90),d=r.uniform(30,75);
+   if(this.blocks.every(b=>s+d<=b.s||s>=b.e))this.blocks.push({s,e:s+d,p:samplePoint(r),plat:false});}
+   this.blocks.sort((a,b)=>a.s-b.s);}
+ posFree(t){let loc=this.home;for(const b of this.blocks){if(b.e<=t)loc=b.p;else if(b.s<=t&&t<b.e)return{loc:b.p,free:b.e,inVisit:true};}return{loc,free:t,inVisit:false};}
+ earliest(t,dest,dur,ws){const pf=this.posFree(t);let curT=Math.max(t,pf.free),curLoc=pf.loc;
+   const fut=this.blocks.filter(b=>b.s>=curT);fut.push(null);
+   for(const b of fut){const arr=Math.max(curT+travelMin(curLoc,dest,curT),ws),end=arr+dur;
+     const ok=b===null||end+travelMin(dest,b.p,end)<=b.s;
+     if(ok&&end<=DAY_END)return{arr,depart:curT,from:curLoc};
+     if(b===null)return null;curT=b.e;curLoc=b.p;}
+   return null;}
+}
+function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor")];
+ roles.forEach((role,i)=>{if(sc.homogeneous){ws.push(new Worker({id:i,role,home:samplePoint(r),respP:sc.respA/(sc.respA+sc.respB),peakSens:false,longDelay:false,priceMult:1,oftenLate:false}));return;}
+  ws.push(new Worker({id:i,role,home:samplePoint(r),respP:r.beta(sc.respA,sc.respB),peakSens:r.random()<sc.peakSensShare,longDelay:r.random()<sc.longDelayShare,
+   priceMult:clip(r.normal(1,sc.priceSd),0.7,1.5),oftenLate:r.random()<sc.lateShare}));});return ws;}
+function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const service=r.random()<0.7?"pansuman":"doktor";
+ const ws=t+r.uniform(30,180);const base=SERVICES[service].base;const budget=r.random()<sc.budgetShare?Math.round(base*r.uniform(0.85,1.15)/10)*10:null;
+ out.push({id:i,t,loc:samplePoint(r),service,ws,we:ws+60,budget});}out.sort((a,b)=>a.t-b.t);return out;}
+
+/* ======================= ENGINE ======================= */
+const ROUND_WAIT=5,DECIDE_MAX=10,OVER_BUDGET_P=0.35;
+const V5_CFG={a:0.6,b:0.06,c:0.15,alpha:0.95}; // v5 karar kuralları (Python: sim/models.py v5_denge)
+const isPeak=t=>{const h=t/60;return(h>=8&&h<10)||(h>=17&&h<19);};
+function workerResponse(sc,w,req,t,seed,day){
+ const r=rngFor(seed,day,req.id,w.id);const pf=w.posFree(t);
+ const p=w.respP*((isPeak(t)&&w.peakSens)?sc.peakFactor:1)*(pf.inVisit?0.6:1);
+ const respond=r.random()<p;const[lo,hi]=w.longDelay?sc.longDelay:sc.shortDelay;const delay=r.uniform(lo,hi);
+ const pn=r.normal(0,0.05);const matchB=r.random()<0.5;if(!respond)return null;
+ const S=SERVICES[req.service];const ea=w.earliest(t+delay,req.loc,S.dur,req.ws);if(!ea||ea.arr>req.we+30)return null;
+ let price=Math.round(S.base*w.priceMult*(1+pn)/10)*10;
+ if(req.budget!=null&&req.budget<price&&price<=req.budget*1.08&&matchB)price=req.budget;
+ const fits=ea.arr<=req.we&&(req.budget==null||price<=req.budget);
+ return{worker:w.id,t:t+delay,arrival:ea.arr,price,fits};}
+function candidates(workers,req,t,exclude){const S=SERVICES[req.service];const near=nearCells(cellOf(req.loc));const out=[];
+ for(const w of workers){if(w.role!==S.role||exclude.has(w.id))continue;const pf=w.posFree(t);if(!near.has(cellOf(pf.loc)))continue;
+  const ea=w.earliest(t,req.loc,S.dur,req.ws);if(!ea||ea.arr>req.we)continue;const f0=Math.max(t,pf.free);
+  out.push({w,loc:pf.loc,free:pf.free,inVisit:pf.inVisit,expArr:ea.arr,dist:haversine(pf.loc,req.loc),rawArr:f0+travelMin(pf.loc,req.loc,f0)});}
+ return out;}
+function features(c,req,t,hist){const h=hist[c.w.id]||{};const base=SERVICES[req.service].base;const ep=base*(h.priceMult??1);const hb=req.budget!=null;
+ return[travelMin(c.loc,req.loc,t),Math.max(0,c.free-t),req.we-c.expArr,t/60,+isPeak(t),+c.inVisit,h.resp??0.5,h.fast??0.5,h.peak??(h.resp??0.5),hb?(req.budget-ep)/base:0,+hb,+(req.service==="doktor")];}
+const FEAT_NAMES=["yol süresi","boşalmaya kalan","aralık payı","saat","yoğun saat","ziyarette","geçmiş yanıt","hızlı yanıt","yoğun saat yanıtı","bütçe farkı","bütçe var","doktor"];
+function scoreModel(model,cands,req,t,hist){return cands.map(c=>model.predict(features(c,req,t,hist)));}
+function rankC(policy,cands,req,t,hist,model,r,load,fair){
+ if(policy==="en_yakin")return[...cands].sort((a,b)=>a.dist-b.dist);
+ if(policy==="en_erken")return[...cands].sort((a,b)=>a.expArr-b.expArr||a.rawArr-b.rawArr);
+ if(policy==="rastgele"){const p=r.perm(cands.length);return p.map(i=>cands[i]);}
+ if(policy==="model"||policy==="model5"){const s=scoreModel(model,cands,req,t,hist);
+  const cfg=policy==="model5"?V5_CFG:{a:0,b:(fair||0)*0.01,c:0,alpha:0};
+  cands.forEach((c,i)=>{c.p=s[i];const tt=travelMin(c.loc,req.loc,t);const vis=c.w.blocks.filter(b=>b.plat).length;
+   c.adj=s[i]-cfg.a*tt/30-cfg.b*((load&&load[c.w.id])||0)-cfg.c*vis;});
+  let order=[...cands].sort((a,b)=>b.adj-a.adj);
+  if(cfg.alpha&&order.length){const K=Math.min(3,order.length);const byP=[...cands].sort((a,b)=>b.p-a.p);
+   const S=arr=>1-arr.reduce((m,c)=>m*(1-c.p),1);const sStar=S(byP.slice(0,K));let ch=order.slice(0,K);
+   while(S(ch)<cfg.alpha*sStar){const worst=ch.reduce((m,c)=>c.p<m.p?c:m,ch[0]);const nxt=byP.find(c=>!ch.includes(c));if(!nxt||nxt.p<=worst.p)break;ch[ch.indexOf(worst)]=nxt;}
+   order=ch.concat(order.filter(c=>!ch.includes(c)));}
+  return order;}
+ throw policy;}
+
+function runDay(sc,workers0,reqs,policy,seed,day,hist,model,log){
+ const workers=workers0.map(w=>w.clone());const wmap=new Map(workers.map(w=>[w.id,w]));hist=hist||{};
+ const res={n:reqs.length,fit5:0,accepted:0,onTime:0,overB:0,notif:0,perW:{},log:[]};
+ const polR=rngFor(seed,day,999);const st={};reqs.forEach(r=>st[r.id]={notified:new Set(),offers:[]});
+ const ev=[];let seq=0;const push=(t,kind,req)=>{ev.push({t,s:seq++,kind,req});};
+ reqs.forEach(r=>push(r.t,"notify",r));
+ const pop=()=>{let bi=0;for(let i=1;i<ev.length;i++){if(ev[i].t<ev[bi].t||(ev[i].t===ev[bi].t&&ev[i].s<ev[bi].s))bi=i;}return ev.splice(bi,1)[0];};
+ const notify=(req,t)=>{const s=st[req.id];const c=candidates(workers,req,t,s.notified);
+  for(const x of rankC(policy,c,req,t,hist,model,polR,res.perW,sc.fairness).slice(0,sc.notifyK)){
+   s.notified.add(x.w.id);res.notif++;res.perW[x.w.id]=(res.perW[x.w.id]||0)+1;
+   const off=workerResponse(sc,x.w,req,t,seed,day);if(off)s.offers.push(off);
+   if(log){const label=+(off!=null&&off.fits&&off.t-t<=ROUND_WAIT);res.log.push({f:features(x,req,t,hist),y:label,wid:x.w.id,off,t,peak:isPeak(t),doc:req.service==="doktor"});}}};
+ while(ev.length){const {t,kind,req}=pop();const s=st[req.id];
+  if(kind==="notify"){notify(req,t);const fits=s.offers.filter(o=>o.fits&&o.t<=t+ROUND_WAIT);
+    if(fits.length)push(Math.min(...fits.map(o=>o.t))+1,"decide",req);else push(t+ROUND_WAIT,"round2",req);}
+  else if(kind==="round2"){notify(req,t);const fits=s.offers.filter(o=>o.fits&&o.t<=req.t+DECIDE_MAX);
+    const dt=fits.length?Math.min(...fits.map(o=>o.t))+1:req.t+DECIDE_MAX;push(Math.max(dt,t),"decide",req);}
+  else decide(sc,req,t,s,wmap,res,seed,day);}
+ res.fit5=reqs.filter(r=>st[r.id].offers.some(o=>o.fits&&o.t<=r.t+ROUND_WAIT)).length;
+ return res;}
+function decide(sc,req,t,s,wmap,res,seed,day){const S=SERVICES[req.service];const offers=s.offers.filter(o=>o.t<=t);
+ const fitting=offers.filter(o=>o.fits).sort((a,b)=>(a.arrival+a.price/20)-(b.arrival+b.price/20));const pr=rngFor(seed,day,req.id,20000);let over=[];
+ if(!fitting.length){over=offers.filter(o=>o.arrival<=req.we).sort((a,b)=>a.price-b.price);if(!(over.length&&pr.random()<OVER_BUDGET_P))return;}
+ for(const o of(fitting.length?fitting:over)){const w=wmap.get(o.worker);const ea=w.earliest(t,req.loc,S.dur,req.ws);if(!ea||ea.arr>o.arrival+5)continue;
+  const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-travelMin(ea.from,req.loc,ea.depart),e:planned+S.dur,p:req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
+  res.accepted++;if(!o.fits)res.overB++;
+  const r=rngFor(seed,day,req.id,10000+w.id);const tr=travelMin(ea.from,req.loc,ea.depart);const noise=r.normal(0,sc.travelNoiseSd*tr);
+  const prev=w.blocks.filter(b=>b.e<=ea.depart+1e-6).map(b=>b.e);let overrun=0;
+  if(prev.length){const ov=Math.abs(r.normal(0,sc.overrunSd))*(w.oftenLate?2:1);overrun=Math.max(0,ov-(ea.depart-Math.max(...prev)));}
+  if(planned+noise+overrun<=req.we)res.onTime++;return;}}
+
+/* ======================= MODEL (lojistik regresyon) ======================= */
+function trainLogReg(X,y,{epochs=250,lr=0.3,l2=1e-3}={}){const n=X.length,d=X[0].length;const mu=Array(d).fill(0),sd=Array(d).fill(0);
+ for(const x of X)x.forEach((v,j)=>mu[j]+=v/n);for(const x of X)x.forEach((v,j)=>sd[j]+=(v-mu[j])**2/n);for(let j=0;j<d;j++)sd[j]=Math.sqrt(sd[j])||1;
+ const Z=X.map(x=>x.map((v,j)=>(v-mu[j])/sd[j]));let w=Array(d).fill(0),b=0;
+ for(let e=0;e<epochs;e++){const g=Array(d).fill(0);let gb=0;for(let i=0;i<n;i++){let z=b;for(let j=0;j<d;j++)z+=w[j]*Z[i][j];const p=1/(1+Math.exp(-z));const err=p-y[i];gb+=err;for(let j=0;j<d;j++)g[j]+=err*Z[i][j];}
+  for(let j=0;j<d;j++)w[j]-=lr*(g[j]/n+l2*w[j]);b-=lr*gb/n;}
+ return{w,b,mu,sd,predict(x){let z=this.b;for(let j=0;j<x.length;j++)z+=this.w[j]*(x[j]-this.mu[j])/this.sd[j];return 1/(1+Math.exp(-z));}};}
+function auc(scores,y){const idx=scores.map((s,i)=>i).sort((a,b)=>scores[a]-scores[b]);let rank=0,pos=0,sum=0;idx.forEach((i,k)=>{if(y[i]){pos++;sum+=k+1;}});const neg=y.length-pos;return pos&&neg?(sum-pos*(pos+1)/2)/(pos*neg):NaN;}
+
+function buildHist(logs,workers){const a={};for(const L of logs){const o=a[L.wid]||(a[L.wid]={n:0,off:0,fast:0,pn:0,poff:0,pr:[]});o.n++;o.pn+=L.peak;
+  if(L.off){o.off++;o.poff+=L.peak;o.fast+=+(L.off.t-L.t<=ROUND_WAIT);o.pr.push(L.off.price/(L.doc?1500:600));}}
+ const h={};for(const w of workers){const o=a[w.id];h[w.id]=o?{resp:(o.off+1)/(o.n+2),fast:(o.fast+1)/(o.n+2),peak:(o.poff+1)/(o.pn+2),priceMult:o.pr.length?o.pr.reduce((x,y)=>x+y,0)/o.pr.length:1}:{resp:.5,fast:.5,peak:.5,priceMult:1};}
+ return h;}
+
+/* Bir tohum için eğitim (+ istenirse test) */
+function prepareSeed(sc,seed){const workers=makeWorkers(sc,rngFor(seed,1));let day=0;
+ const newDay=()=>{day++;const r=rngFor(seed,day,2);workers.forEach(w=>w.resetDay(r));return makeRequests(sc,r);};
+ let logs=[];for(let i=0;i<12;i++)logs=logs.concat(runDay(sc,workers,newDay(),"rastgele",seed,day,null,null,true).log);
+ let hist=buildHist(logs,workers);let train=[];for(let i=0;i<12;i++)train=train.concat(runDay(sc,workers,newDay(),"rastgele",seed,day,hist,null,true).log);
+ const model=trainLogReg(train.map(r=>r.f),train.map(r=>r.y));hist=buildHist(logs.concat(train),workers);
+ return{workers,model,hist,newDay,getDay:()=>day,nTrain:train.length,posRate:train.reduce((s,r)=>s+r.y,0)/train.length};}
+const POLICIES=["en_yakin","en_erken","model","model5"];
+function gini(x){x=[...x].sort((a,b)=>a-b);const n=x.length,s=x.reduce((a,b)=>a+b,0);if(!s)return 0;let g=0;x.forEach((v,i)=>g+=(2*(i+1)-n-1)*v);return g/(n*s);}
+function testSeed(sc,seed,P){const agg={},perW={};POLICIES.forEach(p=>{agg[p]={n:0,fit5:0,acc:0,on:0,notif:0};perW[p]={};});let tl=[];
+ for(let d=0;d<10;d++){const reqs=P.newDay();for(const p of POLICIES){const r=runDay(sc,P.workers,reqs,p,seed,P.getDay(),P.hist,P.model,p==="model");
+   const a=agg[p];a.n+=r.n;a.fit5+=r.fit5;a.acc+=r.accepted;a.on+=r.onTime;a.notif+=r.notif;for(const k in r.perW)perW[p][k]=(perW[p][k]||0)+r.perW[k];if(p==="model")tl=tl.concat(r.log);}}
+ const out={};for(const p of POLICIES){const a=agg[p];const counts=P.workers.map(w=>perW[p][w.id]||0);
+  out[p]={fit5:a.fit5/a.n,onTime:a.on/a.n,npv:a.notif/Math.max(a.acc,1),gini:gini(counts),acc:a.acc/a.n,counts};}
+ out.auc=auc(tl.map(r=>P.model.predict(r.f)),tl.map(r=>r.y));return out;}
+
+/* ======================= UI: sekmeler ======================= */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
+ ["demo","deney","gelisim","nasil"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("hide",t!==b.dataset.tab));});
+const $=id=>document.getElementById(id);
+const fmtT=m=>{m=Math.round(m);const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,"0")+":"+String(mm).padStart(2,"0");};
+const fmtTL=v=>v.toLocaleString("tr-TR")+" TL";
+const pct=v=>(v*100).toFixed(1).replace(".",",")+"%";
+const tip=$("tip");function showTip(e,html){tip.innerHTML=html;tip.style.display="block";tip.style.left=Math.min(e.clientX+12,innerWidth-200)+"px";tip.style.top=(e.clientY+12)+"px";}
+function hideTip(){tip.style.display="none";}
+
+/* ======================= DEMO ======================= */
+const DEMO_SEED=7,DEMO_DAY=500;const SC_DEMO={...BASE_SC};
+let D=null; // demo durumu
+const VB={w:600,h:470,pad:18};
+function proj(p){if(ROADS){const v=ROADS.view,sx=ROADS.W/(v.maxLon-v.minLon),sy=sx/Math.cos((v.minLat+v.maxLat)/2*Math.PI/180);return[(p[1]-v.minLon)*sx,(v.maxLat-p[0])*sy];}
+ const x=VB.pad+(p[1]-BB.minLon)/(BB.maxLon-BB.minLon)*(VB.w-2*VB.pad);
+ const latScale=(VB.w-2*VB.pad)/(BB.maxLon-BB.minLon)/Math.cos(38.465*Math.PI/180);
+ const y=VB.pad+(BB.maxLat-p[0])*latScale;return[x,y];}
+function unproj(x,y){if(ROADS){const v=ROADS.view,sx=ROADS.W/(v.maxLon-v.minLon),sy=sx/Math.cos((v.minLat+v.maxLat)/2*Math.PI/180);return[v.maxLat-y/sy,v.minLon+x/sx];}
+ const latScale=(VB.w-2*VB.pad)/(BB.maxLon-BB.minLon)/Math.cos(38.465*Math.PI/180);
+ return[BB.maxLat-(y-VB.pad)/latScale,BB.minLon+(x-VB.pad)/(VB.w-2*VB.pad)*(BB.maxLon-BB.minLon)];}
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+
+function initDemo(){
+ const P=prepareSeed(SC_DEMO,DEMO_SEED);
+ const r=rngFor(DEMO_SEED,DEMO_DAY,2);P.workers.forEach(w=>w.resetDay(r));
+ D={P,workers:P.workers,clock:600,speed:1,loc:null,req:null,controlled:null,inbox:null,pending:[],offers:[],ranked:[],round:0,booked:null,reqCount:1000,notified:new Set(),wOffered:false};
+ // harita
+ const map=$("map");
+ if(ROADS){map.setAttribute("viewBox",`0 0 ${ROADS.W} ${Math.ceil(ROADS.H)}`);
+  el("path",{d:ROADS.minor,fill:"none",stroke:"var(--line)","stroke-width":0.6},map);
+  el("path",{d:ROADS.major,fill:"none",stroke:"var(--ink3)","stroke-width":1.1,opacity:.75},map);
+  el("path",{d:ROADS.border,fill:"none",stroke:"var(--orange)","stroke-width":ROADS.labels?1:1.3,"stroke-dasharray":"6 4",opacity:.6},map);
+  if(ROADS.labels)ROADS.labels.forEach(l=>{const[x,y]=proj([l.lat,l.lon]);const t=el("text",{x,y,"font-size":10,"font-weight":600,fill:"var(--ink3)","text-anchor":"middle",opacity:.9},map);t.textContent=l.ad;});
+  D.gHex=el("g",{},map);
+ }else{const h=Math.ceil(proj([BB.minLat,BB.maxLon])[1]+VB.pad);VB.h=h;map.setAttribute("viewBox",`0 0 600 ${h}`);}
+ const gHex=D.gHex||el("g",{},map);D.gHex=gHex;
+ if(HAS_H3&&!ROADS){try{const cells=h3.polygonToCells(POLY.map(p=>[p[0],p[1]]),H3_RES);D.allCells=cells;
+   for(const c of cells){const pts=h3.cellToBoundary(c).map(p=>proj(p).join(",")).join(" ");el("polygon",{points:pts,fill:"none",stroke:"var(--line)","stroke-width":0.7,"data-c":c},gHex);}}catch(e){}}
+ if(!ROADS)el("polygon",{points:POLY.map(p=>proj(p).join(",")).join(" "),fill:"none",stroke:"var(--ink3)","stroke-width":1.4,"stroke-dasharray":"5 4"},map);
+ if(!ROADS){const lbl=el("text",{x:proj([38.4697,27.2211])[0],y:proj([38.4697,27.2211])[1]-14,"font-size":11,fill:"var(--ink3)","text-anchor":"middle"},map);lbl.textContent="Bornova (yaklaşık alan)";}
+ D.gLines=el("g",{},map);D.gWorkers=el("g",{},map);drawHospitals(map);D.gPatient=el("g",{},map);
+ map.addEventListener("click",ev=>{const pt=map.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const q=pt.matrixTransform(map.getScreenCTM().inverse());
+  let ll=unproj(q.x,q.y);if(D.req)return;
+  if(POOL){let best=null,bd=1e9;for(const p of POOL){const d=haversine(p,ll);if(d<bd){bd=d;best=p;}}if(bd>((ROADS&&ROADS.labels)?2.0:0.7)){$("locHint").textContent="Bu nokta hizmet alanı dışında, daha içeriden seçin";return;}ll=best;}else if(!inPoly(ll[0],ll[1]))return;
+  D.loc=ll;showNearestHospital(ll);showNearEta(ll);$("locHint").textContent="Konum seçildi ✓";$("btnRequest").disabled=false;drawPatient();});
+ // çalışan seçici
+ const sel=$("wSelect");D.workers.forEach(w=>{const o=document.createElement("option");o.value=w.id;o.textContent=(w.role==="hemsire"?"Hemşire":"Doktor")+" #"+w.id;sel.appendChild(o);});
+ D.controlled=0;sel.value=0;sel.onchange=()=>{D.controlled=+sel.value;D.inbox=null;renderWorker();drawWorkers();};
+ fillWindows();$("loadPill").textContent="hazır";$("loadPill").className="pill ok";
+ drawWorkers();renderWorker();setInterval(tick,100);
+}
+function fillWindows(){const s=$("fWindow");const cur=s.value;s.innerHTML="";const start=Math.ceil((D.clock+30)/15)*15;
+ for(let t=start;t<=Math.min(start+300,DAY_END-120);t+=15){const o=document.createElement("option");o.value=t;o.textContent=`Bugün ${fmtT(t)}–${fmtT(t+60)}`;s.appendChild(o);}
+ if(cur&&[...s.options].some(o=>o.value===cur))s.value=cur;}
+$("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.speed=+b.dataset.s;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",x===b));};
+
+function drawWorkers(){const g=D.gWorkers;g.innerHTML="";
+ for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=w.posFree(D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
+  const col=pf.inVisit?"var(--busy)":(w.role==="hemsire"?"var(--aqua)":"var(--blue)");
+  if(notified)el("circle",{cx:x,cy:y,r:11,fill:"none",stroke:"var(--orange)","stroke-width":2},g);
+  if(w.id===D.controlled)el("circle",{cx:x,cy:y,r:8.5,fill:"none",stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"2 2"},g);
+  const c=el("circle",{cx:x,cy:y,r:5.5,fill:col,stroke:"var(--card)","stroke-width":2},g);
+  c.addEventListener("mousemove",e=>showTip(e,`<b>${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
+  c.addEventListener("click",e=>{$("wSelect").value=w.id;D.controlled=w.id;renderWorker();drawWorkers();});}
+ const gl=D.gLines;gl.innerHTML="";if(D.req&&!D.booked){for(const id of D.notified){const w=D.workers[id];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);
+   el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--orange)","stroke-width":1.2,"stroke-dasharray":"4 3",opacity:.8},gl);}}
+ if(D.booked&&!D.track){const w=D.workers[D.booked.worker];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--aqua)","stroke-width":2.2},gl);}}
+function drawPatient(){const g=D.gPatient;g.innerHTML="";const loc=D.req?D.req.loc:D.loc;if(!loc)return;const[x,y]=proj(loc);
+ el("path",{d:`M${x},${y} l-7,-14 a8,8 0 1 1 14,0 z`,fill:"var(--orange)",stroke:"var(--card)","stroke-width":1.5},g);}
+function highlightCells(on){if(ROADS){D.gHex.innerHTML="";if(!on||!HAS_H3)return;
+  for(const c of nearCells(cellOf(D.req.loc))){const pts=h3.cellToBoundary(c).map(p=>proj(p).join(",")).join(" ");el("polygon",{points:pts,fill:"color-mix(in srgb, var(--orange) 5%, transparent)",stroke:"color-mix(in srgb, var(--orange) 25%, transparent)","stroke-width":0.6},D.gHex);}return;}
+ if(!D.allCells)return;const near=on?nearCells(cellOf(D.req.loc)):null;
+ D.gHex.querySelectorAll("polygon").forEach(p=>{const inN=near&&near.has(p.dataset.c);p.setAttribute("fill",inN?"color-mix(in srgb, var(--orange) 7%, transparent)":"none");});}
+
+$("btnRequest").onclick=()=>{if(!D.loc)return;const service=$("fService").value;const ws=+$("fWindow").value;const bv=$("fBudget").value.trim();
+ D.req={id:D.reqCount++,t:D.clock,loc:D.loc,service,ws,we:ws+60,budget:bv?+bv:null};D.policy=$("fPolicy").value;
+ D.offers=[];D.pending=[];D.notified=new Set();D.booked=null;D.round=0;D.inbox=null;D.wOffered=false;D.declined=false;
+ $("patientForm").classList.add("hide");$("patientLive").classList.remove("hide");$("patientBanner").innerHTML="";
+ const S=SERVICES[service];$("reqSummary").innerHTML=`<b>${S.label}</b> · ${fmtT(ws)}–${fmtT(ws+60)} · ${D.req.budget?"Bütçe "+fmtTL(D.req.budget):"Bütçe belirtilmedi"}`;
+ highlightCells(true);drawPatient();sendRound();renderPatient();};
+$("btnNew").onclick=()=>{D.track=null;if(D.gTrack)D.gTrack.innerHTML="";$("trackCard").innerHTML="";D.req=null;D.loc=null;D.notified=new Set();D.booked=null;D.inbox=null;$("patientForm").classList.remove("hide");$("patientLive").classList.add("hide");
+ $("btnRequest").disabled=true;$("locHint").textContent="Konum: haritadan seçin";$("hospNear").innerHTML="";$("etaNear").innerHTML="";$("rankBox").classList.add("hide");highlightCells(false);drawPatient();drawWorkers();renderWorker();fillWindows();};
+
+function sendRound(){D.round++;const c=candidates(D.workers,D.req,D.clock,D.notified);
+ D.notifCount=D.notifCount||{};const ranked=rankC(D.policy,c,D.req,D.clock,D.P.hist,D.P.model,rngFor(1,D.req.id,D.round),D.notifCount,0);
+ // tüm adaylar için model olasılığı (şeffaflık)
+ c.forEach(x=>{if(x.p==null)x.p=D.P.model.predict(features(x,D.req,D.clock,D.P.hist));});
+ const top=ranked.slice(0,3);
+ // Sunum kolaylığı: ilk turda panel, bildirim alan ilk çalışana geçer (jüri teklif adımını hemen görebilsin)
+ if(D.round===1&&top.length&&!top.some(x=>x.w.id===D.controlled)){D.controlled=top[0].w.id;$("wSelect").value=D.controlled;D.autoSwitched=true;}
+ for(const x of top){D.notified.add(x.w.id);x.sent=D.round;D.notifCount[x.w.id]=(D.notifCount[x.w.id]||0)+1;
+  if(x.w.id===D.controlled){D.inbox={req:D.req,c:x};}
+  else{const off=workerResponse(SC_DEMO,x.w,D.req,D.clock,DEMO_SEED,DEMO_DAY);if(off)D.pending.push(off);}}
+ D.ranked=(D.ranked&&D.round>1?D.ranked:[]).concat(ranked.map(x=>({id:x.w.id,role:x.w.role,dist:x.dist,expArr:x.expArr,p:x.p,sent:x.sent||0}))).filter((v,i,a)=>a.findIndex(z=>z.id===v.id)===i);
+ if(D.round===1)D.ranked=ranked.map(x=>({id:x.w.id,role:x.w.role,dist:x.dist,expArr:x.expArr,p:x.p,sent:x.sent||0}));
+ else{for(const x of top){const r=D.ranked.find(z=>z.id===x.w.id);if(r)r.sent=D.round;}}
+ renderRank(c.length);drawWorkers();renderWorker();}
+function renderRank(n){$("rankBox").classList.remove("hide");const names={model5:"Yapay zekâ v5 (olasılık + adalet + mesafe)",model:"Yapay zekâ v1 (model olasılığına göre)",en_erken:"En erken varışa göre",en_yakin:"Uzaklığa göre"};
+ $("rankTitle").innerHTML=`${n} aday bulundu · Sıralama: <b>${names[D.policy]}</b> · Tur ${D.round}`;
+ const rows=[...D.ranked].sort((a,b)=>(a.sent||9)-(b.sent||9)).slice(0,8);
+ $("rankBody").innerHTML=rows.map((r,i)=>`<tr class="${r.sent?"sent":""}"><td>${i+1}</td><td>${r.role==="hemsire"?"Hemşire":"Doktor"} #${r.id}</td><td>${r.dist.toFixed(1).replace(".",",")} km</td><td>${fmtT(r.expArr)}</td><td>${(r.p*100).toFixed(0)}%</td><td>${r.sent?`<span class="pill warn">bildirim ${r.sent}. tur</span>`:""}</td></tr>`).join("");}
+
+function renderPatient(){if(!D.req)return;const req=D.req;const el_=$("offerList");
+ const elapsed=D.clock-req.t;
+ if(D.booked){$("reqStatus").textContent="";}
+ else $("reqStatus").innerHTML=`Talep açılışı ${fmtT(req.t)} · ${elapsed.toFixed(1).replace(".",",")} dk geçti · ${D.notified.size} kişiye bildirim gitti`+(D.round>=2?" (2. tur)":"");
+ el_.innerHTML=D.offers.map((o,i)=>{const w=D.workers[o.worker];const tag=o.fits?'<span class="pill ok">koşullara uygun</span>':(o.arrival>req.we?'<span class="pill warn">aralık dışında</span>':'<span class="pill warn">bütçe üstü</span>');
+  return`<div class="item"><div><div><b>${fmtTL(o.price)}</b> · varış <b>${fmtT(o.arrival)}</b></div><div class="tiny">${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id} · ${(o.t-req.t).toFixed(1).replace(".",",")} dk içinde yanıtladı ${tag}</div></div>
+  ${D.booked?(D.booked===o?'<span class="pill ok">seçildi</span>':""):`<button class="btn sm" data-i="${i}">Kabul et</button>`}</div>`;}).join("")||'<div class="tiny">Teklif bekleniyor…</div>';
+ el_.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>accept(D.offers[+b.dataset.i]));}
+function accept(o){const S=SERVICES[D.req.service];const w=D.workers[o.worker];const ea=w.earliest(D.clock,D.req.loc,S.dur,D.req.ws);
+ if(!ea||ea.arr>o.arrival+5){$("patientBanner").innerHTML='<div class="banner warn">Bu teklif artık geçerli değil: çalışanın takvimi değişmiş (atomik kontrol). Başka bir teklif seçin.</div>';return;}
+ const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-travelMin(ea.from,D.req.loc,ea.depart),e:planned+S.dur,p:D.req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
+ D.booked=o;D.pending=[];if(D.inbox&&D.inbox.c.w.id!==o.worker)D.inbox.closed=true;
+ $("patientBanner").innerHTML=`<div class="banner"><b>Ziyaret kesinleşti.</b> ${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}, saat ${fmtT(planned)} itibarıyla gelecek · ${fmtTL(o.price)}. Açık adresiniz yalnızca bu çalışanla paylaşıldı. Çalışanın takvimine ${fmtT(planned-travelMin(ea.from,D.req.loc,ea.depart))}–${fmtT(planned+S.dur)} arası işlendi.</div>`;
+ startTracking(w,ea,planned,S);highlightCells(false);renderPatient();renderWorker();drawWorkers();}
+
+// ---------- Canlı takip: gerçek yol ağında rota + konum + tahmini varış ----------
+const GRAPH=/*GRAPH_JSON*/null; // sim/build_route_graph.py çıktısı
+let GR=null;
+function graphDecode(){if(GR||!GRAPH)return GR;const d=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer;};
+ const la=new Uint16Array(d(GRAPH.lat)),lo=new Uint16Array(d(GRAPH.lon));
+ GR={n:GRAPH.n,lat:Float64Array.from(la,v=>GRAPH.lat0+v*GRAPH.q),lon:Float64Array.from(lo,v=>GRAPH.lon0+v*GRAPH.q),
+  off:new Uint32Array(d(GRAPH.off)),tgt:new Uint16Array(d(GRAPH.tgt)),tt:new Uint16Array(d(GRAPH.tt)),pool:new Uint16Array(d(GRAPH.pool))};return GR;}
+// Dijkstra (ikili yığın), hedefe varınca durur. Dönen: düğüm sırası, kümülatif süre (sn) ve mesafe (km)
+function routeNodes(s,t){const G=graphDecode();const n=G.n,dist=new Float64Array(n).fill(Infinity),prev=new Int32Array(n).fill(-1);
+ const H=[];const push=(d,v)=>{H.push([d,v]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}};
+ const pop=()=>{const top=H[0],last=H.pop();if(H.length){H[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<H.length&&H[l][0]<H[m][0])m=l;if(r<H.length&&H[r][0]<H[m][0])m=r;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m;}}return top;};
+ dist[s]=0;push(0,s);while(H.length){const[d,v]=pop();if(d>dist[v])continue;if(v===t)break;
+  for(let e=G.off[v];e<G.off[v+1];e++){const w=G.tgt[e],nd=d+G.tt[e]/10;if(nd<dist[w]){dist[w]=nd;prev[w]=v;push(nd,w);}}}
+ if(!isFinite(dist[t]))return null;const path=[];for(let v=t;v>=0;v=prev[v])path.push(v);path.reverse();
+ const pts=path.map(v=>[G.lat[v],G.lon[v]]),cum=path.map(v=>dist[v]),km=[0];for(let i=1;i<pts.length;i++)km.push(km[i-1]+haversine(pts[i-1],pts[i]));
+ return{pts,cum,km,total:dist[t]};}
+function makeRoute(a,b){if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();const r=routeNodes(G.pool[a[2]],G.pool[b[2]]);if(r)return r;}
+ const sec=(TT&&a.length>2&&b.length>2)?TT[a[2]*POOL.length+b[2]]:60*60*haversine(a,b)*DETOUR/speedKmh(D.clock);
+ return{pts:[a.slice(0,2),b.slice(0,2)],cum:[0,sec],km:[0,haversine(a,b)*DETOUR],total:sec};}
+function startTracking(w,ea,planned,S){const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-3);// dk
+ const depart=planned-travelMin(ea.from,D.req.loc,ea.depart);
+ D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(w.role==="hemsire"?"Hemşire":"Doktor")+" #"+w.id,lastStep:-1};
+ if(!D.gTrack){D.gTrack=el("g",{},$("map"));$("map").insertBefore(D.gTrack,D.gPatient);}
+ updateTracking(true);}
+function trackState(){const T=D.track,t=D.clock,r=T.r;
+ if(t<T.depart)return{step:0,f:0,pos:r.pts[0],idx:0};
+ if(t<T.driveEnd){const f=(t-T.depart)/T.drive,target=f*r.total;let i=1;while(i<r.cum.length-1&&r.cum[i]<target)i++;
+  const seg=r.cum[i]-r.cum[i-1],g=seg>0?(target-r.cum[i-1])/seg:1,a=r.pts[i-1],b=r.pts[i];
+  const pos=[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g];const kmLeft=r.km[r.km.length-1]-(r.km[i-1]+(r.km[i]-r.km[i-1])*g);
+  return{step:kmLeft<1?2:1,f,pos,idx:i,kmLeft};}
+ const end=r.pts[r.pts.length-1];if(t<T.arrive)return{step:3,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};
+ if(t<T.end)return{step:4,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};return{step:5,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};}
+function updateTracking(force){const T=D.track;if(!T)return;const s=trackState(),r=T.r,g=D.gTrack;g.innerHTML="";
+ // rota: geçilen kısım soluk, kalan kısım belirgin
+ const P=r.pts.map(proj);const done=P.slice(0,s.idx).concat([proj(s.pos)]),left=[proj(s.pos)].concat(P.slice(s.idx));
+ if(s.step<3){if(done.length>1)el("polyline",{points:done.map(p=>p.join(",")).join(" "),fill:"none",stroke:"var(--ink3)","stroke-width":2.5,opacity:.45,"stroke-linecap":"round"},g);
+  el("polyline",{points:left.map(p=>p.join(",")).join(" "),fill:"none",stroke:"var(--aqua)","stroke-width":3.5,"stroke-linecap":"round","stroke-linejoin":"round"},g);}
+ const[x,y]=proj(s.pos);const pulse=(performance.now()/600)%1;
+ if(s.step===1||s.step===2)el("circle",{cx:x,cy:y,r:7+10*pulse,fill:"none",stroke:"var(--aqua)","stroke-width":2,opacity:1-pulse},g);
+ el("circle",{cx:x,cy:y,r:7,fill:"var(--aqua)",stroke:"var(--card)","stroke-width":2.5},g);
+ // kart
+ const rem=s.step<=2?Math.max(0,T.arrive-D.clock):0;
+ const band=s.step<=2?Math.max(1,1.645*SC_DEMO.travelNoiseSd*(s.step===0?T.drive:(1-s.f)*T.drive)):0; // ~%90 aralık
+ const steps=["Kabul edildi","Yolda","Yaklaşıyor","Kapıda","Ziyaret"],cur=Math.min(s.step,4);
+ const head=[`${T.label} önceki işini bitiriyor, ${fmtT(T.depart)} civarı yola çıkacak`,`${T.label} yolda`,`${T.label} yaklaşıyor (1 km'den az kaldı)`,`${T.label} geldi, park edip binaya giriyor`,`Ziyaret sürüyor (bitiş ${fmtT(T.end)})`,"Ziyaret tamamlandı ✓"][s.step];
+ const kmTxt=s.step<=2?((s.kmLeft??r.km[r.km.length-1]).toFixed(1).replace(".",",")+" km"):"—";
+ $("trackCard").innerHTML=`<div class="track"><div class="trackTop"><div><div class="tiny">CANLI TAKİP</div><div class="trackHead">${head}</div></div>
+  ${s.step<=2?`<div class="eta"><div class="etaBig">${Math.ceil(rem)} dk</div><div class="tiny">tahmini varış ${fmtT(T.arrive)}</div></div>`:""}</div>
+  <div class="steps">${steps.map((n,i)=>`<div class="st ${i<cur?"ok":i===cur?"now":""}"><span></span>${n}</div>`).join("")}</div>
+  <div class="bar"><div style="width:${(s.step===0?0:s.step>=3?100:100*s.f).toFixed(1)}%"></div></div>
+  <div class="tiny" style="margin-top:6px">${s.step<=2?`Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park 3 dk`}</div></div>`;
+ if(s.step!==T.lastStep){T.lastStep=s.step;drawWorkers();renderWorker();}}
+function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.posFree(D.clock);
+ const trk=(D.track&&D.track.wid===w.id)?trackState():null;const trTxt=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trk.step]+(trk.step<=2?` · varış ${fmtT(D.track.arrive)}`:""):null;
+ $("wStatus").innerHTML=`<b>${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}</b> · ${trTxt?trTxt:pf.inVisit?`Ziyarette (bitiş ${fmtT(pf.free)})`:"Müsait"} · <span class="tiny">Haritada kesikli halkayla gösterilir</span>`;
+ $("wCal").innerHTML=w.blocks.map(b=>`<div class="item"><span>${fmtT(b.s)}–${fmtT(b.e)}</span><span class="tiny">${b.plat?"Platform ziyareti (yol dahil)":"Mevcut ziyaret"}</span></div>`).join("")||'<div class="tiny">Kayıt yok</div>';
+ const box=$("wInbox");const ib=D.inbox;
+ if(!ib||ib.c.w.id!==w.id){box.innerHTML='<div class="tiny" style="margin-top:8px">Yeni talep yok. Hasta ekranından talep açtığınızda bu çalışan ilk sıralarda seçilirse bildirim burada görünür. Haritadaki bir noktaya dokunarak çalışan değiştirebilirsiniz.</div>';return;}
+ const req=ib.req;const S=SERVICES[req.service];
+ if(D.booked){const mine=D.booked.worker===w.id;box.innerHTML=mine?`<div class="banner"><b>Teklifiniz kabul edildi.</b> Açık adres: <i>(sentetik) Bina 14, Daire 3</i> · Varış ${fmtT(D.booked.arrival)}. Takviminize işlendi.</div>`:'<div class="banner warn">Hasta başka bir teklifi seçti.</div>';return;}
+ if(D.wOffered){box.innerHTML='<div class="banner">Teklifiniz hastaya iletildi. Hastanın kararı bekleniyor…</div>';return;}
+ if(D.declined){box.innerHTML='<div class="tiny" style="margin-top:8px">Talebi reddettiniz.</div>';return;}
+ const ea=w.earliest(D.clock,req.loc,S.dur,req.ws);const defP=req.budget??Math.round(S.base*w.priceMult/10)*10;
+ box.innerHTML=`<div class="banner warn" style="margin-top:8px"><b>Yeni talep:</b> ${S.label} · ${fmtT(req.ws)}–${fmtT(req.we)} · ${req.budget?"Hasta bütçesi "+fmtTL(req.budget):"Bütçe belirtilmedi"}<br>
+  <span class="small">Yaklaşık konum: ${haversine(pf.loc,req.loc).toFixed(1).replace(".",",")} km · tahmini yol ${Math.round(travelMin(pf.loc,req.loc,D.clock))} dk · en erken varışınız ${ea?fmtT(ea.arr):"—"}</span></div>
+  <div class="row"><div><label>Ücret (TL)</label><input id="wPrice" type="number" value="${defP}"></div><div><label>Varış saati</label><select id="wArr"></select></div></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="wSend">${req.budget?"Teklif ver / bütçeyi kabul et":"Teklif ver"}</button><button class="btn sec" id="wDecline">Reddet</button></div>`;
+ const sa=$("wArr");const st=ea?Math.ceil(ea.arr/5)*5:req.ws;for(let t=st;t<=req.we+30;t+=5){const o=document.createElement("option");o.value=t;o.textContent=fmtT(t)+(t>req.we?" (aralık dışı)":"");sa.appendChild(o);}
+ $("wSend").onclick=()=>{const price=+$("wPrice").value;const arr=+sa.value;const fits=arr<=req.we&&(req.budget==null||price<=req.budget);
+  D.offers.push({worker:w.id,t:D.clock,arrival:arr,price,fits});D.wOffered=true;renderWorker();renderPatient();};
+ $("wDecline").onclick=()=>{D.declined=true;renderWorker();};}
+
+let lastDraw=0;
+function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.clock+dt,DAY_END-60);}
+ $("clock").textContent=fmtT(D.clock);
+ if(D.track)updateTracking();
+ if(D.req&&!D.booked){
+  const ready=D.pending.filter(o=>o.t<=D.clock);if(ready.length){D.pending=D.pending.filter(o=>o.t>D.clock);D.offers.push(...ready);}
+  const anyFit=D.offers.some(o=>o.fits);
+  if(D.round===1&&!anyFit&&D.clock>=D.req.t+ROUND_WAIT)sendRound();
+  if(D.clock>=D.req.t+DECIDE_MAX+20&&!D.offers.length&&!D.pending.length&&!$("patientBanner").innerHTML)$("patientBanner").innerHTML='<div class="banner warn">Uygun teklif gelmedi. Zaman aralığını veya bütçeyi değiştirip yeni talep açabilirsiniz.</div>';
+  renderPatient();}
+ if(performance.now()-lastDraw>1000){lastDraw=performance.now();drawWorkers();if(!D.req)fillWindows();
+  if(!(D.inbox&&!D.wOffered&&!D.booked&&!D.declined))renderWorker();}}
+
+/* ======================= DENEY ======================= */
+const sliders=[["xN","vN"],["xD","vD"],["xR","vR"],["xB","vB"],["xK","vK"],["xF","vF"]];
+sliders.forEach(([a,b])=>$(a).oninput=()=>$(b).textContent=$(a).value);
+const COLORS={en_yakin:"var(--blue)",en_erken:"var(--orange)",model:"var(--aqua)",model5:"#7a5af5"};
+const LABELS={en_yakin:"En yakın 3",en_erken:"En erken varış 3",model:"Model v1 (sade)",model5:"Model v5 (dengeli)"};
+const METRICS=[["fit5","5 dk içinde uygun teklif",true,true],["onTime","Zamanında ziyaret",true,true],["npv","Ziyaret başına bildirim (düşük iyi)",false,false],["gini","Bildirim eşitsizliği, Gini (düşük iyi)",false,false]];
+let running=false;
+$("btnRun").onclick=()=>{if(running)return;running=true;$("btnRun").disabled=true;
+ const sc={...BASE_SC,...SCENARIOS[$("xScn").value],nNurses:+$("xN").value,nDoctors:+$("xD").value,reqPerDay:+$("xR").value,budgetShare:$("xB").value/100,notifyK:+$("xK").value,fairness:+$("xF").value};
+ const n=+$("xSeeds").value;const results=[];let s=0;const t0=performance.now();
+ const step=()=>{const P=prepareSeed(sc,100+s);results.push(testSeed(sc,100+s,P));s++;$("progBar").style.width=(s/n*100)+"%";
+  $("runInfo").textContent=`${s}/${n} tohum · ${((performance.now()-t0)/1000).toFixed(0)} sn`;
+  if(s<n)setTimeout(step,10);else{running=false;$("btnRun").disabled=false;showResults(results,sc);}};
+ $("runInfo").textContent="Çalışıyor…";$("progBar").style.width="0";setTimeout(step,30);};
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const ci=a=>a.length<2?0:1.96*Math.sqrt(a.reduce((s,x)=>s+(x-mean(a))**2,0)/(a.length-1))/Math.sqrt(a.length);
+function showResults(R,sc){
+ const S={};POLICIES.forEach(p=>{S[p]={};METRICS.forEach(([m])=>{const v=R.map(r=>r[p][m]);S[p][m]={m:mean(v),ci:ci(v)};});const acc=R.map(r=>r[p].acc);S[p].acc={m:mean(acc),ci:ci(acc)};});
+ // KPI: eşleştirilmiş fark
+ $("kpis").innerHTML=METRICS.map(([m,label,isPct,higher])=>{const d=R.map(r=>r.model5[m]-r.en_erken[m]);const mu=mean(d),c=ci(d);
+  const good=higher?mu>0:mu<0;const v=isPct?`${mu>=0?"+":""}${(mu*100).toFixed(1).replace(".",",")} puan`:`${mu>=0?"+":""}${mu.toFixed(2).replace(".",",")}`;
+  const cc=isPct?`± ${(c*100).toFixed(1).replace(".",",")}`:`± ${c.toFixed(2).replace(".",",")}`;
+  return`<div class="kpi"><div class="tiny">${label}</div><div class="v" style="color:${Math.abs(mu)<c?"var(--ink2)":(good?"var(--ok)":"var(--warn)")}">${v}</div><div class="tiny">${cc}</div></div>`;}).join("");
+ const aucs=R.map(r=>r.auc).filter(x=>!isNaN(x));
+ $("kpiNote").innerHTML=`Fark, aynı tohumlarda eşleştirilmiş olarak hesaplanır; ± değer %95 güven aralığıdır. Model AUC (test): <b>${aucs.length?mean(aucs).toFixed(2).replace(".",","):"—"}</b> · ${R.length} tohum × 10 test günü × ${sc.reqPerDay} talep.`;
+ drawChart(S);
+ $("resTable").innerHTML=`<table class="res"><tr><th>Yöntem</th><th>5 dk uygun teklif</th><th>Zamanında ziyaret</th><th>Bildirim/ziyaret</th><th>Gini</th><th>Kabul oranı</th></tr>`+
+  POLICIES.map(p=>`<tr><td><i class="dot" style="background:${COLORS[p]}"></i>${LABELS[p]}</td><td>${pct(S[p].fit5.m)}</td><td>${pct(S[p].onTime.m)}</td><td>${S[p].npv.m.toFixed(2).replace(".",",")}</td><td>${S[p].gini.m.toFixed(2).replace(".",",")}</td><td>${pct(S[p].acc.m)}</td></tr>`).join("")+"</table>";
+ drawLoad(R[R.length-1]);}
+function drawChart(S){const W=1000,H=250,pw=W/4;let svg=`<svg viewBox="0 0 ${W} ${H}">`;
+ METRICS.forEach(([m,label,isPct],k)=>{const x0=k*pw+40,plotW=pw-60,top=34,bot=H-28;const vals=POLICIES.map(p=>S[p][m].m+S[p][m].ci);const max=isPct?1:Math.max(...vals)*1.15;
+  svg+=`<text x="${k*pw+10}" y="16" font-size="13" font-weight="600" fill="var(--ink)">${label}</text>`;
+  for(let i=0;i<=4;i++){const v=max*i/4,y=bot-(bot-top)*i/4;svg+=`<line x1="${x0}" x2="${x0+plotW}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${x0-6}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--ink3)">${isPct?Math.round(v*100)+"%":v.toFixed(v<2?1:0)}</text>`;}
+  const nP=POLICIES.length,bw=plotW/nP*0.62;POLICIES.forEach((p,i)=>{const v=S[p][m].m,c=S[p][m].ci;const cx=x0+plotW/nP*(i+0.5);const y=bot-(bot-top)*v/max;
+   svg+=`<path d="M${cx-bw/2},${bot} V${y+4} q0,-4 4,-4 H${cx+bw/2-4} q4,0 4,4 V${bot} Z" fill="${COLORS[p]}"><title>${LABELS[p]}: ${isPct?pct(v):v.toFixed(2)} ± ${isPct?(c*100).toFixed(1)+" puan":c.toFixed(2)}</title></path>`;
+   const y1=bot-(bot-top)*(v+c)/max,y2=bot-(bot-top)*Math.max(0,v-c)/max;svg+=`<line x1="${cx}" x2="${cx}" y1="${y1}" y2="${y2}" stroke="var(--ink2)"/>`;
+   svg+=`<text x="${cx}" y="${y-6}" font-size="10" text-anchor="middle" fill="var(--ink2)">${isPct?Math.round(v*100)+"%":v.toFixed(2).replace(".",",")}</text>`;});
+  svg+=`<line x1="${x0}" x2="${x0+plotW}" y1="${bot}" y2="${bot}" stroke="var(--ink3)"/>`;});
+ $("chart").innerHTML=svg+"</svg>";}
+function drawLoad(r){const W=1000,H=200;let svg=`<svg viewBox="0 0 ${W} ${H}">`;const pw=W/POLICIES.length;const max=Math.max(...POLICIES.flatMap(p=>r[p].counts));
+ POLICIES.forEach((p,k)=>{const c=[...r[p].counts].sort((a,b)=>b-a);const x0=k*pw+10,w=pw-30,top=26,bot=H-14;const bw=w/c.length;
+  svg+=`<text x="${x0}" y="15" font-size="12" font-weight="600" fill="var(--ink)">${LABELS[p]} · Gini ${r[p].gini.toFixed(2).replace(".",",")}</text>`;
+  c.forEach((v,i)=>{const h=(bot-top)*v/max;svg+=`<rect x="${x0+i*bw}" y="${bot-h}" width="${Math.max(bw-1,0.5)}" height="${h}" fill="${COLORS[p]}"><title>${v} bildirim</title></rect>`;});
+  svg+=`<line x1="${x0}" x2="${x0+w}" y1="${bot}" y2="${bot}" stroke="var(--ink3)"/>`;});
+ $("loadChart").innerHTML=svg+"</svg>";}
+
+/* ======================= HASTANELER ======================= */
+const HOSP=/*HOSP_JSON*/null;
+const HCOL={devlet:"#d64545",belediye:"#e07b39",devlet_uni:"#8b5cf6",vakif_uni:"#0ea5e9",ozel:"#64748b",ozel_tm:"#a3a3a3"};
+const HNAME={devlet:"Devlet",belediye:"Belediye",devlet_uni:"Devlet üniversitesi",vakif_uni:"Vakıf üniversitesi",ozel:"Özel",ozel_tm:"Özel tıp merkezi"};
+function hospList(){if(!HOSP||!POOL)return[];return HOSP.filter(h=>WORLD==="izmir"?h.pi!=null:h.pb!=null).map(h=>({...h,idx:WORLD==="izmir"?h.pi:h.pb}));}
+function drawHospitals(map){const L=hospList();if(!L.length)return;const g=el("g",{},map);D.gHosp=g;
+ for(const h of L){const[x,y]=proj([h.lat,h.lon]);const sz=h.tur==="ozel_tm"?7:9;const c=HCOL[h.tur];
+  const grp=el("g",{transform:`translate(${x},${y})`,style:"cursor:pointer"},g);
+  el("rect",{x:-sz/2,y:-sz/2,width:sz,height:sz,rx:2,fill:c,stroke:"var(--card)","stroke-width":1.2},grp);
+  el("path",{d:`M${-sz*0.28},0H${sz*0.28}M0,${-sz*0.28}V${sz*0.28}`,stroke:"#fff","stroke-width":1.5},grp);
+  const tipH=`<b>${h.ad}</b><br>${h.turAd} · ${h.ilce}${h.acil?"<br>Acil servis var (OSM)":""}`;
+  grp.addEventListener("mousemove",e=>showTip(e,tipH));grp.addEventListener("mouseleave",hideTip);
+  grp.addEventListener("click",e=>{e.stopPropagation();showTip(e,tipH);setTimeout(hideTip,2500);});}
+ const used=[...new Set(L.map(h=>h.tur))];$("hospLegend").innerHTML=used.map(t=>`<span style="margin-right:8px"><i class="dot" style="background:${HCOL[t]};border-radius:2px"></i>${HNAME[t]}</span>`).join("");
+ $("hospToggle").onchange=()=>{g.style.display=$("hospToggle").checked?"":"none";};}
+function nearestHospital(loc,filter){const L=hospList().filter(filter);if(!L.length||!TT||loc.length<3)return null;let best=null,bt=1e9;
+ for(const h of L){const t=travelMin(loc,POOL[h.idx],D?D.clock:600);if(t<bt){bt=t;best=h;}}return best?{h:best,t:bt}:null;}
+function showNearEta(ll){const box=$("etaNear");if(!box)return;const out={};
+ for(const role of["hemsire","doktor"]){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
+  arr.sort((a,b)=>a-b);out[role]=arr.length?{best:arr[0],avg3:arr.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,arr.length)}:null;}
+ const f=o=>o?`en erken <b>~${Math.round(o.best)} dk</b> (en yakın 3 kişi ortalaması ~${Math.round(o.avg3)} dk)`:"—";
+ box.innerHTML=`<div class="tiny" style="margin-top:6px">🚗 Bu konuma şu an: hemşire ${f(out.hemsire)} · doktor ${f(out.doktor)}. Gerçek varış, gelen tekliflerde yazar.</div>`;}
+function showNearestHospital(loc){const box=$("hospNear");if(!box)return;const a=nearestHospital(loc,h=>h.tur!=="ozel_tm");const k=nearestHospital(loc,h=>["devlet","belediye","devlet_uni"].includes(h.tur));
+ if(!a){box.innerHTML="";return;}
+ box.innerHTML=`<div class="banner" style="margin-top:0">🏥 En yakın hastane: <b>${a.h.ad}</b> (${a.h.turAd}, yolla ~${Math.round(a.t)} dk)`+
+  (k&&k.h!==a.h?`<br>En yakın kamu hastanesi: <b>${k.h.ad}</b> (~${Math.round(k.t)} dk)`:"")+`<br><span class="tiny">Acil durumda beklemeyin, 112'yi arayın.</span></div>`;}
+
+/* ======================= GELİŞİM ======================= */
+const PROGRESS=/*PROGRESS_JSON*/null;
+function renderProgress(){const box=$("gTable");if(!PROGRESS){box.innerHTML='<p class="tiny">Henüz kayıt yok.</p>';return;}
+ const scn=$("gScn").value,set=$("gSet").value;const rows=PROGRESS.filter(r=>r.senaryo===scn&&r.set===set);
+ const heur=rows.filter(r=>r.model==="en_yakin"||r.model==="en_erken");let mods=rows.filter(r=>!(r.model==="en_yakin"||r.model==="en_erken"));
+ const vers=mods.filter(r=>r.versiyon);if(vers.length&&!$("gAll").checked){const seen={};mods=vers.filter(r=>!seen[r.versiyon]&&(seen[r.versiyon]=1));}
+ if(!mods.length){box.innerHTML='<p class="tiny">Bu küme için kayıt yok.</p>';$("gChart").innerHTML="";return;}
+ const f=(v,g,p=true)=>v==null||isNaN(v)?"—":(p?`${v>=0?"+":""}${(v*100).toFixed(1).replace(".",",")} <span class="tiny">± ${(g*100).toFixed(1).replace(".",",")}</span>`:`${v>=0?"+":""}${v.toFixed(2).replace(".",",")} <span class="tiny">± ${g.toFixed(2).replace(".",",")}</span>`);
+ box.innerHTML=`<table class="res"><tr><th>Kayıt</th><th>5 dk uygun teklif</th><th>Referansa göre</th><th>En erkene göre</th><th>Zamanında ziyaret (ref.)</th><th>Bildirim/ziyaret (ref.)</th><th>Gini (ref.)</th><th>Hemşire kazanç Gini</th><th>İş alamayan hemşire-gün</th><th>Yol (dk)</th></tr>`+
+  mods.map(r=>`<tr><td>${r.referans?"⭐ ":""}<b>${r.run}</b><div class="tiny">${r.model} · ${r.not||""}${r.gecerli?"":" · ⚠ ortam değişti"}</div></td><td>${pct(r.uygun_teklif_5dk)}</td><td>${r.referans?"referans":f(r.uygun_teklif_5dk_vs_ref,r.uygun_teklif_5dk_vs_ref_ga)}</td><td>${f(r.uygun_teklif_5dk_vs_en_erken,r.uygun_teklif_5dk_vs_en_erken_ga)}</td><td>${r.referans?"—":f(r.zamaninda_ziyaret_vs_ref,r.zamaninda_ziyaret_vs_ref_ga)}</td><td>${r.referans?"—":f(r.bildirim_per_ziyaret_vs_ref,r.bildirim_per_ziyaret_vs_ref_ga,false)}</td><td>${r.referans?"—":f(r.bildirim_gini_vs_ref,r.bildirim_gini_vs_ref_ga,false)}</td><td>${r.hemsire_kazanc_gini!=null?r.hemsire_kazanc_gini.toFixed(2).replace(".",","):"—"}</td><td>${r.hemsire_issiz_gun_orani!=null?pct(r.hemsire_issiz_gun_orani):"—"}</td><td>${r.yol_dk_ort!=null?r.yol_dk_ort.toFixed(1).replace(".",","):"—"}</td></tr>`).join("")+
+  heur.map(r=>`<tr><td class="muted">${r.run}</td><td>${pct(r.uygun_teklif_5dk)}</td><td colspan="5" class="tiny">Sezgisel karşılaştırma (referansla aynı dünya)</td><td>${r.hemsire_kazanc_gini!=null?r.hemsire_kazanc_gini.toFixed(2).replace(".",","):"—"}</td><td>${r.hemsire_issiz_gun_orani!=null?pct(r.hemsire_issiz_gun_orani):"—"}</td><td>${r.yol_dk_ort!=null?r.yol_dk_ort.toFixed(1).replace(".",","):"—"}</td></tr>`).join("")+"</table>";
+ // grafik
+ const W=1000,H=260,left=50,bot=H-50,top=20,n=mods.length,bw=Math.min(90,(W-left-40)/n*0.55);let svg=`<svg viewBox="0 0 ${W} ${H}">`;
+ for(let i=0;i<=4;i++){const y=bot-(bot-top)*i/4;svg+=`<line x1="${left}" x2="${W-10}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${left-6}" y="${y+4}" font-size="11" text-anchor="end" fill="var(--ink3)">${i*25}%</text>`;}
+ mods.forEach((r,i)=>{const cx=left+(W-left-40)*(i+0.5)/n;const v=r.uygun_teklif_5dk;const y=bot-(bot-top)*v;
+  svg+=`<path d="M${cx-bw/2},${bot} V${y+4} q0,-4 4,-4 H${cx+bw/2-4} q4,0 4,4 V${bot} Z" fill="var(--aqua)" opacity="${r.referans?1:.85}"><title>${r.run}: ${pct(v)}</title></path>`;
+  svg+=`<text x="${cx}" y="${y-6}" font-size="11" text-anchor="middle" fill="var(--ink2)">${pct(v)}</text><text x="${cx}" y="${bot+16}" font-size="11" text-anchor="middle" fill="var(--ink)">${r.referans?"⭐ ":""}${r.versiyon||r.run}</text><text x="${cx}" y="${bot+30}" font-size="10" text-anchor="middle" fill="var(--ink3)">${r.model}</text>`;});
+ heur.forEach(r=>{const y=bot-(bot-top)*r.uygun_teklif_5dk;const col=r.model==="en_yakin"?"var(--blue)":"var(--orange)";
+  svg+=`<line x1="${left}" x2="${W-10}" y1="${y}" y2="${y}" stroke="${col}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${W-12}" y="${r.model==="en_yakin"?y+14:y-4}" font-size="11" text-anchor="end" fill="${col}">${r.model==="en_yakin"?"En yakın":"En erken varış"} (sezgisel) ${pct(r.uygun_teklif_5dk)}</text>`;});
+ $("gChart").innerHTML=`<div class="small muted" style="margin-bottom:4px">5 dk içinde uygun teklif alan talep oranı — model denemeleri (çubuk) ve sezgisel yöntemler (kesikli çizgi)</div>`+svg+"</svg>";}
+$("gScn").onchange=renderProgress;$("gSet").onchange=renderProgress;$("gAll").onchange=renderProgress;renderProgress();
+
+if(WORLD==="izmir"){document.querySelector("header h1").textContent="Evde Sağlık Anlık Teklif ve Eşleştirme — Merkez İzmir";
+ document.querySelector("header p").textContent="Merkez İzmir'in 11 ilçesi — gerçek yol ağı (OpenStreetMap), ilçe nüfusuna göre dağıtılmış sentetik hasta ve çalışanlar. Ücretler temsilidir.";
+ [["xN",260,600],["xD",100,250],["xR",450,900]].forEach(([id,v,mx])=>{const e=$(id);e.max=mx;e.value=v;});["vN","vD","vR"].forEach((id,i)=>$(id).textContent=[260,100,450][i]);
+ document.querySelector("#map").closest(".card").querySelector("h2").firstChild.textContent="Merkez İzmir haritası ";
+ const lg=document.querySelector(".legend .tiny");if(lg)lg.textContent="Haritaya dokunarak hasta konumunu seçin (en yakın yol noktasına yapışır). Turuncu kesikli çizgiler: ilçe sınırları. Haritada yalnızca ana yollar çizilidir; yol süreleri tüm yollar üzerinden hesaplanır.";}
+setTimeout(()=>{try{initDemo();}catch(e){$("loadPill").textContent="hata: "+e.message;console.error(e);}},50);
+</script>
+</body>
+</html>

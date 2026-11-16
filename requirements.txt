@@ -1,0 +1,7 @@
+numpy
+pandas
+scikit-learn
+matplotlib
+h3>=4
+shapely
+pytest

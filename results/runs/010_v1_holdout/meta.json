@@ -1,0 +1,41 @@
+{
+  "id": "010_v1_holdout",
+  "world": "bornova",
+  "versiyon": "v1",
+  "name": "v1",
+  "model": "gbm_v1",
+  "note": "v1, ayrılmış tohumlar",
+  "set": "holdout",
+  "date": "2026-11-13T22:22",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "5b13247c6dac",
+  "files": {
+    "data/bornova/pool.npz": "4ef861e1cbde",
+    "sim/engine.py": "032c46f0e1d1",
+    "sim/world.py": "61987c43d1cb",
+    "sim/geo.py": "78c2c781da8f",
+    "sim/models.py": "1b3a37ad6592"
+  }
+}

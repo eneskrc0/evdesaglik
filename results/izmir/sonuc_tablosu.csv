@@ -1,0 +1,6 @@
+Ölçüt,En erken varış kuralı,v1 (ilk model),v5 (en iyi),Demodaki model,v5 − kural (%95 GA)
+5 dk içinde uygun teklif alan hasta,55.0%,88.2%,87.1%,84.8%,+32.1 ± 0.7
+Hiç eşleşemeyen hasta,15.2%,7.1%,6.7%,7.4%,-8.5 ± 0.4
+Zamanında gerçekleşen ziyaret,84.7%,90.8%,91.3%,90.5%,+6.6 ± 0.4
+"Bildirim dağılımı eşitsizliği (Gini, düşük=adil)",0.174,0.686,0.543,0.593,+0.368 ± 0.006
+Ziyaret başına yol süresi,8.5 dk,13.6 dk,12.8 dk,13.0 dk,+4.3 ± 0.1

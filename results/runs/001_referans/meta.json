@@ -1,0 +1,39 @@
+{
+  "id": "001_referans",
+  "name": "referans",
+  "model": "gbm_v1",
+  "note": "Referans: gerçek yol ağı, 12 özellik, gradient boosting (v0.3)",
+  "set": "dev",
+  "date": "2026-11-13T17:27",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "148ae2970697",
+  "files": {
+    "data/pool.npz": "4ef861e1cbde",
+    "sim/engine.py": "ff1d0ab506b9",
+    "sim/world.py": "b631349df8bd",
+    "sim/geo.py": "382074215921",
+    "sim/models.py": "2809e2d767ef"
+  }
+}

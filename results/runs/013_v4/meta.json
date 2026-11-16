@@ -1,0 +1,41 @@
+{
+  "id": "013_v4",
+  "world": "bornova",
+  "versiyon": "v4",
+  "name": "v4",
+  "model": "v4_mesafe",
+  "note": "v3 + mesafe farkındalığı: yol süresine ceza",
+  "set": "dev",
+  "date": "2026-11-14T14:10",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "148ae2970697",
+  "files": {
+    "data/bornova/pool.npz": "4ef861e1cbde",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "61987c43d1cb",
+    "sim/geo.py": "78c2c781da8f",
+    "sim/models.py": "b63bc584f04b"
+  }
+}

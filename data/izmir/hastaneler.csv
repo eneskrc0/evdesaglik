@@ -1,0 +1,51 @@
+ad,tur,tur_ad,ilce,acil,kontrol,lat,lon
+Kaşkaloğlu Göz Hastanesi,ozel,Özel hastane,Konak,True,False,38.43201599999999,27.147352300000005
+Başkent Üniversitesi Zübeyde Hanım Uygulama Merkezi,vakif_uni,Vakıf üniversitesi hastanesi,Karşıyaka,True,False,38.4640228,27.093262400000004
+Zübeyde Hanım Tıp Merkezi,vakif_uni,Vakıf üniversitesi hastanesi,Karşıyaka,False,True,38.4613584,27.1160003
+Özel EntoKBB Cerrahi Tıp Merkezi,ozel_tm,Özel tıp merkezi,Bornova,False,False,38.44999349999999,27.2036447
+Özel Metropol Şemikler Tıp Merkezi,ozel_tm,Özel tıp merkezi,Karşıyaka,False,False,38.47746059999999,27.0968638
+Çınarlı Kadın Doğum Hastanesi,ozel,Özel hastane,Konak,False,True,38.440739,27.1727482
+Metropol Tıp Merkezi,ozel_tm,Özel tıp merkezi,Karabağlar,False,False,38.3981513,27.0953477
+Yedigün Tıp Merkezi Çamdibi Şubesi,ozel_tm,Özel tıp merkezi,Bornova,True,False,38.43492129999999,27.1923771
+Karşıyaka Göz Hastanesi,ozel,Özel hastane,Karşıyaka,False,True,38.4723339,27.084632
+Urla Devlet Hastanesi Güzelbahçe Polikliniği,devlet,Devlet hastanesi,Güzelbahçe,False,False,38.37589249999999,26.892371
+Bakırçay Üniversitesi Çiğli Bölge Eğitim ve Araştırma Hastanesi,devlet,Devlet hastanesi,Çiğli,False,False,38.49995783718688,27.04953853187341
+Tepecik Eğitim ve Araştırma Hastanesi,devlet,Devlet hastanesi,Konak,True,False,38.42295729662263,27.166147608775518
+Behçet Uz Çocuk Hastanesi,devlet,Devlet hastanesi,Konak,True,False,38.427498094345815,27.13858501510689
+Bazekol Çiğli Hastanesi,ozel,Özel hastane,Çiğli,False,False,38.485310205998736,27.060226864399606
+Ege Üniversitesi Hastanesi,devlet_uni,Devlet üniversitesi hastanesi,Bornova,True,False,38.45532827353944,27.21065502811776
+Dr. Suat Seren Göğüs Hastalıkları Hastanesi,devlet,Devlet hastanesi,Konak,False,False,38.42459363429187,27.164463062066748
+Eşrefpaşa Hastanesi,belediye,Belediye hastanesi,Konak,True,False,38.42422429501181,27.160481494817724
+Central Hospital,ozel,Özel hastane,Bayraklı,True,False,38.46088135015511,27.1669754500402
+Dokuz Eylül Üniversitesi Hastanesi,devlet_uni,Devlet üniversitesi hastanesi,Balçova,True,False,38.39476564977226,27.033859809506357
+İzmir Atatürk Eğitim ve Araştırma Hastanesi,devlet,Devlet hastanesi,Karabağlar,True,False,38.39733535962039,27.103717402803717
+Medical Point İzmir Hastanesi,ozel,Özel hastane,Karşıyaka,True,False,38.47364910692127,27.112252519980963
+Buca Kadın Doğum ve Çocuk Hastanesi,devlet,Devlet hastanesi,Buca,True,False,38.3759503333351,27.181082106093456
+Tınaztepe Hastanesi,vakif_uni,Vakıf üniversitesi hastanesi,Buca,True,False,38.37029000018399,27.193668350043165
+İzmir Atatürk Eğitim ve Araştırma Hastanesi Hatay Hizmet Binası,devlet,Devlet hastanesi,Konak,True,False,38.4030357786223,27.112127577409936
+Buca Tıp Merkezi,ozel_tm,Özel tıp merkezi,Buca,False,False,38.38850161931479,27.15096872545272
+Kordon Kadın Doğum ve Çocuk Hastalıkları Hastanesi,ozel,Özel hastane,Çiğli,False,True,38.48535360006417,27.06242963333333
+Zübeyde Hanım Hastanesi Polikliniği,vakif_uni,Vakıf üniversitesi hastanesi,Karşıyaka,False,False,38.47185282728472,27.08618738924645
+Özel Karataş Hastanesi,ozel,Özel hastane,Konak,False,False,38.41135491235176,27.12290125512757
+Özel Metropol Karşıyaka Tıp Merkezi,ozel_tm,Özel tıp merkezi,Bayraklı,False,False,38.46988525009087,27.11349760001029
+İzmir Bayraklı Entegre Sağlık Kampüsü,devlet,Devlet hastanesi,Bayraklı,False,False,38.48447410712068,27.17681962770506
+Özel Acıbadem İzmir Kent Hastanesi,ozel,Özel hastane,Çiğli,False,False,38.48979477885822,27.05171031601183
+Ege Üniversitesi Çocuk Hastanesi,devlet_uni,Devlet üniversitesi hastanesi,Bornova,True,False,38.45432228077972,27.213790929504547
+Nevvar Salih İşgören Çocuk Hastanesi,devlet_uni,Devlet üniversitesi hastanesi,Balçova,False,True,38.394625198388766,27.03172815951253
+Buca Seyfi Demirsoy Eğitim ve Araştırma Hastanesi,devlet,Devlet hastanesi,Buca,True,False,38.38509854733819,27.16322081774874
+Medicana İnternational İzmir Hastanesi,ozel,Özel hastane,Konak,True,False,38.42958569410494,27.157223008217137
+Türkan Özilhan Devlet Hastanesi,devlet,Devlet hastanesi,Bornova,False,False,38.45925417712116,27.25021070371083
+Özel Kent Bayraklı Tıp Merkezi,ozel_tm,Özel tıp merkezi,Bayraklı,False,False,38.45311368066726,27.188099704449225
+Tınaztepe Galen Hastanesi,vakif_uni,Vakıf üniversitesi hastanesi,Bayraklı,True,False,38.46377394894397,27.19443783009709
+Tepecik Eğitim ve Araştırma Hastanesi Bornova Ek Binası,devlet,Devlet hastanesi,Bornova,False,False,38.45455036178837,27.205130171549285
+Alsancak Nevvar - Salih İşgören Devlet Hastanesi,devlet,Devlet hastanesi,Konak,False,False,38.43408628439544,27.14305887071047
+Alfa Tıp Merkezi,ozel_tm,Özel tıp merkezi,Bornova,False,False,38.44689767598327,27.206529373125164
+Emot Hastanesi,ozel,Özel hastane,Konak,True,False,38.42602883940155,27.150938648300933
+Özel Medical Park İzmir Hastanesi,ozel,Özel hastane,Konak,True,False,38.42501901672523,27.149756858562466
+Özel Metropol Hastanesi,ozel,Özel hastane,Çiğli,True,False,38.501574579842014,27.052639848976725
+Egepol Hastanesi,ozel,Özel hastane,Konak,False,True,38.40033053956976,27.127864888673248
+Gazi Hastanesi,ozel,Özel hastane,Konak,True,True,38.42934161391144,27.151793946427212
+Yedigün Tıp Merkezi,ozel_tm,Özel tıp merkezi,Bornova,False,False,38.47547313024467,27.19215957425168
+Özel Ege Şehir Hastanesi,ozel,Özel hastane,Konak,True,False,38.42409433398786,27.16843035162933
+Özel Gözde İzmir Hastanesi,ozel,Özel hastane,Konak,True,False,38.424740316969945,27.16818609272866
+İzmir Amerikan Hastanesi,ozel,Özel hastane,Balçova,True,False,38.38736376769195,27.038442743500788

@@ -1,0 +1,39 @@
+{
+  "id": "004_yumusak_kota8",
+  "name": "yumusak_kota8",
+  "model": "gbm_v1_ybkota8",
+  "note": "Günlük yumuşak bildirim kotası: 8 (dolan sona geçer)",
+  "set": "dev",
+  "date": "2026-11-13T18:04",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "148ae2970697",
+  "files": {
+    "data/pool.npz": "4ef861e1cbde",
+    "sim/engine.py": "9d14e2b1fac1",
+    "sim/world.py": "b631349df8bd",
+    "sim/geo.py": "382074215921",
+    "sim/models.py": "1b3a37ad6592"
+  }
+}

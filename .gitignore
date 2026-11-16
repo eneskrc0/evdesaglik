@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+# Büyük ham OSM dosyası (Colab ile yeniden üretilir; işlenmiş hali data/bornova/pool.npz)
+data/bornova/drive.graphml
+.DS_Store

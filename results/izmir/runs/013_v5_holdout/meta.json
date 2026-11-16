@@ -1,0 +1,41 @@
+{
+  "id": "013_v5_holdout",
+  "world": "izmir",
+  "versiyon": "v5",
+  "name": "v5",
+  "model": "v5_denge",
+  "note": "v5, ayrılmış tohumlar",
+  "set": "holdout",
+  "date": "2026-11-14T14:57",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "c7ad1c844561",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "61987c43d1cb",
+    "sim/geo.py": "78c2c781da8f",
+    "sim/models.py": "b63bc584f04b"
+  }
+}
