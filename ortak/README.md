@@ -11,7 +11,7 @@ Tek sayfada uçtan uca akış, gerçek İzmir yol ağı üzerinde:
 7. **Kabul** ve **canlı takip**: rota gerçek sokaklarda, kalan süre ve varış aralığı. *Enes*
 
 ## Açmak
-`ortak/dist/izmir.html` (merkez İzmir, 430 çalışan) veya `ortak/dist/bornova.html`. İnternet yalnızca harita hücre kütüphanesi için gerekir.
+`ortak/dist/izmir.html` (merkez İzmir, demo için pilot ölçeği: 60 hemşire, 20 doktor, 20 diğer meslek) veya `ortak/dist/bornova.html`. İnternet yalnızca harita hücre kütüphanesi için gerekir.
 
 ## Üretmek
 ```

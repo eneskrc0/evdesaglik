@@ -736,7 +736,7 @@ const tip=$("tip");function showTip(e,html){tip.innerHTML=html;tip.style.display
 function hideTip(){tip.style.display="none";}
 
 /* ======================= DEMO ======================= */
-const DEMO_SEED=7,DEMO_DAY=500;const SC_DEMO={...BASE_SC};
+const DEMO_SEED=7,DEMO_DAY=500;const SC_DEMO={...BASE_SC};if(WORLD==="izmir")Object.assign(SC_DEMO,{nNurses:60,nDoctors:20,reqPerDay:110}); // demo: pilot ölçeği (deney sonuçları 260/100 ile)
 let D=null; // demo durumu
 const VB={w:600,h:470,pad:18};
 function proj(p){if(ROADS){const v=ROADS.view,sx=ROADS.W/(v.maxLon-v.minLon),sy=sx/Math.cos((v.minLat+v.maxLat)/2*Math.PI/180);return[(p[1]-v.minLon)*sx,(v.maxLat-p[0])*sy];}
@@ -902,7 +902,7 @@ const ROLE_NAMES={hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapis
  ergoterapist:"Ergoterapist",klinik_psikolog:"Klinik psikolog",odyolog:"Odyolog",podolog:"Podolog"};
 const roleName=r=>ROLE_NAMES[r]||r;
 const roleColor=r=>r==="hemsire"?"var(--aqua)":r==="doktor"?"var(--blue)":"#8b5cf6";
-const EXTRA_ROLES=WORLD==="izmir"?{fizyoterapist:30,diyetisyen:8,dil_konusma:6,ergoterapist:6,klinik_psikolog:8,odyolog:6,podolog:6}
+const EXTRA_ROLES=WORLD==="izmir"?{fizyoterapist:8,diyetisyen:2,dil_konusma:2,ergoterapist:2,klinik_psikolog:2,odyolog:2,podolog:2}
  :{fizyoterapist:6,diyetisyen:2,dil_konusma:2,ergoterapist:2,klinik_psikolog:2,odyolog:2,podolog:2};
 
 // Hemşire/doktor dışındaki meslekler: davranış profili (yanıt oranı, gecikme, fiyat düzeyi) mevcut bir çalışandan alınır,

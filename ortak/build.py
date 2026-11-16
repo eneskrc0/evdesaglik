@@ -48,6 +48,9 @@ patch("renk", '(w.role==="hemsire"?"var(--aqua)":"var(--blue)")', "roleColor(w.r
 # 5) Ek meslekler + profiller
 patch("ek-çalışanlar", "const P=prepareSeed(SC_DEMO,DEMO_SEED);", "const P=prepareSeed(SC_DEMO,DEMO_SEED);addExtraWorkers(P);")
 
+patch("demo-ölçek", "const SC_DEMO={...BASE_SC};",
+      "const SC_DEMO={...BASE_SC};if(WORLD===\"izmir\")Object.assign(SC_DEMO,{nNurses:60,nDoctors:20,reqPerDay:110}); // demo: pilot ölçeği (deney sonuçları 260/100 ile)")
+
 # 6) Hasta formu: önce anlat → triyaj → hizmet, saat, bütçe
 old_form = html[html.index('<div id="patientForm">'):html.index('<div id="patientLive"')]
 new_form = '''<div id="patientForm">

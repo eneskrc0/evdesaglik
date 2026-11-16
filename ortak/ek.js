@@ -3,7 +3,7 @@ const ROLE_NAMES={hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapis
  ergoterapist:"Ergoterapist",klinik_psikolog:"Klinik psikolog",odyolog:"Odyolog",podolog:"Podolog"};
 const roleName=r=>ROLE_NAMES[r]||r;
 const roleColor=r=>r==="hemsire"?"var(--aqua)":r==="doktor"?"var(--blue)":"#8b5cf6";
-const EXTRA_ROLES=WORLD==="izmir"?{fizyoterapist:30,diyetisyen:8,dil_konusma:6,ergoterapist:6,klinik_psikolog:8,odyolog:6,podolog:6}
+const EXTRA_ROLES=WORLD==="izmir"?{fizyoterapist:8,diyetisyen:2,dil_konusma:2,ergoterapist:2,klinik_psikolog:2,odyolog:2,podolog:2}
  :{fizyoterapist:6,diyetisyen:2,dil_konusma:2,ergoterapist:2,klinik_psikolog:2,odyolog:2,podolog:2};
 
 // Hemşire/doktor dışındaki meslekler: davranış profili (yanıt oranı, gecikme, fiyat düzeyi) mevcut bir çalışandan alınır,
