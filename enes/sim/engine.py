@@ -35,6 +35,7 @@ class Offer:
     arrival: float
     price: float
     fits: bool
+    base: float = 0.0  # hizmetin taban ücreti (ücret düzeyi geçmişi için)
 
 
 @dataclass
@@ -48,6 +49,7 @@ class DayResult:
     notif_per_worker: dict = field(default_factory=dict)
     log: list = field(default_factory=list)  # model eğitimi için (özellikler, etiket)
     by_district: dict = field(default_factory=dict)  # ilçe -> [talep, 5dk uygun teklif, zamanında]
+    by_role: dict = field(default_factory=dict)  # meslek -> [talep, 5dk uygun teklif]
     visits: list = field(default_factory=list)  # kabul edilen ziyaretler: (çalışan, ücret, bütçe, yol dk, hizmet)
     first_fit_wait: list = field(default_factory=list)  # uygun teklif alan talepler için ilk uygun teklife kadar dk
 
@@ -76,18 +78,28 @@ def worker_response(sc: Scenario, w: Worker, req: Request, t: float, seed: int, 
     if req.budget is not None and req.budget < price <= req.budget * 1.08 and match_budget:
         price = req.budget  # hastanın teklifini kabul eder
     fits = ea[0] <= req.win_end and (req.budget is None or price <= req.budget)
-    return Offer(w.id, t + delay, ea[0], price, fits)
+    return Offer(w.id, t + delay, ea[0], price, fits, base)
 
 
-def candidates(workers: list[Worker], req: Request, t: float, exclude: set):
+def candidates(workers: list[Worker], req: Request, t: float, exclude: set, expand: bool = False):
+    """Hastanın çevresindeki (H3 k-halkası) uygun çalışanlar. expand=True: yakında NOTIFY_K'dan az aday varsa
+    arama alanı önce 2 katına, sonra tüm şehre genişler (nadir meslekler için; izmir_tam)."""
+    out = _candidates_in(workers, req, t, exclude, geo.neighbours(geo.cell(req.loc), SEARCH_K))
+    if expand and len(out) < NOTIFY_K:
+        out = _candidates_in(workers, req, t, exclude, geo.neighbours(geo.cell(req.loc), 2 * SEARCH_K))
+        if len(out) < NOTIFY_K:
+            out = _candidates_in(workers, req, t, exclude, None)
+    return out
+
+
+def _candidates_in(workers, req, t, exclude, near):
     role, dur, _ = SERVICES[req.service]
-    near = geo.neighbours(geo.cell(req.loc), SEARCH_K)
     out = []
     for w in workers:
         if w.role != role or w.id in exclude:
             continue
         loc, free, in_visit = w.position_and_free(t)
-        if geo.cell(loc) not in near:
+        if near is not None and geo.cell(loc) not in near:
             continue
         ea = w.earliest_arrival(t, req.loc, dur, req.win_start)
         if ea is None or ea[0] > req.win_end:
@@ -120,7 +132,7 @@ def features(c: dict, req: Request, t: float, hist: dict) -> list[float]:
         h.get("peak_resp_rate", h.get("resp_rate", 0.5)),
         ((req.budget - exp_price) / base) if has_b else 0.0,
         float(has_b),
-        float(req.service == "doktor"),
+        float(SERVICES[req.service][0] == "doktor"),  # eski dünyalarda req.service == "doktor" ile aynı
     ]
 
 
@@ -196,7 +208,7 @@ def run_day(sc: Scenario, workers0: list[Worker], reqs: list[Request], policy: s
     def notify(req: Request, t: float):
         nonlocal seq
         st = state[req.id]
-        cands = candidates(workers, req, t, st["notified"])
+        cands = candidates(workers, req, t, st["notified"], expand=getattr(sc, "expand_search", False))
         cfg = getattr(model, "cfg", None) if policy == "model" else None
         if cfg:
             ranked = select_with_policy(cands, req, t, hist, model, res, cfg)
@@ -272,6 +284,9 @@ def run_day(sc: Scenario, workers0: list[Worker], reqs: list[Request], policy: s
         bd[0] += 1
         bd[1] += ok5
         bd[2] += state[r.id].get("on_time", 0)
+        br = res.by_role.setdefault(SERVICES[r.service][0], [0, 0])
+        br[0] += 1
+        br[1] += ok5
     return res
 
 

@@ -101,6 +101,7 @@ def run_seed(scn: str, seed: int, n_train_days=(HIST_DAYS, TRAIN_DAYS), n_test=T
     ALL = POLICIES + EXTRA_POLICIES
     agg = {p: defaultdict(float) for p in ALL}
     dist = {p: defaultdict(lambda: [0, 0, 0]) for p in ALL}
+    roles_agg = {p: {} for p in ALL}
     visits = {p: [] for p in ALL}  # (gün, çalışan, ücret, bütçe, yol, hizmet, zamanında)
     waits = {p: [] for p in ALL}
     notif = {p: defaultdict(int) for p in ALL}
@@ -120,6 +121,8 @@ def run_seed(scn: str, seed: int, n_train_days=(HIST_DAYS, TRAIN_DAYS), n_test=T
             waits[p] += res.first_fit_wait
             for d, (n_, f_, o_) in res.by_district.items():
                 dd = dist[p][d]; dd[0] += n_; dd[1] += f_; dd[2] += o_
+            for rl, (n_, f_) in res.by_role.items():
+                rr = roles_agg[p].setdefault(rl, [0, 0]); rr[0] += n_; rr[1] += f_
             for k, v in res.notif_per_worker.items():
                 notif[p][k] += v
             if p == "model":
@@ -136,6 +139,9 @@ def run_seed(scn: str, seed: int, n_train_days=(HIST_DAYS, TRAIN_DAYS), n_test=T
     for p in ALL:
         a = agg[p]
         ex = _extra_metrics(visits[p], waits[p], nurse_ids, n_test, a["accepted"])
+        exw = _extra_metrics(visits[p], waits[p], [w.id for w in workers], n_test, a["accepted"])
+        ex.update({"calisan" + k[len("hemsire"):]: v for k, v in exw.items() if k.startswith("hemsire_")})
+        ex.update({f"uygun5_{rl}": (f_ / n_ if n_ else np.nan) for rl, (n_, f_) in roles_agg[p].items()})
         counts = [notif[p].get(w.id, 0) for w in workers]
         rows.append({
             "senaryo": scn, "tohum": seed, "yontem": p,
@@ -177,7 +183,8 @@ def _extra_metrics(visits, waits, nurse_ids, n_days, n_acc):
     wb = [(v[3], v[2]) for v in visits if v[3] is not None]
     out["butce_fark_ort"] = float(np.mean([b - p for b, p in wb])) if wb else np.nan  # + = bütçenin altında ödedi
     out["butce_ustu_odeme_orani"] = float(np.mean([p > b for b, p in wb])) if wb else np.nan
-    nv = [v for v in visits if v[5] == "pansuman"]
+    _ns = set(nurse_ids)
+    nv = [v for v in visits if v[1] in _ns]  # hemşirelerin ziyaretleri (eski dünyalarda yalnızca pansuman ile aynı)
     days = sorted({v[0] for v in visits})
     jobs = {(d, w): 0 for d in days for w in nurse_ids}
     earn = {(d, w): 0.0 for d in days for w in nurse_ids}
@@ -206,7 +213,7 @@ def _price_hist(hist, logs, workers):
     wrole = {w.id: w.role for w in workers}
     for f, _, wid, off, _, _ in logs:
         if off is not None:
-            base = role_base[wrole[wid]]
+            base = off.base or role_base[wrole[wid]]
             ratios[wid].append(off.price / base)
     for w in workers:
         r = ratios.get(w.id)

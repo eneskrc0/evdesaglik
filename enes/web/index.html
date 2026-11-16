@@ -95,7 +95,7 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
    <div class="legend">
      <span><i class="dot" style="background:var(--aqua)"></i>Hemşire</span>
      <span><i class="dot" style="background:var(--blue)"></i>Doktor</span>
-     <span><i class="dot" style="background:#8b5cf6"></i>Fizyoterapist</span>
+     <span id="roleLegend"><i class="dot" style="background:#8b5cf6"></i>Fizyoterapist</span>
      <span><i class="dot" style="background:var(--busy)"></i>Ziyarette</span>
      <span><i class="dot" style="background:var(--orange)"></i>Hasta</span>
      <label style="display:inline;margin:0;color:var(--ink2)"><input type="checkbox" id="hospToggle" checked style="width:auto;vertical-align:-2px"> Hastaneler</label>
@@ -265,16 +265,22 @@ const cellCache=new Map();
 function cellOf(p){const k=p[0]+","+p[1];let c=cellCache.get(k);if(c)return c;
  c=HAS_H3?h3.latLngToCell(p[0],p[1],H3_RES):(Math.round(p[0]/0.006)+":"+Math.round(p[1]/0.0075));cellCache.set(k,c);return c;}
 const diskCache=new Map();
-function nearCells(c){let s=diskCache.get(c);if(s)return s;
- if(HAS_H3)s=new Set(h3.gridDisk(c,SEARCH_K));else{const[a,b]=c.split(":").map(Number);s=new Set();for(let i=-SEARCH_K;i<=SEARCH_K;i++)for(let j=-SEARCH_K;j<=SEARCH_K;j++)s.add((a+i)+":"+(b+j));}
- diskCache.set(c,s);return s;}
+function nearCells(c,K=SEARCH_K){const key=c+"|"+K;let s=diskCache.get(key);if(s)return s;
+ if(HAS_H3)s=new Set(h3.gridDisk(c,K));else{const[a,b]=c.split(":").map(Number);s=new Set();for(let i=-K;i<=K;i++)for(let j=-K;j<=K;j++)s.add((a+i)+":"+(b+j));}
+ diskCache.set(key,s);return s;}
 
 /* ======================= WORLD ======================= */
 const SERVICES={pansuman:{role:"hemsire",dur:30,base:600,label:"Planlı pansuman"},doktor:{role:"doktor",dur:40,base:1500,label:"Planlı doktor ziyareti"},fizyoterapi:{role:"fizyoterapist",dur:60,base:1200,label:"Evde fizyoterapi"}};
+const CATALOG=/*CATALOG_JSON*/null; // data/hizmet_katalogu.json (Efehan'ın kaynaklı kataloğu)
+if(CATALOG)for(const h of CATALOG.hizmetler)if(!SERVICES[h.kod])SERVICES[h.kod]={role:h.meslek,dur:h.sure_dk,base:h.ucret_tl,label:h.ad,plan:h.hekim_plani,cat:true};
+const EXTRA_STAFF=[["klinik_psikolog",8],["dil_konusma",6],["diyetisyen",6],["ergoterapist",4],["odyolog",3],["podolog",3]];
+function catalogMix(staff){const tot=Object.values(staff).reduce((a,b)=>a+b,0),by={};for(const h of CATALOG.hizmetler)(by[h.meslek]||=[]).push(h.kod);
+ const out=[];for(const[r,ks]of Object.entries(by))if(staff[r])for(const k of ks)out.push([k,staff[r]/tot/ks.length]);return out;}
 const DAY_START=480,DAY_END=1200;
 const BASE_SC={name:"baz",nNurses:40,nDoctors:15,reqPerDay:70,budgetShare:0.6,respA:4,respB:3,peakSensShare:0.4,peakFactor:0.45,
  longDelayShare:0.4,shortDelay:[0.3,3],longDelay:[3,12],priceSd:0.12,homogeneous:false,travelNoiseSd:0.15,overrunSd:6,lateShare:0.25,notifyK:3,fairness:0};
-if(WORLD==="izmir")Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:155}); // izmir_orta (Python: OLCEK=orta)
+if(WORLD==="izmir"&&CATALOG){Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:195,extraStaff:EXTRA_STAFF,expand:true});
+ BASE_SC.serviceMix=catalogMix({hemsire:80,doktor:25,fizyoterapist:20,...Object.fromEntries(EXTRA_STAFF)});} // izmir_tam (Python: OLCEK=tam)
 const SCENARIOS={baz:{},homojen:{homogeneous:true},yuksek_degiskenlik:{respA:2,respB:2,peakSensShare:0.6,longDelayShare:0.55,priceSd:0.2},belirsiz_yol:{travelNoiseSd:0.35,overrunSd:12}};
 const clip=(x,a,b)=>Math.max(a,Math.min(b,x));
 
@@ -293,11 +299,12 @@ class Worker{
      if(b===null)return null;curT=b.e;curLoc=b.p;}
    return null;}
 }
-function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor"),...Array(sc.nPhysio||0).fill("fizyoterapist")];
+function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor"),...Array(sc.nPhysio||0).fill("fizyoterapist"),...(sc.extraStaff||[]).flatMap(([r,k])=>Array(k).fill(r))];
  roles.forEach((role,i)=>{if(sc.homogeneous){ws.push(new Worker({id:i,role,home:samplePoint(r),respP:sc.respA/(sc.respA+sc.respB),peakSens:false,longDelay:false,priceMult:1,oftenLate:false}));return;}
   ws.push(new Worker({id:i,role,home:samplePoint(r),respP:r.beta(sc.respA,sc.respB),peakSens:r.random()<sc.peakSensShare,longDelay:r.random()<sc.longDelayShare,
    priceMult:clip(r.normal(1,sc.priceSd),0.7,1.5),oftenLate:r.random()<sc.lateShare}));});return ws;}
-function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const u=r.random();const service=sc.nPhysio?(u<0.6?"pansuman":u<0.85?"doktor":"fizyoterapi"):(u<0.7?"pansuman":"doktor");
+function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const u=r.random();let service;if(sc.serviceMix){const tot=sc.serviceMix.reduce((a,x)=>a+x[1],0);let acc=0;service=sc.serviceMix[sc.serviceMix.length-1][0];for(const[k,w]of sc.serviceMix){acc+=w/tot;if(u<acc){service=k;break;}}}
+ else service=sc.nPhysio?(u<0.6?"pansuman":u<0.85?"doktor":"fizyoterapi"):(u<0.7?"pansuman":"doktor");
  const ws=t+r.uniform(30,180);const base=SERVICES[service].base;const budget=r.random()<sc.budgetShare?Math.round(base*r.uniform(0.85,1.15)/10)*10:null;
  out.push({id:i,t,loc:samplePoint(r),service,ws,we:ws+60,budget});}out.sort((a,b)=>a.t-b.t);return out;}
 
@@ -315,13 +322,16 @@ function workerResponse(sc,w,req,t,seed,day){
  if(req.budget!=null&&req.budget<price&&price<=req.budget*1.08&&matchB)price=req.budget;
  const fits=ea.arr<=req.we&&(req.budget==null||price<=req.budget);
  return{worker:w.id,t:t+delay,arrival:ea.arr,price,fits};}
-function candidates(workers,req,t,exclude){const S=SERVICES[req.service];const near=nearCells(cellOf(req.loc));const out=[];
- for(const w of workers){if(w.role!==S.role||exclude.has(w.id))continue;const pf=w.posFree(t);if(!near.has(cellOf(pf.loc)))continue;
+// Yakında 3'ten az aday varsa arama önce 2 kat, sonra tüm şehir (nadir meslekler; Python engine.candidates expand)
+function candidates(workers,req,t,exclude){let out=candIn(workers,req,t,exclude,nearCells(cellOf(req.loc)));
+ if(BASE_SC.expand&&out.length<3){out=candIn(workers,req,t,exclude,nearCells(cellOf(req.loc),2*SEARCH_K));if(out.length<3)out=candIn(workers,req,t,exclude,null);}return out;}
+function candIn(workers,req,t,exclude,near){const S=SERVICES[req.service];const out=[];
+ for(const w of workers){if(w.role!==S.role||exclude.has(w.id))continue;const pf=w.posFree(t);if(near&&!near.has(cellOf(pf.loc)))continue;
   const ea=w.earliest(t,req.loc,S.dur,req.ws);if(!ea||ea.arr>req.we)continue;const f0=Math.max(t,pf.free);
   out.push({w,loc:pf.loc,free:pf.free,inVisit:pf.inVisit,expArr:ea.arr,dist:haversine(pf.loc,req.loc),rawArr:f0+travelMin(pf.loc,req.loc,f0)});}
  return out;}
 function features(c,req,t,hist){const h=hist[c.w.id]||{};const base=SERVICES[req.service].base;const ep=base*(h.priceMult??1);const hb=req.budget!=null;
- return[travelMin(c.loc,req.loc,t),Math.max(0,c.free-t),req.we-c.expArr,t/60,+isPeak(t),+c.inVisit,h.resp??0.5,h.fast??0.5,h.peak??(h.resp??0.5),hb?(req.budget-ep)/base:0,+hb,+(req.service==="doktor")];}
+ return[travelMin(c.loc,req.loc,t),Math.max(0,c.free-t),req.we-c.expArr,t/60,+isPeak(t),+c.inVisit,h.resp??0.5,h.fast??0.5,h.peak??(h.resp??0.5),hb?(req.budget-ep)/base:0,+hb,+(SERVICES[req.service].role==="doktor")];}
 const FEAT_NAMES=["yol süresi","boşalmaya kalan","aralık payı","saat","yoğun saat","ziyarette","geçmiş yanıt","hızlı yanıt","yoğun saat yanıtı","bütçe farkı","bütçe var","doktor"];
 function scoreModel(model,cands,req,t,hist){return cands.map(c=>model.predict(features(c,req,t,hist)));}
 function rankC(policy,cands,req,t,hist,model,r,load,fair){
@@ -642,9 +652,17 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
   const t=el("text",{x,y:y-13*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent="Siz";}
  setViewBox(pts,1.6);
  const nxt=bl.find(b=>b.s>D.clock);$("viewNote").textContent=`${roleNameV(w.role)} #${w.id} · bugün ${bl.length} durak${nxt?` · sıradaki ${fmtT(nxt.s)}`:""}${D.inbox&&!D.booked?" · yeni talep var (açık adres kabulden sonra)":""}${mine?" · kabul ettiğiniz ziyaret haritada":""}`;}
-const roleNameV=r=>(typeof roleName==="function")?roleName(r):({hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapist"}[r]||r);
-const roleColorV=r=>(typeof roleColor==="function")?roleColor(r):(r==="hemsire"?"var(--aqua)":r==="doktor"?"var(--blue)":"#8b5cf6");
+const ROLE_TR={hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapist",dil_konusma:"Dil ve konuşma terapisti",klinik_psikolog:"Klinik psikolog",diyetisyen:"Diyetisyen",ergoterapist:"Ergoterapist",odyolog:"Odyolog",podolog:"Podolog"};
+const ROLE_COL={hemsire:"var(--aqua)",doktor:"var(--blue)",fizyoterapist:"#8b5cf6",dil_konusma:"#d6409f",klinik_psikolog:"#f59e0b",diyetisyen:"#65a30d",ergoterapist:"#0891b2",odyolog:"#a16207",podolog:"#64748b"};
+const roleNameV=r=>(typeof roleName==="function")?roleName(r):(ROLE_TR[r]||r);
+const roleColorV=r=>(typeof roleColor==="function")?roleColor(r):(ROLE_COL[r]||"#8b5cf6");
 
+(function setupServices(){if(!CATALOG)return;const sel=$("fService");sel.innerHTML="";const by={};
+ for(const[k,v]of Object.entries(SERVICES))if(v.cat)(by[v.role]||=[]).push([k,v]);
+ for(const r of Object.keys(ROLE_TR)){if(!by[r])continue;const g=document.createElement("optgroup");g.label=ROLE_TR[r];
+  for(const[k,v]of by[r]){const o=document.createElement("option");o.value=k;o.textContent=`${v.label} · ${v.dur} dk · ${fmtTL(v.base)}'den`;g.appendChild(o);}sel.appendChild(g);}
+ sel.value="yara_pansuman";sel.addEventListener("change",()=>{if(D&&D.loc)showNearEta(D.loc);if(typeof fillWindows==="function")fillWindows();});
+ $("roleLegend").outerHTML=Object.keys(ROLE_TR).filter(r=>!["hemsire","doktor"].includes(r)).map(r=>`<span><i class="dot" style="background:${ROLE_COL[r]}"></i>${ROLE_TR[r]}</span>`).join("\n");})();
 $("viewSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;setView(b.dataset.v);};
 // ---------- Yakınlaştırma / kaydırma: tekerlek, iki parmak, sürükleme, +/− düğmeleri ----------
 function baseH(){if(!window.__VBH){const a=$("map").getAttribute("viewBox").split(/\s+/).map(Number);window.__VBH=a[3]*600/a[2]||470;}return window.__VBH;}
@@ -749,10 +767,11 @@ function drawHospitals(map){const L=hospList();if(!L.length)return;const g=el("g
 function nearestHospital(loc,filter){const L=hospList().filter(filter);if(!L.length||!TT||loc.length<3)return null;let best=null,bt=1e9;
  for(const h of L){const t=travelMin(loc,POOL[h.idx],D?D.clock:600);if(t<bt){bt=t;best=h;}}return best?{h:best,t:bt}:null;}
 function showNearEta(ll){const box=$("etaNear");if(!box)return;const out={};
- for(const role of["hemsire","doktor","fizyoterapist"]){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
+ for(const role of Object.keys(ROLE_TR)){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
   arr.sort((a,b)=>a-b);out[role]=arr.length?{best:arr[0],avg3:arr.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,arr.length)}:null;}
  const f=o=>o?`en erken <b>~${Math.round(o.best)} dk</b> (en yakın 3 kişi ortalaması ~${Math.round(o.avg3)} dk)`:"—";
- box.innerHTML=`<div class="tiny" style="margin-top:6px">🚗 Bu konuma şu an: hemşire ${f(out.hemsire)} · doktor ${f(out.doktor)} · fizyoterapist ${f(out.fizyoterapist)}. Gerçek varış, gelen tekliflerde yazar.</div>`;}
+ const sel=$("fService")?SERVICES[$("fService").value]:null,rs=sel?[sel.role]:["hemsire","doktor"];
+ box.innerHTML=`<div class="tiny" style="margin-top:6px">🚗 Bu konuma şu an: ${rs.map(r=>`${roleNameV(r).toLowerCase()} ${f(out[r])}`).join(" · ")}. Gerçek varış, gelen tekliflerde yazar.</div>`;}
 function showNearestHospital(loc){const box=$("hospNear");if(!box)return;const a=nearestHospital(loc,h=>h.tur!=="ozel_tm");const k=nearestHospital(loc,h=>["devlet","belediye","devlet_uni"].includes(h.tur));
  if(!a){box.innerHTML="";return;}
  box.innerHTML=`<div class="banner" style="margin-top:0">🏥 En yakın hastane: <b>${a.h.ad}</b> (${a.h.turAd}, yolla ~${Math.round(a.t)} dk)`+

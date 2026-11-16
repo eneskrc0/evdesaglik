@@ -1,0 +1,165 @@
+{
+ "kaynak": "efehan/web/data.json (Efehan'ın kaynaklı hizmet kataloğu); uzaktan yapılan tele_muayene ve recete_rapor_yenileme hariç",
+ "hizmetler": [
+  {
+   "kod": "tele_hemsire_destekli",
+   "ad": "Hemşire evde + hekim videoda",
+   "meslek": "hemsire",
+   "sure_dk": 40,
+   "ucret_tl": 1400,
+   "hekim_plani": false
+  },
+  {
+   "kod": "ev_muayene",
+   "ad": "Hekim ev muayenesi",
+   "meslek": "doktor",
+   "sure_dk": 40,
+   "ucret_tl": 2500,
+   "hekim_plani": false
+  },
+  {
+   "kod": "palyatif_degerlendirme",
+   "ad": "Palyatif bakım / ağrı kontrolü değerlendirmesi",
+   "meslek": "doktor",
+   "sure_dk": 60,
+   "ucret_tl": 3000,
+   "hekim_plani": false
+  },
+  {
+   "kod": "kan_alma",
+   "ad": "Kan alma ve numune teslimi",
+   "meslek": "hemsire",
+   "sure_dk": 20,
+   "ucret_tl": 700,
+   "hekim_plani": true
+  },
+  {
+   "kod": "im_enjeksiyon",
+   "ad": "Kas içi / deri altı enjeksiyon",
+   "meslek": "hemsire",
+   "sure_dk": 15,
+   "ucret_tl": 500,
+   "hekim_plani": true
+  },
+  {
+   "kod": "iv_serum",
+   "ad": "Serum takma (IV tedavi)",
+   "meslek": "hemsire",
+   "sure_dk": 60,
+   "ucret_tl": 1200,
+   "hekim_plani": true
+  },
+  {
+   "kod": "yara_pansuman",
+   "ad": "Yara bakımı ve pansuman",
+   "meslek": "hemsire",
+   "sure_dk": 30,
+   "ucret_tl": 800,
+   "hekim_plani": true
+  },
+  {
+   "kod": "basi_yarasi_bakimi",
+   "ad": "Bası yarası bakımı ve evre takibi",
+   "meslek": "hemsire",
+   "sure_dk": 40,
+   "ucret_tl": 1000,
+   "hekim_plani": true
+  },
+  {
+   "kod": "sonda_bakimi",
+   "ad": "İdrar sondası takma / bakım",
+   "meslek": "hemsire",
+   "sure_dk": 30,
+   "ucret_tl": 900,
+   "hekim_plani": true
+  },
+  {
+   "kod": "beslenme_tupu_bakimi",
+   "ad": "Beslenme tüpü (NG / PEG) bakımı",
+   "meslek": "hemsire",
+   "sure_dk": 30,
+   "ucret_tl": 900,
+   "hekim_plani": true
+  },
+  {
+   "kod": "vital_takip",
+   "ad": "Tansiyon / şeker / oksijen ölçümü ve kayıt",
+   "meslek": "hemsire",
+   "sure_dk": 20,
+   "ucret_tl": 450,
+   "hekim_plani": true
+  },
+  {
+   "kod": "fizyoterapi_seansi",
+   "ad": "Evde fizyoterapi seansı",
+   "meslek": "fizyoterapist",
+   "sure_dk": 60,
+   "ucret_tl": 1500,
+   "hekim_plani": true
+  },
+  {
+   "kod": "solunum_fizyoterapisi",
+   "ad": "Solunum fizyoterapisi",
+   "meslek": "fizyoterapist",
+   "sure_dk": 45,
+   "ucret_tl": 1300,
+   "hekim_plani": true
+  },
+  {
+   "kod": "odyolojik_tarama",
+   "ad": "Evde işitme taraması",
+   "meslek": "odyolog",
+   "sure_dk": 45,
+   "ucret_tl": 1100,
+   "hekim_plani": true
+  },
+  {
+   "kod": "isitme_cihazi_ayar",
+   "ad": "İşitme cihazı ayarı ve bakımı",
+   "meslek": "odyolog",
+   "sure_dk": 40,
+   "ucret_tl": 900,
+   "hekim_plani": true
+  },
+  {
+   "kod": "beslenme_degerlendirme",
+   "ad": "Beslenme değerlendirmesi ve plan",
+   "meslek": "diyetisyen",
+   "sure_dk": 45,
+   "ucret_tl": 1000,
+   "hekim_plani": true
+  },
+  {
+   "kod": "yutma_degerlendirme",
+   "ad": "Yutma ve konuşma değerlendirmesi",
+   "meslek": "dil_konusma",
+   "sure_dk": 45,
+   "ucret_tl": 1300,
+   "hekim_plani": true
+  },
+  {
+   "kod": "ev_guvenligi_dusme",
+   "ad": "Ev güvenliği ve düşme riski düzenlemesi",
+   "meslek": "ergoterapist",
+   "sure_dk": 60,
+   "ucret_tl": 1200,
+   "hekim_plani": true
+  },
+  {
+   "kod": "psikolojik_destek",
+   "ad": "Psikolojik destek görüşmesi",
+   "meslek": "klinik_psikolog",
+   "sure_dk": 50,
+   "ucret_tl": 1500,
+   "hekim_plani": true
+  },
+  {
+   "kod": "ayak_bakimi",
+   "ad": "Ayak bakımı (diyabetik ayak dahil)",
+   "meslek": "podolog",
+   "sure_dk": 40,
+   "ucret_tl": 900,
+   "hekim_plani": true
+  }
+ ]
+}

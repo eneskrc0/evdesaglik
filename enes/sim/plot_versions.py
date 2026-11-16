@@ -17,7 +17,7 @@ WORLD = os.environ.get("DUNYA", "bornova")
 OLCEK = os.environ.get("OLCEK", "")
 TAG = f"{WORLD}_{OLCEK}" if OLCEK else WORLD
 RES = ROOT / "results" if TAG == "bornova" else ROOT / "results" / TAG
-VERSIONS = ["v1", "v2", "v3", "v4", "v5"] + (["v5+kota", "v5+kota+ayar"] if OLCEK == "orta" else [])
+VERSIONS = ["v1", "v2", "v3", "v4", "v5"] + (["v5+kota", "v5+kota+ayar"] if OLCEK == "orta" else ["v5+kota+ayar"] if OLCEK == "tam" else [])
 GREEN, BLUE, ORANGE = "#1baf7a", "#2a78d6", "#eb6834"
 
 # (sütun, başlık, birim, yüzde mi, yüksek mi iyi)
@@ -35,7 +35,7 @@ PANELS = [
 ]
 
 
-if OLCEK == "orta":  # kotanın etkisi görünsün: "ziyaret başına bildirim" yerine günlük en yüksek iş sayısı
+if OLCEK in ("orta", "tam"):  # kotanın etkisi görünsün: "ziyaret başına bildirim" yerine günlük en yüksek iş sayısı
     PANELS[5] = ("hemsire_gunluk_is_maks", "Bir hemşirenin günde aldığı en fazla iş", "adet", False, False)
 
 
@@ -67,7 +67,7 @@ def main():
         for sp in ["top", "right"]:
             ax.spines[sp].set_visible(False)
         ax.grid(axis="y", color="#eeeeee"); ax.set_axisbelow(True)
-    yer = "Bornova" if WORLD == "bornova" else ("Merkez İzmir, orta ölçek (80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün)" if OLCEK == "orta" else "Merkez İzmir (11 ilçe)")
+    yer = "Bornova" if WORLD == "bornova" else ("Merkez İzmir, orta ölçek (80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün)" if OLCEK == "orta" else "Merkez İzmir, 9 meslek (155 çalışan, 195 talep/gün)" if OLCEK == "tam" else "Merkez İzmir (11 ilçe)")
     fig.suptitle(f"{yer} — model sürümleri (yeşil) ve klasik yöntemler (mavi: en yakın, turuncu: en erken varış) · baz senaryo, 10 tohum",
                  fontsize=11, x=0.01, ha="left")
     fig.tight_layout(rect=(0, 0, 1, 0.95))

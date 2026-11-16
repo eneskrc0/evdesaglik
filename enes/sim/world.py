@@ -1,7 +1,9 @@
 """Sentetik çalışanlar, talepler ve senaryo parametreleri."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -13,6 +15,13 @@ SERVICES = {
     "doktor": ("doktor", 40, 1500.0),
     "fizyoterapi": ("fizyoterapist", 60, 1200.0),
 }
+# Tam meslek kataloğu (data/hizmet_katalogu.json, Efehan'ın kaynaklı listesi): izmir_tam dünyasında kullanılır
+_CAT = json.load(open(Path(__file__).resolve().parent.parent / "data" / "hizmet_katalogu.json", encoding="utf-8"))["hizmetler"]
+for _h in _CAT:
+    SERVICES.setdefault(_h["kod"], (_h["meslek"], int(_h["sure_dk"]), float(_h["ucret_tl"])))
+ROLE_NAMES = {"hemsire": "Hemşire", "doktor": "Doktor", "fizyoterapist": "Fizyoterapist", "dil_konusma": "Dil ve konuşma terapisti",
+              "klinik_psikolog": "Klinik psikolog", "diyetisyen": "Diyetisyen", "ergoterapist": "Ergoterapist",
+              "odyolog": "Odyolog", "podolog": "Podolog"}
 
 DAY_START = 8 * 60  # 08:00
 DAY_END = 20 * 60  # 20:00
@@ -20,8 +29,23 @@ DAY_END = 20 * 60  # 20:00
 
 # Dünya ölçeği: (hemşire, doktor, günlük talep, fizyoterapist). İzmir merkez 11 ilçe ≈ Bornova x 6,5 (nüfus oranı, varsayım).
 # izmir_orta: başlangıç dönemi için orta ölçek; talep çalışan sayısıyla orantılı (~1,25 talep/çalışan/gün, eski ölçeklerle aynı oran).
-SCALE = {"bornova": (40, 15, 70, 0), "izmir": (260, 100, 450, 0), "izmir_orta": (80, 25, 155, 20)}
+SCALE = {"bornova": (40, 15, 70, 0), "izmir": (260, 100, 450, 0), "izmir_orta": (80, 25, 155, 20), "izmir_tam": (80, 25, 195, 20)}
 _N, _D, _R, _F = SCALE[geo.WORLD_TAG]
+# izmir_tam: diğer meslekler (orta ölçek başlangıç ekibi, varsayım) ve hizmet karışımı.
+# Talep payı = meslek kadrosunun payı (her meslekte çalışan başına talep aynı); meslek içinde hizmetler eşit.
+EXTRA_STAFF = {"izmir_tam": (("klinik_psikolog", 8), ("dil_konusma", 6), ("diyetisyen", 6), ("ergoterapist", 4),
+                             ("odyolog", 3), ("podolog", 3))}.get(geo.WORLD_TAG, ())
+
+
+def _catalog_mix(staff):
+    tot = sum(staff.values())
+    by_role = {}
+    for h in _CAT:
+        by_role.setdefault(h["meslek"], []).append(h["kod"])
+    return tuple((k, staff[r] / tot / len(ks)) for r, ks in by_role.items() if r in staff for k in ks)
+
+
+SERVICE_MIX = _catalog_mix({"hemsire": _N, "doktor": _D, "fizyoterapist": _F, **dict(EXTRA_STAFF)}) if geo.WORLD_TAG == "izmir_tam" else ()
 # Hizmet karışımı (fizyoterapist varsa): pansuman / doktor / fizyoterapi
 MIX3 = (0.60, 0.25, 0.15)
 
@@ -33,6 +57,9 @@ class Scenario:
     n_doctors: int = _D
     requests_per_day: int = _R
     n_physio: int = _F
+    extra_staff: tuple = EXTRA_STAFF  # ((meslek, sayı), ...)
+    service_mix: tuple = SERVICE_MIX  # ((hizmet, ağırlık), ...); boşsa eski karışım
+    expand_search: bool = geo.WORLD_TAG == "izmir_tam"  # yakında 3'ten az aday varsa aramayı genişlet
     budget_share: float = 0.6  # bütçe belirten hasta oranı
     # Yanıt davranışı
     resp_alpha: float = 4.0  # çalışan taban yanıt olasılığı ~ Beta(alpha, beta)
@@ -117,6 +144,8 @@ class Worker:
 def make_workers(sc: Scenario, rng: np.random.Generator) -> list[Worker]:
     ws = []
     roles = ["hemsire"] * sc.n_nurses + ["doktor"] * sc.n_doctors + ["fizyoterapist"] * sc.n_physio
+    for role, k in sc.extra_staff:
+        roles += [role] * k
     for i, role in enumerate(roles):
         if sc.homogeneous:
             ws.append(Worker(i, role, geo.sample_point(rng), sc.resp_alpha / (sc.resp_alpha + sc.resp_beta),
@@ -149,7 +178,16 @@ def make_requests(sc: Scenario, rng: np.random.Generator) -> list[Request]:
     for i in range(sc.requests_per_day):
         t = rng.uniform(DAY_START - 30, 17 * 60)
         u = rng.random()
-        if sc.n_physio:
+        if sc.service_mix:
+            acc = 0.0
+            tot = sum(w for _, w in sc.service_mix)
+            service = sc.service_mix[-1][0]
+            for k, w in sc.service_mix:
+                acc += w / tot
+                if u < acc:
+                    service = k
+                    break
+        elif sc.n_physio:
             service = "pansuman" if u < MIX3[0] else "doktor" if u < MIX3[0] + MIX3[1] else "fizyoterapi"
         else:
             service = "pansuman" if u < 0.7 else "doktor"

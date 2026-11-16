@@ -117,3 +117,19 @@ python -m pytest -q tests
   (vc="auto": round(2,5 + 2 × beklenen talep/çalışan); engine.notify) 9 hücrenin ortalamasında v1'e göre −1,1 puan (sabit kota 5: −1,4),
   günlük en fazla işi 5,5–12,4'ten 4,0–6,9'a indiriyor. Yoğun-büyük hücrede kayıp en yüksek (−2,4).
 - Önerilen ürün kuralı: uyarlanır kota (sabit 5 yerine). Ayrılmış tohumlarla henüz doğrulanmadı.
+
+## İzmir tam meslek dünyası (2026-11-17) — güncel ana dünya
+- `DUNYA=izmir OLCEK=tam` → results/izmir_tam/. Havuz: pool_orta.npz (geo._POOL_TAG). 9 meslek, 155 çalışan: hemşire 80, doktor 25,
+  fizyoterapist 20, klinik psikolog 8, dil-konuşma 6, diyetisyen 6, ergoterapist 4, odyolog 3, podolog 3; 195 talep/gün.
+- Hizmetler: data/hizmet_katalogu.json (Efehan'ın kataloğundan 20 ev hizmeti; tele_muayene ve reçete hariç; ebe → hemşire, uzman hekim → doktor).
+  Talep payı = meslek kadro payı, meslek içinde hizmetler eşit (world.SERVICE_MIX). Ücret ve süreler katalogdan.
+- Genişleyen arama (world.Scenario.expand_search, yalnız izmir_tam): yakında 3'ten az aday varsa k-halkası 2 kat, sonra tüm şehir
+  (engine.candidates expand). Nadir mesleklerde eşleşmeyi büyütür (odyolog %9 → %41), yolu uzatır.
+- Yeni metrikler (tüm dünyalarda, eskiler değişmedi): calisan_* (tüm meslekler), uygun5_<meslek>; Offer.base (ücret geçmişi);
+  hemşire metrikleri artık hizmete değil mesleğe göre (eski dünyalarda aynı sonuç).
+- Sonuç (baz, geliştirme / ayrılmış), 5 dk uygun %: kural 55,9 / 53,7 · v1 76,6 / 74,2 · v5 76,0 / – · seçilen v5_ukota_ayarli
+  (kota bu ölçekte 5) 75,3 / 73,2. Ayrılmış: seçilen − kural +19,5 ± 1,0; seçilen − v1 −1,0 ± 0,4. Tüm çalışanlarda günlük en fazla iş
+  9,2 → 5,2, kazanç Gini 0,58 → 0,55, yol 15,6 → 15,1 dk.
+- Meslek bazında (ayrılmış): yapay zekâ kazancı hemşire +28, doktor +17, fizyoterapist +12, psikolog +7, dil-konuşma +7, diyetisyen +4,
+  ergoterapist +2, odyolog/podolog 0 (3 kişi: herkese bildirim gidiyor, seçim yok). Nadir mesleklerde sınır kadro.
+- Demo (izmir.html) bu dünyada: 20 hizmet (meslek gruplu liste), 9 meslek renkli, genişleyen arama; build.py katalogu /*CATALOG_JSON*/ ile gömer.
