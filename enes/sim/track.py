@@ -33,7 +33,7 @@ from .world import SCENARIOS
 
 ROOT = Path(__file__).resolve().parent.parent
 from . import geo
-RES = ROOT / "results" if geo.WORLD == "bornova" else ROOT / "results" / geo.WORLD
+RES = ROOT / "results" if geo.WORLD_TAG == "bornova" else ROOT / "results" / geo.WORLD_TAG
 RUNS = RES / "runs"
 BASE = RES / "baseline.json"
 SEEDS = {"dev": list(range(10)), "holdout": list(range(1000, 1010))}
@@ -72,7 +72,7 @@ def cmd_run(a):
     out.mkdir()
     df.to_csv(out / "tohum_sonuclari.csv", index=False)
     meta = {
-        "id": rid, "world": geo.WORLD, "versiyon": a.version, "name": a.name, "model": a.model, "note": a.note, "set": a.set,
+        "id": rid, "world": geo.WORLD_TAG, "versiyon": a.version, "name": a.name, "model": a.model, "note": a.note, "set": a.set,
         "date": dt.datetime.now().isoformat(timespec="minutes"),
         "protocol": {"hist_days": HIST_DAYS, "train_days": TRAIN_DAYS, "test_days": TEST_DAYS,
                      "seeds": SEEDS[a.set], "scenarios": list(SCENARIOS)},

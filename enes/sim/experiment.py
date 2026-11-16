@@ -201,9 +201,12 @@ def _extra_metrics(visits, waits, nurse_ids, n_days, n_acc):
 
 def _price_hist(hist, logs, workers):
     ratios = defaultdict(list)
+    # Her meslek tek hizmet verir: taban ücret çalışanın mesleğinden (eski dünyalarda sonuç aynı)
+    role_base = {role: base for role, _, base in SERVICES.values()}
+    wrole = {w.id: w.role for w in workers}
     for f, _, wid, off, _, _ in logs:
         if off is not None:
-            base = SERVICES["doktor" if f[-1] else "pansuman"][2]
+            base = role_base[wrole[wid]]
             ratios[wid].append(off.price / base)
     for w in workers:
         r = ratios.get(w.id)

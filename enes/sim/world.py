@@ -11,15 +11,19 @@ SERVICES = {
     # hizmet: (meslek, ziyaret süresi dk, temsili taban ücret TL)
     "pansuman": ("hemsire", 30, 600.0),
     "doktor": ("doktor", 40, 1500.0),
+    "fizyoterapi": ("fizyoterapist", 60, 1200.0),
 }
 
 DAY_START = 8 * 60  # 08:00
 DAY_END = 20 * 60  # 20:00
 
 
-# Dünya ölçeği: (hemşire, doktor, günlük talep). İzmir merkez 11 ilçe ≈ Bornova x 6,5 (nüfus oranı, varsayım).
-SCALE = {"bornova": (40, 15, 70), "izmir": (260, 100, 450)}
-_N, _D, _R = SCALE[geo.WORLD]
+# Dünya ölçeği: (hemşire, doktor, günlük talep, fizyoterapist). İzmir merkez 11 ilçe ≈ Bornova x 6,5 (nüfus oranı, varsayım).
+# izmir_orta: başlangıç dönemi için orta ölçek; talep çalışan sayısıyla orantılı (~1,25 talep/çalışan/gün, eski ölçeklerle aynı oran).
+SCALE = {"bornova": (40, 15, 70, 0), "izmir": (260, 100, 450, 0), "izmir_orta": (80, 25, 155, 20)}
+_N, _D, _R, _F = SCALE[geo.WORLD_TAG]
+# Hizmet karışımı (fizyoterapist varsa): pansuman / doktor / fizyoterapi
+MIX3 = (0.60, 0.25, 0.15)
 
 
 @dataclass
@@ -28,6 +32,7 @@ class Scenario:
     n_nurses: int = _N
     n_doctors: int = _D
     requests_per_day: int = _R
+    n_physio: int = _F
     budget_share: float = 0.6  # bütçe belirten hasta oranı
     # Yanıt davranışı
     resp_alpha: float = 4.0  # çalışan taban yanıt olasılığı ~ Beta(alpha, beta)
@@ -111,7 +116,7 @@ class Worker:
 
 def make_workers(sc: Scenario, rng: np.random.Generator) -> list[Worker]:
     ws = []
-    roles = ["hemsire"] * sc.n_nurses + ["doktor"] * sc.n_doctors
+    roles = ["hemsire"] * sc.n_nurses + ["doktor"] * sc.n_doctors + ["fizyoterapist"] * sc.n_physio
     for i, role in enumerate(roles):
         if sc.homogeneous:
             ws.append(Worker(i, role, geo.sample_point(rng), sc.resp_alpha / (sc.resp_alpha + sc.resp_beta),
@@ -143,7 +148,11 @@ def make_requests(sc: Scenario, rng: np.random.Generator) -> list[Request]:
     reqs = []
     for i in range(sc.requests_per_day):
         t = rng.uniform(DAY_START - 30, 17 * 60)
-        service = "pansuman" if rng.random() < 0.7 else "doktor"
+        u = rng.random()
+        if sc.n_physio:
+            service = "pansuman" if u < MIX3[0] else "doktor" if u < MIX3[0] + MIX3[1] else "fizyoterapi"
+        else:
+            service = "pansuman" if u < 0.7 else "doktor"
         ws = t + rng.uniform(30, 180)
         _, _, base = SERVICES[service]
         budget = float(round(base * rng.uniform(0.85, 1.15), -1)) if rng.random() < sc.budget_share else None

@@ -30,7 +30,8 @@ button.btn.sm{padding:5px 9px;font-size:12px}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{flex:1;padding:7px 4px;border:0;background:none;color:var(--ink2);font:inherit;font-size:12px;cursor:pointer}
 .seg button.on{background:var(--accent);color:#fff}
-#map{width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:manipulation;cursor:crosshair}
+#map line,#map polyline,#map path,#map polygon,#map circle,#map rect{vector-effect:non-scaling-stroke}
+#map{transition:none;width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:manipulation;cursor:crosshair}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink2);margin-top:6px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 .clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px}
@@ -83,10 +84,13 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
      <div>Saat: <span class="clock" id="clock">10:00</span></div>
      <div class="seg" id="speedSeg" style="flex:1.4"><button data-s="0">Durdur</button><button data-s="1" class="on">1 dk/sn</button><button data-s="4">4 dk/sn</button></div>
    </div>
+   <div class="seg" id="viewSeg" style="margin-bottom:4px"><button data-v="genel" class="on">Genel (yönetici)</button><button data-v="hasta">Hasta gözüyle</button><button data-v="calisan">Çalışan gözüyle</button></div>
+   <div class="tiny" id="viewNote" style="min-height:2.4em;margin-bottom:4px">Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.</div>
    <svg id="map" viewBox="0 0 600 470"></svg>
    <div class="legend">
      <span><i class="dot" style="background:var(--aqua)"></i>Hemşire</span>
      <span><i class="dot" style="background:var(--blue)"></i>Doktor</span>
+     <span><i class="dot" style="background:#8b5cf6"></i>Fizyoterapist</span>
      <span><i class="dot" style="background:var(--busy)"></i>Ziyarette</span>
      <span><i class="dot" style="background:var(--orange)"></i>Hasta</span>
      <label style="display:inline;margin:0;color:var(--ink2)"><input type="checkbox" id="hospToggle" checked style="width:auto;vertical-align:-2px"> Hastaneler</label>
@@ -104,7 +108,7 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
     <h2>🧑 Hasta ekranı</h2>
     <div id="patientForm">
      <div class="row">
-      <div><label>Hizmet</label><select id="fService"><option value="pansuman">Planlı pansuman (hemşire)</option><option value="doktor">Planlı doktor ziyareti</option></select></div>
+      <div><label>Hizmet</label><select id="fService"><option value="pansuman">Planlı pansuman (hemşire)</option><option value="doktor">Planlı doktor ziyareti</option><option value="fizyoterapi">Evde fizyoterapi (fizyoterapist)</option></select></div>
       <div><label>Zaman aralığı (60 dk)</label><select id="fWindow"></select></div>
      </div>
      <div class="row">
@@ -261,11 +265,11 @@ function nearCells(c){let s=diskCache.get(c);if(s)return s;
  diskCache.set(c,s);return s;}
 
 /* ======================= WORLD ======================= */
-const SERVICES={pansuman:{role:"hemsire",dur:30,base:600,label:"Planlı pansuman"},doktor:{role:"doktor",dur:40,base:1500,label:"Planlı doktor ziyareti"}};
+const SERVICES={pansuman:{role:"hemsire",dur:30,base:600,label:"Planlı pansuman"},doktor:{role:"doktor",dur:40,base:1500,label:"Planlı doktor ziyareti"},fizyoterapi:{role:"fizyoterapist",dur:60,base:1200,label:"Evde fizyoterapi"}};
 const DAY_START=480,DAY_END=1200;
 const BASE_SC={name:"baz",nNurses:40,nDoctors:15,reqPerDay:70,budgetShare:0.6,respA:4,respB:3,peakSensShare:0.4,peakFactor:0.45,
  longDelayShare:0.4,shortDelay:[0.3,3],longDelay:[3,12],priceSd:0.12,homogeneous:false,travelNoiseSd:0.15,overrunSd:6,lateShare:0.25,notifyK:3,fairness:0};
-if(WORLD==="izmir")Object.assign(BASE_SC,{nNurses:260,nDoctors:100,reqPerDay:450});
+if(WORLD==="izmir")Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:155}); // izmir_orta (Python: OLCEK=orta)
 const SCENARIOS={baz:{},homojen:{homogeneous:true},yuksek_degiskenlik:{respA:2,respB:2,peakSensShare:0.6,longDelayShare:0.55,priceSd:0.2},belirsiz_yol:{travelNoiseSd:0.35,overrunSd:12}};
 const clip=(x,a,b)=>Math.max(a,Math.min(b,x));
 
@@ -284,11 +288,11 @@ class Worker{
      if(b===null)return null;curT=b.e;curLoc=b.p;}
    return null;}
 }
-function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor")];
+function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor"),...Array(sc.nPhysio||0).fill("fizyoterapist")];
  roles.forEach((role,i)=>{if(sc.homogeneous){ws.push(new Worker({id:i,role,home:samplePoint(r),respP:sc.respA/(sc.respA+sc.respB),peakSens:false,longDelay:false,priceMult:1,oftenLate:false}));return;}
   ws.push(new Worker({id:i,role,home:samplePoint(r),respP:r.beta(sc.respA,sc.respB),peakSens:r.random()<sc.peakSensShare,longDelay:r.random()<sc.longDelayShare,
    priceMult:clip(r.normal(1,sc.priceSd),0.7,1.5),oftenLate:r.random()<sc.lateShare}));});return ws;}
-function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const service=r.random()<0.7?"pansuman":"doktor";
+function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const u=r.random();const service=sc.nPhysio?(u<0.6?"pansuman":u<0.85?"doktor":"fizyoterapi"):(u<0.7?"pansuman":"doktor");
  const ws=t+r.uniform(30,180);const base=SERVICES[service].base;const budget=r.random()<sc.budgetShare?Math.round(base*r.uniform(0.85,1.15)/10)*10:null;
  out.push({id:i,t,loc:samplePoint(r),service,ws,we:ws+60,budget});}out.sort((a,b)=>a.t-b.t);return out;}
 
@@ -440,7 +444,7 @@ function initDemo(){
   if(POOL){let best=null,bd=1e9;for(const p of POOL){const d=haversine(p,ll);if(d<bd){bd=d;best=p;}}if(bd>((ROADS&&ROADS.labels)?2.0:0.7)){$("locHint").textContent="Bu nokta hizmet alanı dışında, daha içeriden seçin";return;}ll=best;}else if(!inPoly(ll[0],ll[1]))return;
   D.loc=ll;showNearestHospital(ll);showNearEta(ll);$("locHint").textContent="Konum seçildi ✓";$("btnRequest").disabled=false;drawPatient();});
  // çalışan seçici
- const sel=$("wSelect");D.workers.forEach(w=>{const o=document.createElement("option");o.value=w.id;o.textContent=(w.role==="hemsire"?"Hemşire":"Doktor")+" #"+w.id;sel.appendChild(o);});
+ const sel=$("wSelect");D.workers.forEach(w=>{const o=document.createElement("option");o.value=w.id;o.textContent=(roleNameV(w.role))+" #"+w.id;sel.appendChild(o);});
  D.controlled=0;sel.value=0;sel.onchange=()=>{D.controlled=+sel.value;D.inbox=null;renderWorker();drawWorkers();};
  fillWindows();$("loadPill").textContent="hazır";$("loadPill").className="pill ok";
  drawWorkers();renderWorker();setInterval(tick,100);
@@ -450,19 +454,19 @@ function fillWindows(){const s=$("fWindow");const cur=s.value;s.innerHTML="";con
  if(cur&&[...s.options].some(o=>o.value===cur))s.value=cur;}
 $("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.speed=+b.dataset.s;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",x===b));};
 
-function drawWorkers(){const g=D.gWorkers;g.innerHTML="";
+function drawWorkers(){if(D.view&&D.view!=="genel"){drawViewLayer();drawPatient();return;}const g=D.gWorkers;g.innerHTML="";
  for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=w.posFree(D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
-  const col=pf.inVisit?"var(--busy)":(w.role==="hemsire"?"var(--aqua)":"var(--blue)");
+  const col=pf.inVisit?"var(--busy)":roleColorV(w.role);
   if(notified)el("circle",{cx:x,cy:y,r:11,fill:"none",stroke:"var(--orange)","stroke-width":2},g);
   if(w.id===D.controlled)el("circle",{cx:x,cy:y,r:8.5,fill:"none",stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"2 2"},g);
   const c=el("circle",{cx:x,cy:y,r:5.5,fill:col,stroke:"var(--card)","stroke-width":2},g);
-  c.addEventListener("mousemove",e=>showTip(e,`<b>${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
+  c.addEventListener("mousemove",e=>showTip(e,`<b>${roleNameV(w.role)} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
   c.addEventListener("click",e=>{$("wSelect").value=w.id;D.controlled=w.id;renderWorker();drawWorkers();});}
  const gl=D.gLines;gl.innerHTML="";if(D.req&&!D.booked){for(const id of D.notified){const w=D.workers[id];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);
    el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--orange)","stroke-width":1.2,"stroke-dasharray":"4 3",opacity:.8},gl);}}
  if(D.booked&&!D.track){const w=D.workers[D.booked.worker];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--aqua)","stroke-width":2.2},gl);}}
-function drawPatient(){const g=D.gPatient;g.innerHTML="";const loc=D.req?D.req.loc:D.loc;if(!loc)return;const[x,y]=proj(loc);
- el("path",{d:`M${x},${y} l-7,-14 a8,8 0 1 1 14,0 z`,fill:"var(--orange)",stroke:"var(--card)","stroke-width":1.5},g);}
+function drawPatient(){const g=D.gPatient;g.innerHTML="";const loc=D.req?D.req.loc:D.loc;if(!loc)return;if(D.view==="calisan"&&!(D.booked&&D.booked.worker===D.controlled))return;const[x,y]=proj(loc);
+ const gg=el("g",{transform:`translate(${x},${y}) scale(${zz()})`},g);el("path",{d:"M0,0 l-7,-14 a8,8 0 1 1 14,0 z",fill:"var(--orange)",stroke:"var(--card)","stroke-width":1.5},gg);}
 function highlightCells(on){if(ROADS){D.gHex.innerHTML="";if(!on||!HAS_H3)return;
   for(const c of nearCells(cellOf(D.req.loc))){const pts=h3.cellToBoundary(c).map(p=>proj(p).join(",")).join(" ");el("polygon",{points:pts,fill:"color-mix(in srgb, var(--orange) 5%, transparent)",stroke:"color-mix(in srgb, var(--orange) 25%, transparent)","stroke-width":0.6},D.gHex);}return;}
  if(!D.allCells)return;const near=on?nearCells(cellOf(D.req.loc)):null;
@@ -494,21 +498,21 @@ function sendRound(){D.round++;const c=candidates(D.workers,D.req,D.clock,D.noti
 function renderRank(n){$("rankBox").classList.remove("hide");const names={model5:"Yapay zekâ v5 (olasılık + adalet + mesafe)",model:"Yapay zekâ v1 (model olasılığına göre)",en_erken:"En erken varışa göre",en_yakin:"Uzaklığa göre"};
  $("rankTitle").innerHTML=`${n} aday bulundu · Sıralama: <b>${names[D.policy]}</b> · Tur ${D.round}`;
  const rows=[...D.ranked].sort((a,b)=>(a.sent||9)-(b.sent||9)).slice(0,8);
- $("rankBody").innerHTML=rows.map((r,i)=>`<tr class="${r.sent?"sent":""}"><td>${i+1}</td><td>${r.role==="hemsire"?"Hemşire":"Doktor"} #${r.id}</td><td>${r.dist.toFixed(1).replace(".",",")} km</td><td>${fmtT(r.expArr)}</td><td>${(r.p*100).toFixed(0)}%</td><td>${r.sent?`<span class="pill warn">bildirim ${r.sent}. tur</span>`:""}</td></tr>`).join("");}
+ $("rankBody").innerHTML=rows.map((r,i)=>`<tr class="${r.sent?"sent":""}"><td>${i+1}</td><td>${roleNameV(r.role)} #${r.id}</td><td>${r.dist.toFixed(1).replace(".",",")} km</td><td>${fmtT(r.expArr)}</td><td>${(r.p*100).toFixed(0)}%</td><td>${r.sent?`<span class="pill warn">bildirim ${r.sent}. tur</span>`:""}</td></tr>`).join("");}
 
 function renderPatient(){if(!D.req)return;const req=D.req;const el_=$("offerList");
  const elapsed=D.clock-req.t;
  if(D.booked){$("reqStatus").textContent="";}
  else $("reqStatus").innerHTML=`Talep açılışı ${fmtT(req.t)} · ${elapsed.toFixed(1).replace(".",",")} dk geçti · ${D.notified.size} kişiye bildirim gitti`+(D.round>=2?" (2. tur)":"");
  el_.innerHTML=D.offers.map((o,i)=>{const w=D.workers[o.worker];const tag=o.fits?'<span class="pill ok">koşullara uygun</span>':(o.arrival>req.we?'<span class="pill warn">aralık dışında</span>':'<span class="pill warn">bütçe üstü</span>');
-  return`<div class="item"><div><div><b>${fmtTL(o.price)}</b> · varış <b>${fmtT(o.arrival)}</b></div><div class="tiny">${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id} · ${(o.t-req.t).toFixed(1).replace(".",",")} dk içinde yanıtladı ${tag}</div></div>
+  return`<div class="item"><div><div><b>${fmtTL(o.price)}</b> · varış <b>${fmtT(o.arrival)}</b></div><div class="tiny">${roleNameV(w.role)} #${w.id} · ${(o.t-req.t).toFixed(1).replace(".",",")} dk içinde yanıtladı ${tag}</div></div>
   ${D.booked?(D.booked===o?'<span class="pill ok">seçildi</span>':""):`<button class="btn sm" data-i="${i}">Kabul et</button>`}</div>`;}).join("")||'<div class="tiny">Teklif bekleniyor…</div>';
  el_.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>accept(D.offers[+b.dataset.i]));}
 function accept(o){const S=SERVICES[D.req.service];const w=D.workers[o.worker];const ea=w.earliest(D.clock,D.req.loc,S.dur,D.req.ws);
  if(!ea||ea.arr>o.arrival+5){$("patientBanner").innerHTML='<div class="banner warn">Bu teklif artık geçerli değil: çalışanın takvimi değişmiş (atomik kontrol). Başka bir teklif seçin.</div>';return;}
  const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-travelMin(ea.from,D.req.loc,ea.depart),e:planned+S.dur,p:D.req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
  D.booked=o;D.pending=[];if(D.inbox&&D.inbox.c.w.id!==o.worker)D.inbox.closed=true;
- $("patientBanner").innerHTML=`<div class="banner"><b>Ziyaret kesinleşti.</b> ${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}, saat ${fmtT(planned)} itibarıyla gelecek · ${fmtTL(o.price)}. Açık adresiniz yalnızca bu çalışanla paylaşıldı. Çalışanın takvimine ${fmtT(planned-travelMin(ea.from,D.req.loc,ea.depart))}–${fmtT(planned+S.dur)} arası işlendi.</div>`;
+ $("patientBanner").innerHTML=`<div class="banner"><b>Ziyaret kesinleşti.</b> ${roleNameV(w.role)} #${w.id}, saat ${fmtT(planned)} itibarıyla gelecek · ${fmtTL(o.price)}. Açık adresiniz yalnızca bu çalışanla paylaşıldı. Çalışanın takvimine ${fmtT(planned-travelMin(ea.from,D.req.loc,ea.depart))}–${fmtT(planned+S.dur)} arası işlendi.</div>`;
  startTracking(w,ea,planned,S);highlightCells(false);renderPatient();renderWorker();drawWorkers();}
 
 // ---------- Canlı takip: gerçek yol ağında rota + konum + tahmini varış ----------
@@ -532,7 +536,7 @@ function makeRoute(a,b){if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();
  return{pts:[a.slice(0,2),b.slice(0,2)],cum:[0,sec],km:[0,haversine(a,b)*DETOUR],total:sec};}
 function startTracking(w,ea,planned,S){const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-3);// dk
  const depart=planned-travelMin(ea.from,D.req.loc,ea.depart);
- D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(w.role==="hemsire"?"Hemşire":"Doktor")+" #"+w.id,lastStep:-1};
+ D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(roleNameV(w.role))+" #"+w.id,lastStep:-1};
  if(!D.gTrack){D.gTrack=el("g",{},$("map"));$("map").insertBefore(D.gTrack,D.gPatient);}
  updateTracking(true);}
 function trackState(){const T=D.track,t=D.clock,r=T.r;
@@ -549,8 +553,8 @@ function updateTracking(force){const T=D.track;if(!T)return;const s=trackState()
  if(s.step<3){if(done.length>1)el("polyline",{points:done.map(p=>p.join(",")).join(" "),fill:"none",stroke:"var(--ink3)","stroke-width":2.5,opacity:.45,"stroke-linecap":"round"},g);
   el("polyline",{points:left.map(p=>p.join(",")).join(" "),fill:"none",stroke:"var(--aqua)","stroke-width":3.5,"stroke-linecap":"round","stroke-linejoin":"round"},g);}
  const[x,y]=proj(s.pos);const pulse=(performance.now()/600)%1;
- if(s.step===1||s.step===2)el("circle",{cx:x,cy:y,r:7+10*pulse,fill:"none",stroke:"var(--aqua)","stroke-width":2,opacity:1-pulse},g);
- el("circle",{cx:x,cy:y,r:7,fill:"var(--aqua)",stroke:"var(--card)","stroke-width":2.5},g);
+ if(s.step===1||s.step===2)el("circle",{cx:x,cy:y,r:(7+10*pulse)*zz(),fill:"none",stroke:"var(--aqua)","stroke-width":2,opacity:1-pulse},g);
+ el("circle",{cx:x,cy:y,r:7*zz(),fill:"var(--aqua)",stroke:"var(--card)","stroke-width":2.5},g);
  // kart
  const rem=s.step<=2?Math.max(0,T.arrive-D.clock):0;
  const band=s.step<=2?Math.max(1,1.645*SC_DEMO.travelNoiseSd*(s.step===0?T.drive:(1-s.f)*T.drive)):0; // ~%90 aralık
@@ -565,7 +569,7 @@ function updateTracking(force){const T=D.track;if(!T)return;const s=trackState()
  if(s.step!==T.lastStep){T.lastStep=s.step;drawWorkers();renderWorker();}}
 function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.posFree(D.clock);
  const trk=(D.track&&D.track.wid===w.id)?trackState():null;const trTxt=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trk.step]+(trk.step<=2?` · varış ${fmtT(D.track.arrive)}`:""):null;
- $("wStatus").innerHTML=`<b>${w.role==="hemsire"?"Hemşire":"Doktor"} #${w.id}</b> · ${trTxt?trTxt:pf.inVisit?`Ziyarette (bitiş ${fmtT(pf.free)})`:"Müsait"} · <span class="tiny">Haritada kesikli halkayla gösterilir</span>`;
+ $("wStatus").innerHTML=`<b>${roleNameV(w.role)} #${w.id}</b> · ${trTxt?trTxt:pf.inVisit?`Ziyarette (bitiş ${fmtT(pf.free)})`:"Müsait"} · <span class="tiny">Haritada kesikli halkayla gösterilir</span>`;
  $("wCal").innerHTML=w.blocks.map(b=>`<div class="item"><span>${fmtT(b.s)}–${fmtT(b.e)}</span><span class="tiny">${b.plat?"Platform ziyareti (yol dahil)":"Mevcut ziyaret"}</span></div>`).join("")||'<div class="tiny">Kayıt yok</div>';
  const box=$("wInbox");const ib=D.inbox;
  if(!ib||ib.c.w.id!==w.id){box.innerHTML='<div class="tiny" style="margin-top:8px">Yeni talep yok. Hasta ekranından talep açtığınızda bu çalışan ilk sıralarda seçilirse bildirim burada görünür. Haritadaki bir noktaya dokunarak çalışan değiştirebilirsiniz.</div>';return;}
@@ -583,6 +587,61 @@ function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.
   D.offers.push({worker:w.id,t:D.clock,arrival:arr,price,fits});D.wOffered=true;renderWorker();renderPatient();};
  $("wDecline").onclick=()=>{D.declined=true;renderWorker();};}
 
+// ---------- Harita görünümleri: Genel (yönetici) · Hasta gözüyle · Çalışan gözüyle ----------
+// Hasta: yalnızca yakınındaki müsait çalışanlar (yaklaşık konum, kimliksiz); kabulden sonra yalnızca kendi çalışanı ve rotası.
+// Çalışan: kendi konumu, bugünkü durakları ve rotası; gelen talep kabulden önce yalnızca bölge (H3 hücresi) olarak.
+const VIEW_NOTE={genel:"Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.",
+ hasta:"Hastanın telefonunda gördüğü: yakınındaki müsait çalışanlar yaklaşık konumla ve kimliksiz. Teklif kabul edilince yalnızca gelen çalışan ve rotası.",
+ calisan:"Seçili çalışanın telefonunda gördüğü: kendi konumu, bugünkü durakları ve rotası. Gelen talebin açık adresi kabulden önce gizli, yalnızca bölgesi görünür."};
+function zz(){return D.z||1;}
+function kmUnit(loc){const a=proj(loc),b=proj([loc[0]+0.009,loc[1]]);return Math.abs(b[1]-a[1])||1;}
+function setViewBox(pts,minKm){const m=$("map");if(!pts.length){m.setAttribute("viewBox","0 0 600 470");D.z=1;return;}
+ const P=pts.map(proj);let x0=Math.min(...P.map(p=>p[0])),x1=Math.max(...P.map(p=>p[0])),y0=Math.min(...P.map(p=>p[1])),y1=Math.max(...P.map(p=>p[1]));
+ const u=kmUnit(pts[0])*minKm,cx=(x0+x1)/2,cy=(y0+y1)/2;let w=Math.max(x1-x0+u*0.8,2*u*600/470),h=Math.max(y1-y0+u*0.8,2*u);
+ if(w/h>600/470)h=w*470/600;else w=h*600/470;if(w>600){w=600;h=470;}
+ const vx=Math.min(Math.max(cx-w/2,0),600-w),vy=Math.min(Math.max(cy-h/2,0),470-h);
+ m.setAttribute("viewBox",`${vx.toFixed(1)} ${vy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);D.z=w/600;
+ if(D.gHosp)D.gHosp.querySelectorAll("g[data-x]").forEach(g=>g.setAttribute("transform",`translate(${g.dataset.x},${g.dataset.y}) scale(${D.z})`));}
+function jitter(loc,id){const h=(id*2654435761)>>>0,a=(h%360)*Math.PI/180,r=0.0012+((h>>>9)%100)/100*0.0014;return[loc[0]+r*Math.sin(a),loc[1]+r*Math.cos(a)/0.78];}
+function cachedRoute(a,b){D.rc=D.rc||{};const k=(a[2]??a.join())+"-"+(b[2]??b.join());return D.rc[k]||(D.rc[k]=makeRoute(a,b));}
+function setView(v){hideTip();D.view=v;[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
+ D.gHex.style.display=v==="genel"?"":"none";D.gLines.style.display=v==="genel"?"":"none";
+ if(D.gHosp)D.gHosp.style.display=(v==="calisan"||!$("hospToggle").checked)?"none":"";
+ if(v==="genel")setViewBox([],0);drawWorkers();drawPatient();if(D.track)updateTracking(true);}
+function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
+ if(D.view==="hasta"){const me=D.req?D.req.loc:D.loc;
+  if(D.track){setViewBox([...D.track.r.pts,me],1.5);if(D.gTrack)D.gTrack.style.display="";$("viewNote").textContent="Size gelen çalışan ve rotası. Diğer çalışanlar gizli.";return;}
+  if(!me){setViewBox([],0);$("viewNote").textContent="Önce haritadan konumunuzu seçin; yakınınızdaki müsait çalışanlar görünür.";
+   return;}
+  setViewBox([me],3.2);const near={};
+  for(const w of D.workers){const pf=w.posFree(D.clock);if(pf.inVisit||haversine(pf.loc,me)>5)continue;near[w.role]=(near[w.role]||0)+1;
+   const[x,y]=proj(jitter(pf.loc,w.id));const c=el("circle",{cx:x,cy:y,r:5*z,fill:roleColorV(w.role),opacity:.75,stroke:"var(--card)","stroke-width":1.5},g);
+   c.addEventListener("mousemove",e=>showTip(e,`Müsait ${roleNameV(w.role).toLowerCase()}<br><span class="tiny">yaklaşık konum · kimlik kabulden sonra</span>`));c.addEventListener("mouseleave",hideTip);}
+  const txt=Object.entries(near).map(([r,n])=>`${n} ${roleNameV(r).toLowerCase()}`).join(", ");
+  $("viewNote").textContent=(txt?`Yakınınızda (5 km) şu an müsait: ${txt}.`:"5 km içinde şu an müsait çalışan yok; teklifler daha uzaktan gelebilir.")+(D.req&&!D.booked?" Teklif bekleniyor.":"");return;}
+ // çalışan gözüyle
+ const w=D.workers[D.controlled];if(!w)return;const pf=w.posFree(D.clock);const pts=[pf.loc];
+ const bl=[...w.blocks].sort((a,b)=>a.s-b.s);let prev=null;
+ bl.forEach((b,i)=>{if(!prev){prev=b.p;pts.push(b.p);return;}const r=cachedRoute(prev,b.p);const P=r.pts.map(p=>proj(p).join(",")).join(" ");const done=b.e<=D.clock;
+  el("polyline",{points:P,fill:"none",stroke:done?"var(--ink3)":"var(--blue)","stroke-width":2.5,opacity:done?.35:.75,"stroke-dasharray":done?"":"6 4"},g);prev=b.p;pts.push(b.p);});
+ bl.forEach((b,i)=>{const[x,y]=proj(b.p),done=b.e<=D.clock,now=b.s<=D.clock&&D.clock<b.e;
+  el("circle",{cx:x,cy:y,r:8*z,fill:done?"var(--ink3)":now?"var(--busy)":"var(--card)",stroke:"var(--blue)","stroke-width":2},g);
+  const t=el("text",{x,y:y+3.2*z,"text-anchor":"middle","font-size":9*z,"font-weight":700,fill:done?"var(--card)":"var(--ink)"},g);t.textContent=i+1;
+  const lb=el("text",{x:x+11*z,y:y+3*z,"font-size":8.5*z,fill:"var(--ink2)"},g);lb.textContent=fmtT(b.s+0)+(b.plat?" · platform":"");});
+ if(D.inbox&&!D.booked&&D.req){const loc=D.req.loc;pts.push(loc);
+  if(HAS_H3){const poly=h3.cellToBoundary(cellOf(loc)).map(p=>proj(p).join(",")).join(" ");el("polygon",{points:poly,fill:"color-mix(in srgb,var(--orange) 22%,transparent)",stroke:"var(--orange)","stroke-width":2},g);}
+  else{const[x,y]=proj(loc);el("circle",{cx:x,cy:y,r:kmUnit(loc)*0.6,fill:"color-mix(in srgb,var(--orange) 22%,transparent)",stroke:"var(--orange)","stroke-width":2},g);}
+  const[x,y]=proj(loc),tm=Math.round(travelMin(pf.loc,loc,D.clock));const t=el("text",{x,y:y-12*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--orange)"},g);t.textContent=`Yeni talep · ~${tm} dk`;}
+ const mine=D.booked&&D.booked.worker===w.id;if(mine)pts.push(D.req.loc);
+ if(D.gTrack)D.gTrack.style.display=D.track&&D.track.wid===w.id?"":"none";
+ if(!(D.track&&D.track.wid===w.id)){const[x,y]=proj(pf.loc);el("circle",{cx:x,cy:y,r:9*z,fill:roleColorV(w.role),stroke:"var(--card)","stroke-width":3},g);
+  const t=el("text",{x,y:y-13*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent="Siz";}
+ setViewBox(pts,1.6);
+ const nxt=bl.find(b=>b.s>D.clock);$("viewNote").textContent=`${roleNameV(w.role)} #${w.id} · bugün ${bl.length} durak${nxt?` · sıradaki ${fmtT(nxt.s)}`:""}${D.inbox&&!D.booked?" · yeni talep var (açık adres kabulden sonra)":""}${mine?" · kabul ettiğiniz ziyaret haritada":""}`;}
+const roleNameV=r=>(typeof roleName==="function")?roleName(r):({hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapist"}[r]||r);
+const roleColorV=r=>(typeof roleColor==="function")?roleColor(r):(r==="hemsire"?"var(--aqua)":r==="doktor"?"var(--blue)":"#8b5cf6");
+
+$("viewSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;setView(b.dataset.v);};
 let lastDraw=0;
 function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.clock+dt,DAY_END-60);}
  $("clock").textContent=fmtT(D.clock);
@@ -649,21 +708,21 @@ const HNAME={devlet:"Devlet",belediye:"Belediye",devlet_uni:"Devlet üniversites
 function hospList(){if(!HOSP||!POOL)return[];return HOSP.filter(h=>WORLD==="izmir"?h.pi!=null:h.pb!=null).map(h=>({...h,idx:WORLD==="izmir"?h.pi:h.pb}));}
 function drawHospitals(map){const L=hospList();if(!L.length)return;const g=el("g",{},map);D.gHosp=g;
  for(const h of L){const[x,y]=proj([h.lat,h.lon]);const sz=h.tur==="ozel_tm"?7:9;const c=HCOL[h.tur];
-  const grp=el("g",{transform:`translate(${x},${y})`,style:"cursor:pointer"},g);
+  const grp=el("g",{transform:`translate(${x},${y})`,style:"cursor:pointer","data-x":x,"data-y":y},g);
   el("rect",{x:-sz/2,y:-sz/2,width:sz,height:sz,rx:2,fill:c,stroke:"var(--card)","stroke-width":1.2},grp);
   el("path",{d:`M${-sz*0.28},0H${sz*0.28}M0,${-sz*0.28}V${sz*0.28}`,stroke:"#fff","stroke-width":1.5},grp);
   const tipH=`<b>${h.ad}</b><br>${h.turAd} · ${h.ilce}${h.acil?"<br>Acil servis var (OSM)":""}`;
   grp.addEventListener("mousemove",e=>showTip(e,tipH));grp.addEventListener("mouseleave",hideTip);
   grp.addEventListener("click",e=>{e.stopPropagation();showTip(e,tipH);setTimeout(hideTip,2500);});}
  const used=[...new Set(L.map(h=>h.tur))];$("hospLegend").innerHTML=used.map(t=>`<span style="margin-right:8px"><i class="dot" style="background:${HCOL[t]};border-radius:2px"></i>${HNAME[t]}</span>`).join("");
- $("hospToggle").onchange=()=>{g.style.display=$("hospToggle").checked?"":"none";};}
+ $("hospToggle").onchange=()=>{g.style.display=($("hospToggle").checked&&D.view!=="calisan")?"":"none";};}
 function nearestHospital(loc,filter){const L=hospList().filter(filter);if(!L.length||!TT||loc.length<3)return null;let best=null,bt=1e9;
  for(const h of L){const t=travelMin(loc,POOL[h.idx],D?D.clock:600);if(t<bt){bt=t;best=h;}}return best?{h:best,t:bt}:null;}
 function showNearEta(ll){const box=$("etaNear");if(!box)return;const out={};
- for(const role of["hemsire","doktor"]){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
+ for(const role of["hemsire","doktor","fizyoterapist"]){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
   arr.sort((a,b)=>a-b);out[role]=arr.length?{best:arr[0],avg3:arr.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,arr.length)}:null;}
  const f=o=>o?`en erken <b>~${Math.round(o.best)} dk</b> (en yakın 3 kişi ortalaması ~${Math.round(o.avg3)} dk)`:"—";
- box.innerHTML=`<div class="tiny" style="margin-top:6px">🚗 Bu konuma şu an: hemşire ${f(out.hemsire)} · doktor ${f(out.doktor)}. Gerçek varış, gelen tekliflerde yazar.</div>`;}
+ box.innerHTML=`<div class="tiny" style="margin-top:6px">🚗 Bu konuma şu an: hemşire ${f(out.hemsire)} · doktor ${f(out.doktor)} · fizyoterapist ${f(out.fizyoterapist)}. Gerçek varış, gelen tekliflerde yazar.</div>`;}
 function showNearestHospital(loc){const box=$("hospNear");if(!box)return;const a=nearestHospital(loc,h=>h.tur!=="ozel_tm");const k=nearestHospital(loc,h=>["devlet","belediye","devlet_uni"].includes(h.tur));
  if(!a){box.innerHTML="";return;}
  box.innerHTML=`<div class="banner" style="margin-top:0">🏥 En yakın hastane: <b>${a.h.ad}</b> (${a.h.turAd}, yolla ~${Math.round(a.t)} dk)`+
@@ -693,7 +752,7 @@ $("gScn").onchange=renderProgress;$("gSet").onchange=renderProgress;$("gAll").on
 
 if(WORLD==="izmir"){document.querySelector("header h1").textContent="Evde Sağlık Anlık Teklif ve Eşleştirme — Merkez İzmir";
  document.querySelector("header p").textContent="Merkez İzmir'in 11 ilçesi — gerçek yol ağı (OpenStreetMap), ilçe nüfusuna göre dağıtılmış sentetik hasta ve çalışanlar. Ücretler temsilidir.";
- [["xN",260,600],["xD",100,250],["xR",450,900]].forEach(([id,v,mx])=>{const e=$(id);e.max=mx;e.value=v;});["vN","vD","vR"].forEach((id,i)=>$(id).textContent=[260,100,450][i]);
+ [["xN",80,600],["xD",25,250],["xR",155,900]].forEach(([id,v,mx])=>{const e=$(id);e.max=mx;e.value=v;});["vN","vD","vR"].forEach((id,i)=>$(id).textContent=[80,25,155][i]);
  document.querySelector("#map").closest(".card").querySelector("h2").firstChild.textContent="Merkez İzmir haritası ";
  const lg=document.querySelector(".legend .tiny");if(lg)lg.textContent="Haritaya dokunarak hasta konumunu seçin (en yakın yol noktasına yapışır). Turuncu kesikli çizgiler: ilçe sınırları. Haritada yalnızca ana yollar çizilidir; yol süreleri tüm yollar üzerinden hesaplanır.";}
 setTimeout(()=>{try{initDemo();}catch(e){$("loadPill").textContent="hata: "+e.message;console.error(e);}},50);

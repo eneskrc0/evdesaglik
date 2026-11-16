@@ -1,0 +1,41 @@
+{
+  "id": "007_v1_holdout",
+  "world": "izmir_orta",
+  "versiyon": "v1",
+  "name": "v1",
+  "model": "gbm_v1",
+  "note": "ayrılmış referans",
+  "set": "holdout",
+  "date": "2026-11-16T19:29",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "a9e1eb2864d8",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "74c7e3215026",
+    "sim/geo.py": "e9f146c29eff",
+    "sim/models.py": "11abc559af5e"
+  }
+}

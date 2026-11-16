@@ -89,3 +89,15 @@ python -m pytest -q tests
 - `python3 sim/build_route_graph.py bornova|izmir` → web/graph_<dünya>.json (CSR, base64); build.py /*GRAPH_JSON*/ olarak gömer.
 - Kabulde startTracking(): rota = Dijkstra (havuz düğümleri arası, matrisle ±1 sn), çıkış = planlanan varış − travelMin, yolculuk sonrası 3 dk park. Varış aralığı ±1.645×travelNoiseSd×kalan yol.
 - tests/tutarlilik/track_test.py canlı takibi dener.
+
+## İzmir orta ölçek (2026-11-16) — güncel ana dünya
+- `DUNYA=izmir OLCEK=orta` → sonuçlar results/izmir_orta/. Ölçek: 80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün
+  (world.SCALE["izmir_orta"]; hizmet karışımı pansuman %60 / doktor %25 / fizyoterapi %15; fizyoterapi 60 dk, 1200 TL temsili).
+- Eski dünyalar birebir aynı (fizyoterapist yoksa RNG sırası değişmez; kontrol: izmir tohum 0 sonuçları aynı).
+- Hızlı arama: `python -m sim.search_orta` (yalnızca baz, tohum 0–9) → results/izmir_orta/arama_ozet.csv; grafik `python sim/plot_kota.py`.
+- Seçilen: `v5_kota5` = v5 kuralları + sert günlük ziyaret kotası 5 (models.policy_capped). Seçim kuralı: v1'e göre en fazla ~1 puan
+  başarı kaybıyla en düşük yük/eşitsizlik. Kota 4 → −2 puan; kota 6 → yük azalması küçük.
+- Sonuçlar (baz, geliştirme / ayrılmış): kural 52,4 / 51,6 · v1 72,7 / 71,5 · v5 72,3 / 70,6 · v5_kota5 71,7 / 70,1 (5 dk uygun %).
+  v5_kota5 v1'e göre: günlük en fazla iş 8,9→5,1, kazanç Gini 0,63→0,55, bildirim Gini 0,46→0,35, iş alamayan hemşire-gün %57→%48.
+- Orta ölçekte başarı büyük ölçekten düşük (72 vs 88): çalışan yoğunluğu az, yakında aday az.
+- Demo (izmir.html) bu ölçekte: fizyoterapist dahil. Harita görünümleri: Genel / Hasta gözüyle / Çalışan gözüyle (viewSeg).

@@ -14,8 +14,10 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 WORLD = os.environ.get("DUNYA", "bornova")
-RES = ROOT / "results" if WORLD == "bornova" else ROOT / "results" / WORLD
-VERSIONS = ["v1", "v2", "v3", "v4", "v5"]
+OLCEK = os.environ.get("OLCEK", "")
+TAG = f"{WORLD}_{OLCEK}" if OLCEK else WORLD
+RES = ROOT / "results" if TAG == "bornova" else ROOT / "results" / TAG
+VERSIONS = ["v1", "v2", "v3", "v4", "v5"] + (["v5+kota"] if OLCEK == "orta" else [])
 GREEN, BLUE, ORANGE = "#1baf7a", "#2a78d6", "#eb6834"
 
 # (sütun, başlık, birim, yüzde mi, yüksek mi iyi)
@@ -33,13 +35,17 @@ PANELS = [
 ]
 
 
+if OLCEK == "orta":  # kotanın etkisi görünsün: "ziyaret başına bildirim" yerine günlük en yüksek iş sayısı
+    PANELS[5] = ("hemsire_gunluk_is_maks", "Bir hemşirenin günde aldığı en fazla iş", "adet", False, False)
+
+
 def main():
     r = pd.read_json(RES / "ilerleme.json")
     r = r[(r.set == "dev") & (r.senaryo == "baz")]
     heur = r[r.model.isin(["en_yakin", "en_erken"])]
     mods = r[r["versiyon"].isin(VERSIONS)] if "versiyon" in r else r.iloc[0:0]
     mods = mods.drop_duplicates("versiyon", keep="last").set_index("versiyon")
-    fig, axes = plt.subplots(2, 5, figsize=(18, 7.6))
+    fig, axes = plt.subplots(2, 5, figsize=(18 + 2 * (len(VERSIONS) > 5), 7.6))
     x = np.arange(len(VERSIONS))
     for ax, (col, title, unit, pct, higher) in zip(axes.flat, PANELS):
         vals = [mods.loc[v, col] if v in mods.index and col in mods.columns else np.nan for v in VERSIONS]
@@ -61,7 +67,7 @@ def main():
         for sp in ["top", "right"]:
             ax.spines[sp].set_visible(False)
         ax.grid(axis="y", color="#eeeeee"); ax.set_axisbelow(True)
-    yer = "Bornova" if WORLD == "bornova" else "Merkez İzmir (11 ilçe)"
+    yer = "Bornova" if WORLD == "bornova" else ("Merkez İzmir, orta ölçek (80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün)" if OLCEK == "orta" else "Merkez İzmir (11 ilçe)")
     fig.suptitle(f"{yer} — model sürümleri (yeşil) ve klasik yöntemler (mavi: en yakın, turuncu: en erken varış) · baz senaryo, 10 tohum",
                  fontsize=11, x=0.01, ha="left")
     fig.tight_layout(rect=(0, 0, 1, 0.95))

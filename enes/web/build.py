@@ -9,7 +9,7 @@ assert "/*ROADS_JSON*/null" in html and "/*PROGRESS_JSON*/null" in html and "/*H
 hf = d / "hospitals.json"
 hosp = hf.read_text() if hf.exists() else "null"
 (d / "dist").mkdir(exist_ok=True)
-for world, res in [("bornova", d.parent / "results"), ("izmir", d.parent / "results" / "izmir")]:
+for world, res in [("bornova", d.parent / "results"), ("izmir", d.parent / "results" / "izmir_orta")]:
     rf = d / f"roads_{world}.json"
     if not rf.exists():
         continue

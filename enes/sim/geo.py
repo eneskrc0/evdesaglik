@@ -35,6 +35,9 @@ DETOUR = 1.35  # yol mesafesi / kuş uçuşu mesafe
 
 # Simülasyon dünyası: DUNYA ortam değişkeni (bornova | izmir). Varsayılan: bornova.
 WORLD = os.environ.get("DUNYA", "bornova")
+# Ölçek: OLCEK ortam değişkeni (boş = dünyanın varsayılan ölçeği; ör. "orta"). Sonuç klasörü ve ölçek bu etiketle seçilir.
+OLCEK = os.environ.get("OLCEK", "")
+WORLD_TAG = f"{WORLD}_{OLCEK}" if OLCEK else WORLD
 _POOL_FILE = Path(__file__).resolve().parent.parent / "data" / WORLD / "pool.npz"
 if _POOL_FILE.exists():
     _z = np.load(_POOL_FILE)

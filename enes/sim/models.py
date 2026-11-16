@@ -66,6 +66,21 @@ class Policy:
         return self.base.predict_proba(X)
 
 
+class PolicyCapped(Policy):
+    """Karar kuralları + günlük kota birlikte (izmir_orta denemeleri)."""
+
+    def __init__(self, base, cfg, notif_cap=None, visit_cap=None, soft=False):
+        super().__init__(base, cfg)
+        self.notif_cap, self.visit_cap, self.soft = notif_cap, visit_cap, soft
+
+
+def policy_capped(base_fn, notif_cap=None, visit_cap=None, soft=False, **cfg):
+    def fn(X, y, seed):
+        return PolicyCapped(base_fn(X, y, seed), cfg, notif_cap, visit_cap, soft)
+    fn.__doc__ = f"{base_fn.__name__} + karar kuralları {cfg} + günlük {'yumuşak' if soft else 'sert'} kota (bildirim={notif_cap}, ziyaret={visit_cap})"
+    return fn
+
+
 def policy(base_fn, **cfg):
     def fn(X, y, seed):
         return Policy(base_fn(X, y, seed), cfg)
@@ -83,6 +98,10 @@ def get_model(name):
             k, v = kv.split("=")
             cfg[k] = float(v)
         base = {1: gbm_v1, 2: gbm_v2, 3: gbm_v3}[int(cfg.pop("base", 1))]
+        caps = {k: cfg.pop(k) for k in ("nc", "vc", "soft") if k in cfg}
+        if caps:  # ör. 'pol:a=0.6,b=0.06,c=0.15,alpha=0.95,base=3,vc=3,soft=1'
+            return policy_capped(base, notif_cap=int(caps["nc"]) if "nc" in caps else None,
+                                 visit_cap=int(caps["vc"]) if "vc" in caps else None, soft=bool(caps.get("soft", 0)), **cfg)
         return policy(base, **cfg)
     raise KeyError(name)
 
@@ -98,6 +117,8 @@ MODELS["v2_adil"] = policy(gbm_v1, b=0.08, c=0.1)
 MODELS["v3_garanti"] = policy(gbm_v1, b=0.08, c=0.1, alpha=0.95)
 MODELS["v4_mesafe"] = policy(gbm_v1, a=0.7, b=0.08, c=0.1, alpha=0.95)
 MODELS["v5_denge"] = policy(gbm_v3, a=0.6, b=0.06, c=0.15, alpha=0.95)
+# izmir_orta (2026-11-16): v5 kuralları + sert günlük ziyaret kotası 5 (arama: results/izmir_orta/arama_ozet.csv)
+MODELS["v5_kota5"] = policy_capped(gbm_v3, visit_cap=5, a=0.6, b=0.06, c=0.15, alpha=0.95)
 # Demo sayfasının kullandığı bileşim: lojistik regresyon + v5 kuralları
 MODELS["v5_demo_lr"] = policy(logreg_v1, a=0.6, b=0.06, c=0.15, alpha=0.95)
 for _n in (4, 6, 8, 10, 12):
