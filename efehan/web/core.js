@@ -1,0 +1,308 @@
+// Evde Sağlık — çekirdek mantık (app/*.py ile birebir aynı davranış).
+// DOM kullanmaz; hem tarayıcıda hem node'da çalışır.
+(function (root) {
+  "use strict";
+
+  // ---------- text.py ----------
+  const FOLD = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u" };
+  function normalize(text) {
+    let t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
+    t = t.replace(/[çğıöşüâîû]/g, (c) => FOLD[c]);
+    t = t.replace(/[^a-z0-9;|]+/g, " ").trim();
+    return " " + t + " ";
+  }
+  function parseKeywords(spec) {
+    const alts = [];
+    for (const alt of spec.split("|")) {
+      const parts = alt.split(";").filter((p) => p.trim()).map((p) => normalize(p).trim());
+      if (parts.length) alts.push(parts);
+    }
+    return alts;
+  }
+  function match(specOrParsed, normText) {
+    const alts = typeof specOrParsed === "string" ? parseKeywords(specOrParsed) : specOrParsed;
+    for (const parts of alts) {
+      if (parts.every((p) => normText.includes(" " + p))) return parts.join(" + ");
+    }
+    return null;
+  }
+
+  // ---------- db.py ----------
+  function Repo(data) {
+    this.raw = data;
+    this.services = {};
+    for (const s of data.services) {
+      this.services[s.code] = {
+        code: s.code, name_tr: s.name_tr, category: s.category, duration_min: s.duration_min,
+        needs_physician_order: !!s.needs_physician_order, needs_prescription: !!s.needs_prescription,
+        remote_possible: !!s.remote_possible, base_fee_tl: s.base_fee_tl,
+      };
+    }
+    this.professions = {};
+    for (const p of data.professions) this.professions[p.code] = p;
+    this.profession_services = {};
+    for (const r of data.profession_services) {
+      (this.profession_services[r.profession_code] ||= new Set()).add(r.service_code);
+    }
+    this.red_flags = data.red_flags.map((r) => ({ ...r, parsed: parseKeywords(r.keywords) }));
+    this.routes = data.complaint_routes.map((r) => ({
+      ...r, parsed: parseKeywords(r.keywords), service_list: r.services.split("|"),
+    }));
+    this.sources = {};
+    for (const s of data.sources) this.sources[s.id] = s;
+    this.providers = {};
+    for (const p of data.providers) this.providers[p.id] = { ...p, licence_verified: !!p.licence_verified };
+    this.provider_services = {};
+    for (const r of data.provider_services) (this.provider_services[r.provider_id] ||= {})[r.service_code] = r.visits_done;
+    this.availability = {};
+    for (const r of data.availability) this.availability[r.provider_id + "|" + r.date] = [r.start_min, r.end_min];
+    this.scheduled = {};
+    for (const r of data.scheduled_visits) (this.scheduled[r.provider_id + "|" + r.date] ||= []).push({ ...r });
+    this.patients = {};
+    for (const p of data.patients) {
+      this.patients[p.id] = { ...p, bedridden: !!p.bedridden, has_physician_plan: !!p.has_physician_plan };
+    }
+  }
+  Repo.prototype.professionsFor = function (serviceCode) {
+    const out = new Set();
+    for (const [p, s] of Object.entries(this.profession_services)) if (s.has(serviceCode)) out.add(p);
+    return out;
+  };
+
+  // ---------- triage.py ----------
+  const DISCLAIMER = "Bu bir teşhis değildir; yönlendirmedir. Durum kötüleşirse ya da emin değilseniz 112'yi arayın.";
+  const LEVEL_DEFAULT_SERVICE = { TELE: "tele_muayene", TELE_HEMSIRE: "tele_hemsire_destekli", HEKIM_EV: "ev_muayene" };
+  const LEVEL_TEXT = {
+    ACIL_112: "Acil: 112", ZEHIR_114: "Zehir danışma: 114", TELE: "Hekimle video görüşme",
+    TELE_HEMSIRE: "Hemşire evde + hekim videoda", HEKIM_EV: "Hekim ev ziyareti",
+    PLANLI: "Planlı ev hizmeti (hekim planına göre)",
+  };
+  const REMOTE_OK_ROUTES = new Set(["CR_RECETE", "CR_PSIKO"]);
+
+  function triage(repo, complaint, patient) {
+    const text = normalize(complaint);
+    const hits = [];
+    for (const rf of repo.red_flags) {
+      const m = match(rf.parsed, text);
+      if (m) hits.push([rf, m]);
+    }
+    if (hits.length) {
+      const urgent = hits.filter((h) => h[0].action === "112");
+      const [rf] = (urgent.length ? urgent : hits)[0];
+      const level = urgent.length ? "ACIL_112" : "ZEHIR_114";
+      let msg = rf.message_tr;
+      if (urgent.length && hits.some((h) => h[0].action === "114")) msg += " Zehirlenme şüphesini 112'ye söyleyin.";
+      return {
+        level, services: [], message: msg, red_flags: hits.map((h) => h[0].code), route: null,
+        reasons: hits.map((h) => `Kırmızı bayrak '${h[0].name_tr}' (eşleşen: ${h[1]})`),
+        other_routes: [], sources: [...new Set(hits.map((h) => h[0].source_id))].sort(),
+        is_emergency: true,
+      };
+    }
+    const matched = [];
+    for (const r of repo.routes) {
+      const m = match(r.parsed, text);
+      if (m) matched.push([r, m]);
+    }
+    if (!matched.length) {
+      const level = patient.bedridden ? "TELE_HEMSIRE" : "TELE";
+      return {
+        level, services: [LEVEL_DEFAULT_SERVICE[level]],
+        message: "Şikayetinizi bir hekimin değerlendirmesi en doğrusu. " + DISCLAIMER,
+        red_flags: [], route: null,
+        reasons: ["Bilinen bir şikayet kalıbı bulunamadı; güvenli varsayılan: hekim"],
+        other_routes: [], sources: ["S14"], is_emergency: false,
+      };
+    }
+    const [route, m] = matched[0];
+    const plan = patient.has_physician_plan;
+    let level = plan ? route.level_with_plan : route.level_no_plan;
+    const reasons = [`Şikayet kalıbı '${route.name_tr}' (eşleşen: ${m})`];
+    let services;
+    if (level === "PLANLI") {
+      services = route.service_list;
+      reasons.push("Hekim planı/reçetesi var: sağlık meslek mensubu atanabilir (S07, S08)");
+    } else {
+      if (!plan && route.level_with_plan === "PLANLI") reasons.push("Hekim planı yok: önce hekim değerlendirmesi gerekir (S08)");
+      if (level === "TELE" && patient.bedridden && !REMOTE_OK_ROUTES.has(route.code)) {
+        level = "TELE_HEMSIRE";
+        reasons.push("Yatağa bağımlı hasta: hemşire evde ölçüm yapar, hekim videoda");
+      }
+      const doc = repo.profession_services["hekim"] || new Set();
+      const routeDoc = route.service_list.filter((s) => doc.has(s));
+      if (routeDoc.length && (level === "HEKIM_EV" || level === "TELE") &&
+          (level !== "TELE" || repo.services[routeDoc[0]].remote_possible)) {
+        services = routeDoc;
+      } else {
+        services = [LEVEL_DEFAULT_SERVICE[level]];
+      }
+    }
+    const src = new Set([route.source_id, "S08"]);
+    if (level === "PLANLI") src.add("S07");
+    return {
+      level, services, message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER,
+      red_flags: [], route: route.code, reasons,
+      other_routes: matched.slice(1).map((x) => x[0].code), sources: [...src].sort(), is_emergency: false,
+    };
+  }
+
+  // ---------- routing.py ----------
+  const CFG = {
+    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, MIN_SAVED_KM: 1.0,
+    TRAVEL_TL_PER_KM: 12.0, COMMISSION: 0.10, SPLIT: { hasta: 0.5, saglikci: 0.3, platform: 0.2 },
+    PRICE_SENSITIVITY: 3.0, SPEED_HORIZON_MIN: 480,
+  };
+  const rad = (d) => (d * Math.PI) / 180;
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const p1 = rad(lat1), p2 = rad(lat2), dp = p2 - p1, dl = rad(lon2 - lon1);
+    const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return 2 * 6371.0 * Math.asin(Math.sqrt(a));
+  }
+  const roadKm = (a, b) => haversineKm(a[0], a[1], b[0], b[1]) * CFG.ROAD_FACTOR;
+  const travelMin = (km) => (km === 0 ? 0 : Math.ceil((km / CFG.CITY_SPEED_KMH) * 60) + CFG.PARKING_MIN);
+  const round2 = (x) => Math.round(x * 100) / 100;
+
+  function bestInsertion(home, window, stops, target, duration, earliest) {
+    const [start, end] = window;
+    const points = [{ loc: home, ready: start }];
+    for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
+    const standalone = 2 * roadKm(home, target);
+    let best = null;
+    for (let i = 0; i < points.length; i++) {
+      const prev = points[i];
+      const nxt = i + 1 < points.length ? points[i + 1] : null;
+      const nxtLoc = nxt ? nxt.loc : home;
+      const deadline = nxt ? nxt.start : end;
+      const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
+      const arrival = Math.max(prev.ready + travelMin(d1), earliest);
+      const finish = arrival + duration;
+      if (finish + travelMin(d2) > deadline) continue;
+      const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
+      const cand = {
+        arrival_min: arrival, added_km: round2(added), standalone_km: round2(standalone), position: i,
+        shared: stops.length > 0 && standalone - added >= CFG.MIN_SAVED_KM,
+      };
+      if (!best || cand.added_km < best.added_km || (cand.added_km === best.added_km && cand.arrival_min < best.arrival_min)) best = cand;
+    }
+    return best;
+  }
+
+  function priceVisit(baseFee, mult, ins) {
+    const fee = baseFee * mult;
+    if (!ins) return { service_fee: fee, patient_pays: fee, provider_gets: fee * (1 - CFG.COMMISSION), platform_gets: fee * CFG.COMMISSION, patient_saving: 0 };
+    const standaloneCost = ins.standalone_km * CFG.TRAVEL_TL_PER_KM;
+    const actualCost = ins.added_km * CFG.TRAVEL_TL_PER_KM;
+    const saving = Math.max(0, standaloneCost - actualCost);
+    return {
+      service_fee: fee,
+      patient_pays: fee + standaloneCost - CFG.SPLIT.hasta * saving,
+      provider_gets: fee * (1 - CFG.COMMISSION) + actualCost + CFG.SPLIT.saglikci * saving,
+      platform_gets: fee * CFG.COMMISSION + CFG.SPLIT.platform * saving,
+      patient_saving: CFG.SPLIT.hasta * saving,
+      standalone_travel: standaloneCost, actual_travel: actualCost, saving,
+    };
+  }
+
+  // ---------- matching.py ----------
+  const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+  function competenceScore(visits, years, rating) {
+    const v = Math.min(1, Math.log1p(visits) / Math.log1p(200));
+    const y = Math.min(1, years / 20);
+    const r = Math.max(0, Math.min(1, (rating - 3.5) / 1.5));
+    return 0.5 * v + 0.3 * y + 0.2 * r;
+  }
+  function normPrefs(p) {
+    const s = p.yetkinlik + p.fiyat + p.hiz;
+    if (s <= 0) return [1 / 3, 1 / 3, 1 / 3];
+    return [p.yetkinlik / s, p.fiyat / s, p.hiz / s];
+  }
+
+  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5) {
+    prefs = prefs || { yetkinlik: 1, fiyat: 1, hiz: 1 };
+    const svc = repo.services[serviceCode];
+    const notes = [];
+    if (svc.needs_physician_order && !patient.has_physician_plan) {
+      notes.push(`'${svc.name_tr}' hekim planı/reçetesi ister; hastanın planı yok (S08).`);
+      return { candidates: [], notes };
+    }
+    const profs = repo.professionsFor(serviceCode);
+    const earliest = nowMin + CFG.LEAD_TIME_MIN;
+    const target = [patient.lat, patient.lon];
+    const cands = [];
+    const elim = { ruhsat: 0, "müsaitlik": 0, mesafe: 0, rota: 0 };
+    for (const p of Object.values(repo.providers)) {
+      if (!profs.has(p.profession_code)) continue;
+      const visits = (repo.provider_services[p.id] || {})[serviceCode];
+      if (visits === undefined) continue;
+      if (!p.licence_verified) { elim.ruhsat++; continue; }
+      const win = repo.availability[p.id + "|" + date];
+      if (!win || win[1] <= earliest) { elim["müsaitlik"]++; continue; }
+      const home = [p.home_lat, p.home_lon];
+      const dist = roadKm(home, target);
+      let ins = null, arrival;
+      if (svc.remote_possible && svc.category === "tele") {
+        arrival = Math.max(win[0], earliest);
+      } else {
+        if (dist > maxKm) { elim.mesafe++; continue; }
+        const stops = repo.scheduled[p.id + "|" + date] || [];
+        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest);
+        if (!ins) { elim.rota++; continue; }
+        arrival = ins.arrival_min;
+      }
+      const price = priceVisit(svc.base_fee_tl, p.fee_multiplier, ins);
+      cands.push({
+        provider_id: p.id, name: p.display_name, profession: p.profession_code, service: serviceCode,
+        arrival_min: arrival, distance_km: Math.round(dist * 10) / 10, insertion: ins, price,
+        competence: competenceScore(visits, p.years_experience, p.rating), visits,
+      });
+    }
+    for (const [k, v] of Object.entries(elim)) if (v) notes.push(`${v} aday elendi: ${k}`);
+    if (!cands.length) return { candidates: [], notes };
+    const pmin = Math.min(...cands.map((c) => c.price.patient_pays));
+    const [wc, wp, ws] = normPrefs(prefs);
+    for (const c of cands) {
+      const priceS = Math.max(0, 1 - (CFG.PRICE_SENSITIVITY * (c.price.patient_pays - pmin)) / pmin);
+      const speedS = Math.max(0, 1 - (c.arrival_min - earliest) / CFG.SPEED_HORIZON_MIN);
+      c.scores = { yetkinlik: c.competence, fiyat: priceS, hiz: speedS };
+      // Python ile aynı: 4 basamağa yuvarla (eşitlikte varış saati belirler)
+      c.total = Math.round((wc * c.competence + wp * priceS + ws * speedS) * 1e4) / 1e4;
+      c.explanation = explain(repo, c);
+    }
+    cands.sort((a, b) => b.total - a.total || a.arrival_min - b.arrival_min);
+    return { candidates: cands.slice(0, topK), notes, all: cands };
+  }
+
+  function explain(repo, c) {
+    const p = repo.providers[c.provider_id];
+    const parts = [`bu hizmette ${c.visits} ziyaret, ${p.years_experience} yıl deneyim, puan ${p.rating}`];
+    if (!c.insertion) parts.push(`en erken görüşme ${hhmm(c.arrival_min)}`);
+    else {
+      parts.push(`tahmini varış ${hhmm(c.arrival_min)}`);
+      if (c.insertion.shared) {
+        parts.push(`ziyaretiniz o günkü rotasına eklenir: ek yol ${c.insertion.added_km} km (tek başına ${c.insertion.standalone_km} km), size ${Math.round(c.price.patient_saving)} TL indirim`);
+      }
+    }
+    parts.push(`ödeyeceğiniz ${Math.round(c.price.patient_pays)} TL`);
+    return parts.join("; ");
+  }
+
+  function handleRequest(repo, complaint, patient, date, nowMin, prefs, topK = 3) {
+    const t = triage(repo, complaint, patient);
+    const out = { triage: t, candidates: [], notes: [], service: null };
+    if (t.is_emergency) return out;
+    const service = t.services[0];
+    const r = findCandidates(repo, service, patient, date, nowMin, prefs, 20, topK);
+    out.service = service;
+    out.candidates = r.candidates;
+    out.notes = r.notes.slice();
+    if (t.level === "TELE_HEMSIRE") out.notes.push("Hekim video görüşmesi o saatte müsait bir hekime ayrıca atanır.");
+    return out;
+  }
+
+  const api = {
+    normalize, parseKeywords, match, Repo, triage, bestInsertion, priceVisit, findCandidates,
+    handleRequest, competenceScore, roadKm, travelMin, hhmm, LEVEL_TEXT, CFG,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.EvdeCore = api;
+})(typeof window !== "undefined" ? window : globalThis);

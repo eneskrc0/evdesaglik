@@ -1,0 +1,49 @@
+id,text,bedridden,has_plan,expected_level,expected_code,note
+T01,Babamın göğsünde baskı var terliyor,0,0,ACIL_112,RF_GOGUS,demo hatasından
+T02,gogsum agriyor sol koluma vuruyor,0,0,ACIL_112,RF_GOGUS,Türkçe karaktersiz
+T03,Göğüs ağrısı başladı yarım saattir geçmiyor,0,0,ACIL_112,RF_GOGUS,
+T04,Annemin göğsü sıkışıyor nefesi daralıyor,1,1,ACIL_112,RF_GOGUS,
+T05,Dedemin ağzı kaydı konuşması bozuldu,1,0,ACIL_112,RF_INME,
+T06,babamin yuzu kaydi kolunu kaldiramiyor,0,0,ACIL_112,RF_INME,Türkçe karaktersiz
+T07,Annem aniden konuşamıyor,1,1,ACIL_112,RF_INME,
+T08,Hayatımın en şiddetli baş ağrısı aniden başladı,0,0,ACIL_112,RF_BAS_AGRISI,
+T09,Babam bayıldı şimdi uyanık,0,0,ACIL_112,RF_BAYILMA,
+T10,Annem yanıt vermiyor uyandıramıyoruz,1,1,ACIL_112,RF_BILINC,
+T11,Oğlum nöbet geçiriyor,0,0,ACIL_112,RF_NOBET,
+T12,Bebeğin ateşi var ve kasılıyor,0,0,ACIL_112,RF_NOBET,RF_COCUK_HAVALE de eşleşebilir
+T13,Arı soktu dudakları şişti nefes alamıyor,0,0,ACIL_112,RF_ANAFILAKSI,birden fazla bayrak
+T14,Nefes alamıyorum dudaklarım morarıyor,0,0,ACIL_112,RF_NEFES,
+T15,Nefes darlığı ilaca rağmen geçmiyor,0,1,ACIL_112,RF_NEFES_KOTU,
+T16,Annemin şekeri düştü bilinci bulanık,1,1,ACIL_112,RF_SEKER,
+T17,Bacağımdaki kesik kanama durmuyor,0,0,ACIL_112,RF_KANAMA,
+T18,Sırtımda yırtılır gibi ani ağrı var,0,0,ACIL_112,RF_YIRTILMA,
+T19,Çocuğum yanlışlıkla ilaç içti,0,0,ZEHIR_114,RF_ZEHIR,
+T20,Babam çamaşır suyu içmiş,0,0,ZEHIR_114,RF_ZEHIR,
+T21,Artık yaşamak istemiyorum,0,0,ACIL_112,RF_KENDINE_ZARAR,
+T22,Annemin sırtında bası yarası var pansuman lazım,1,1,PLANLI,CR_BASI_YARASI,
+T23,annemin yatak yarasi kotulesti,1,0,HEKIM_EV,CR_BASI_YARASI,plan yok -> hekim
+T24,Babamın sondası tıkandı değiştirilmesi lazım,1,1,PLANLI,CR_SONDA,
+T25,PEG tüpünün etrafı kızardı,1,1,PLANLI,CR_TUP,
+T26,Doktorun yazdığı serumu evde taktırmak istiyorum,0,1,PLANLI,CR_SERUM,
+T27,Reçeteli iğnemi evde yaptırmak istiyorum,0,1,PLANLI,CR_IGNE,
+T28,Kan tahlili için evden kan aldırmak istiyorum,0,1,PLANLI,CR_KAN,
+T29,Kan tahlili yaptırmak istiyorum,0,0,TELE,CR_KAN,istem yok -> hekim
+T30,Diz protezi ameliyatı sonrası fizik tedavi istiyorum,0,1,PLANLI,CR_FIZYO,
+T31,Felç sonrası yürüme güçlüğü var fizyoterapi lazım,1,0,TELE_HEMSIRE,CR_FIZYO,yatalak + plan yok
+T32,Annemin işitme cihazı ötüyor,0,1,PLANLI,CR_ISITME_CIHAZ,
+T33,Babam son zamanlarda duymuyor,0,0,TELE,CR_ISITME,
+T34,Annem yemek yemiyor kilo kaybı var,1,1,PLANLI,CR_BESLENME,
+T35,Babamın yutma güçlüğü var,1,1,PLANLI,CR_YUTMA,
+T36,Ev düzenlemesi lazım babam sık düşüyor,0,1,PLANLI,CR_DUSME_RISKI,
+T37,Annem düştü kalkamıyor kalçası ağrıyor,1,0,HEKIM_EV,CR_DUSTU,
+T38,Diyabetik ayak bakımı istiyorum,0,1,PLANLI,CR_AYAK,
+T39,Babamın tansiyon takibi yapılsın,1,1,PLANLI,CR_VITAL,
+T40,Uzun zamandır kaygılıyım uyuyamıyorum,0,0,TELE,CR_PSIKO,
+T41,Annemin mama raporunu yenilemem lazım,1,0,TELE,CR_RECETE,yatalakta da uzaktan
+T42,Kanser hastası babamın ağrısı ağrı kesiciye rağmen geçmiyor,1,0,HEKIM_EV,CR_PALYATIF,
+T43,Ateşim var boğazım ağrıyor,0,0,TELE,CR_AKUT_HAFIF,
+T44,Annemin ateşi var öksürüyor,1,0,TELE_HEMSIRE,CR_AKUT_HAFIF,
+T45,ishal ve kusma var,0,0,TELE,CR_AKUT_HAFIF,
+T46,Nefes darlığım var,0,0,TELE,CR_NEFES,
+T47,Babamın nefesi daralıyor,1,0,TELE_HEMSIRE,CR_NEFES,
+T48,Elimde kaşıntı var,0,0,TELE,,bilinmeyen kalıp -> hekim

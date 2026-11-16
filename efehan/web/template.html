@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evde Sağlık Test Prototipi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Yerleşim: üstte sabit başlık + sekmeler; her sekme kendi ızgarası. Klinik, sakin, taranabilir. */
+:root {
+  --bg: #f2f5f6;
+  --surface: #ffffff;
+  --ink: #12222a;
+  --muted: #586a72;
+  --line: #d6dfe2;
+  --accent: #0b6b72;
+  --accent-soft: #e0efef;
+  --crit: #b8322a; --crit-soft: #fbe9e7;
+  --warn: #a96410; --warn-soft: #fbf0df;
+  --ok: #2b7a4b; --ok-soft: #e4f3ea;
+  --info: #2c5d9b; --info-soft: #e5eef9;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1619; --surface: #162125; --ink: #e4edef; --muted: #93a6ac; --line: #28373c;
+    --accent: #4db3b9; --accent-soft: #17393b;
+    --crit: #ff7366; --crit-soft: #3a1c1a; --warn: #e8a64a; --warn-soft: #3a2a12;
+    --ok: #63c48f; --ok-soft: #173326; --info: #82abe8; --info-soft: #1b2b42;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1619; --surface: #162125; --ink: #e4edef; --muted: #93a6ac; --line: #28373c;
+  --accent: #4db3b9; --accent-soft: #17393b;
+  --crit: #ff7366; --crit-soft: #3a1c1a; --warn: #e8a64a; --warn-soft: #3a2a12;
+  --ok: #63c48f; --ok-soft: #173326; --info: #82abe8; --info-soft: #1b2b42;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+header.top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-inner { max-width: 1240px; margin: 0 auto; padding: 12px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand .meta { font-size: 13px; color: var(--muted); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; }
+nav.tabs a { padding: 8px 14px; text-decoration: none; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; font-weight: 500; }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs a .count { font-family: var(--font-mono); font-size: 12px; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 0 6px; margin-left: 4px; }
+
+main { max-width: 1240px; margin: 0 auto; padding: 20px; }
+section.view { display: none; }
+section.view.active { display: block; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grid-2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 500; }
+textarea, input[type=text], select { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 84px; resize: vertical; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #06191b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #06191b; } }
+.btn.small { padding: 3px 9px; font-size: 13px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 14px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 4px; padding: 1px 7px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.tag.crit { background: var(--crit-soft); color: var(--crit); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.info { background: var(--info-soft); color: var(--info); }
+.tag.plain { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.slider { display: grid; grid-template-columns: 76px 1fr 18px; gap: 8px; align-items: center; font-size: 14px; }
+.slider input { width: 100%; accent-color: var(--accent); }
+
+/* Triyaj sonucu */
+.level { border-left: 6px solid var(--accent); }
+.level.crit { border-left-color: var(--crit); background: linear-gradient(90deg, var(--crit-soft), var(--surface) 40%); }
+.level.warn { border-left-color: var(--warn); }
+.level.ok { border-left-color: var(--ok); }
+.level.info { border-left-color: var(--info); }
+.level .big { font-family: var(--font-display); font-size: 24px; font-weight: 600; }
+ul.reasons { margin: 0; padding-left: 18px; }
+ul.reasons li { margin: 2px 0; }
+
+.cand { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.rank { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--muted); }
+.cand .price { text-align: right; }
+.cand .price .amt { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.bars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.bar { font-size: 12px; color: var(--muted); }
+.bar .track { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.bar .fill { height: 100%; background: var(--accent); }
+.split { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.split div { background: var(--bg); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+.split b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+.detail { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+
+/* Rota */
+.timeline { position: relative; height: 46px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.timeline .blk { position: absolute; top: 8px; height: 28px; border-radius: 4px; font-size: 11px; padding: 2px 4px; overflow: hidden; white-space: nowrap; color: #fff; }
+.timeline .blk.visit { background: var(--accent); }
+.timeline .blk.new { background: var(--warn); }
+.timeline .blk.travel { background: transparent; border: 1px dashed var(--muted); color: var(--muted); top: 16px; height: 12px; padding: 0; }
+.timeline .win { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+.timeline .tick { position: absolute; bottom: 0; font-size: 10px; color: var(--muted); transform: translateX(-50%); }
+svg.map { width: 100%; height: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+svg.map text { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+
+/* Tablolar */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--bg); font-weight: 600; position: sticky; top: 0; }
+td.kw { max-width: 360px; }
+.kwp { display: inline-block; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin: 1px; font-family: var(--font-mono); font-size: 12px; }
+tr.fail td { background: var(--crit-soft); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.tile .v { font-family: var(--font-display); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .l { font-size: 13px; color: var(--muted); }
+
+.dbgrid { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .dbgrid { grid-template-columns: 1fr; } }
+.tlist button { display: flex; justify-content: space-between; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.tlist button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tlist .grp { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 10px 10px 4px; }
+
+.req { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.req:last-child { border-bottom: 0; }
+.fb { border-bottom: 1px solid var(--line); padding: 10px 0; display: flex; flex-direction: column; gap: 4px; }
+.fb:last-child { border-bottom: 0; }
+.notice { background: var(--info-soft); color: var(--ink); border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+.notice.warn { background: var(--warn-soft); }
+.weekrow { display: grid; grid-template-columns: 90px 1fr 1fr; gap: 8px; align-items: center; font-size: 14px; }
+.empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chip { transition: border-color .15s; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Evde Sağlık Test Prototipi</h1>
+      <span class="meta">v0.1 · sentetik Ankara verisi · demo günü 16 Kasım 2026 · teşhis koymaz</span>
+    </div>
+    <nav class="tabs" aria-label="Bölümler">
+      <a href="#senaryo" data-view="senaryo">Senaryo testi</a>
+      <a href="#test-seti" data-view="test-seti">Test seti</a>
+      <a href="#veritabani" data-view="veritabani">Veritabanı</a>
+      <a href="#saglayici" data-view="saglayici">Doktor / hemşire paneli</a>
+      <a href="#geri-bildirim" data-view="geri-bildirim">Eksikler ve notlar <span class="count" id="fbCount">0</span></a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- SENARYO -->
+  <section class="view" id="view-senaryo">
+    <div class="grid-2">
+      <form class="panel stack" id="scnForm" autocomplete="off">
+        <label class="field" for="complaint">Hastanın yazdığı şikayet
+          <textarea id="complaint">Annemin sırtında bası yarası var, pansuman lazım</textarea>
+        </label>
+        <div>
+          <div class="small muted" style="margin-bottom:6px">Hazır örnekler</div>
+          <div class="chips" id="exampleChips"></div>
+        </div>
+        <label class="field" for="patientSel">Hasta (sentetik)
+          <select id="patientSel"></select>
+        </label>
+        <div class="row">
+          <label class="check" for="bedridden"><input type="checkbox" id="bedridden"> Yatağa bağımlı</label>
+          <label class="check" for="hasPlan"><input type="checkbox" id="hasPlan"> Hekim planı / reçete var</label>
+        </div>
+        <label class="field" for="nowSel">Talep saati
+          <select id="nowSel"></select>
+        </label>
+        <fieldset class="stack" style="border:0;padding:0;margin:0;gap:6px">
+          <legend class="small muted" style="margin-bottom:6px;font-weight:500">Hastanın önceliği</legend>
+          <div class="slider"><label for="wC">Yetkinlik</label><input type="range" id="wC" min="0" max="5" value="1"><span id="wCv" class="num">1</span></div>
+          <div class="slider"><label for="wP">Fiyat</label><input type="range" id="wP" min="0" max="5" value="1"><span id="wPv" class="num">1</span></div>
+          <div class="slider"><label for="wS">Hız</label><input type="range" id="wS" min="0" max="5" value="1"><span id="wSv" class="num">1</span></div>
+        </fieldset>
+        <p class="small muted" style="margin:0">Sonuç yazdıkça güncellenir.</p>
+      </form>
+      <div class="stack" id="scnResult"></div>
+    </div>
+  </section>
+
+  <!-- TEST SETİ -->
+  <section class="view" id="view-test-seti">
+    <div class="stack">
+      <div class="tiles" id="evalTiles"></div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>Yeni test cümlesi dene</h2>
+          <span class="small muted">Kurallardan habersiz biri yazarsa ölçüm bağımsız olur</span>
+        </div>
+        <form class="stack" id="newCaseForm" autocomplete="off">
+          <label class="field" for="ncText">Cümle
+            <input type="text" id="ncText" placeholder="ör. Babamın kolu uyuştu, konuşurken kelimeleri karıştırıyor">
+          </label>
+          <div class="row">
+            <label class="check" for="ncBed"><input type="checkbox" id="ncBed"> Yatağa bağımlı</label>
+            <label class="check" for="ncPlan"><input type="checkbox" id="ncPlan"> Hekim planı var</label>
+            <label class="field" for="ncExp" style="flex-direction:row;align-items:center;gap:8px">Beklenen seviye
+              <select id="ncExp" style="width:auto"></select>
+            </label>
+          </div>
+          <div id="ncResult"></div>
+          <div class="row">
+            <button class="btn primary" type="submit" id="ncSave">Test vakası olarak kaydet</button>
+            <span class="small muted" id="ncMsg"></span>
+          </div>
+        </form>
+      </div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>48 etiketli vaka</h2>
+          <label class="check" for="onlyFail"><input type="checkbox" id="onlyFail"> Yalnızca hatalılar</label>
+        </div>
+        <div class="tablewrap"><table id="evalTable"></table></div>
+      </div>
+      <div class="panel stack">
+        <h2>Keşif cümleleri: bilinen açıklar</h2>
+        <p class="small muted" style="margin:0">Etiketli sete girmemiş, sistemin zayıf yanını gösteren örnekler. Doğru davranışa ekip karar vermeli.</p>
+        <div class="tablewrap"><table id="probeTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERİTABANI -->
+  <section class="view" id="view-veritabani">
+    <div class="dbgrid">
+      <div class="panel tlist" id="tableList"></div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <div><h2 id="tblTitle"></h2><div class="small muted" id="tblDesc"></div></div>
+          <input type="text" id="tblSearch" placeholder="Bu tabloda ara" style="max-width:260px" aria-label="Tabloda ara">
+        </div>
+        <div class="tablewrap" style="max-height:640px"><table id="dbTable"></table></div>
+        <div class="row">
+          <button class="btn" type="button" id="tblReport">Bu tabloda eksik var</button>
+          <span class="small muted">Eksik satırı ya da yanlış kuralı not olarak bırakır.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAĞLAYICI PANELİ -->
+  <section class="view" id="view-saglayici">
+    <div class="stack">
+      <div class="notice">İlk taslak. Doktor ve hemşirenin telefonda göreceği ekranın içeriğini test etmek için. Kabul ettiğiniz talepler yalnızca bu sayfada, sizin tarayıcınızda tutulur; veritabanına yazılmaz.</div>
+      <div class="panel row" style="justify-content:space-between">
+        <label class="field" for="provSel" style="min-width:260px">Sağlayıcı olarak gör
+          <select id="provSel"></select>
+        </label>
+        <div class="row" id="provBadges"></div>
+      </div>
+      <div class="tiles" id="provTiles"></div>
+      <div class="grid-2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+        <div class="panel stack">
+          <div class="row" style="justify-content:space-between"><h2>Bugünkü rotam</h2><span class="small muted" id="provDay"></span></div>
+          <div class="timeline" id="provTimeline"></div>
+          <svg class="map" id="provMap" viewBox="0 0 520 300" role="img" aria-label="Rota haritası"></svg>
+          <div id="provStops"></div>
+        </div>
+        <div class="panel stack">
+          <div class="row" style="justify-content:space-between"><h2>Gelen talepler</h2><span class="small muted">rotama en az yol ekleyen önce</span></div>
+          <div id="provRequests"></div>
+        </div>
+      </div>
+      <div class="grid-2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+        <div class="panel stack">
+          <h2>Çalışma saatlerim</h2>
+          <div class="small muted">Boş saatlerinizi seçin; sistem talepleri yalnızca bu aralıklara yerleştirir.</div>
+          <div class="stack" id="provWeek" style="gap:6px"></div>
+        </div>
+        <div class="panel stack">
+          <h2>Hizmetlerim ve deneyimim</h2>
+          <div class="tablewrap"><table id="provServices"></table></div>
+          <div class="row">
+            <button class="btn" type="button" id="panelReport">Panel için not bırak</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GERİ BİLDİRİM -->
+  <section class="view" id="view-geri-bildirim">
+    <div class="stack">
+      <div class="notice" id="fbStatus">Notlar yükleniyor…</div>
+      <div class="panel stack">
+        <div class="row" style="justify-content:space-between">
+          <h2>Eksikler ve notlar</h2>
+          <div class="row">
+            <select id="fbFilter" style="width:auto" aria-label="Türe göre süz">
+              <option value="">Tüm türler</option>
+              <option value="yanlis_sonuc">Yanlış sonuç</option>
+              <option value="test_vakasi">Test vakası</option>
+              <option value="veritabani">Veritabanı eksiği</option>
+              <option value="panel">Panel</option>
+              <option value="genel">Genel</option>
+            </select>
+            <button class="btn" type="button" id="fbCopy">Tümünü kopyala</button>
+          </div>
+        </div>
+        <form class="stack" id="fbForm" autocomplete="off">
+          <label class="field" for="fbText">Yeni not
+            <textarea id="fbText" placeholder="ör. Diyaliz hastası için evde hizmet yok; ev tipi periton diyalizi desteği eklenmeli"></textarea>
+          </label>
+          <div class="row">
+            <select id="fbType" style="width:auto" aria-label="Not türü">
+              <option value="genel">Genel</option>
+              <option value="veritabani">Veritabanı eksiği</option>
+              <option value="yanlis_sonuc">Yanlış sonuç</option>
+              <option value="panel">Panel</option>
+            </select>
+            <button class="btn primary" type="submit">Notu kaydet</button>
+            <span class="small muted" id="fbMsg"></span>
+          </div>
+        </form>
+        <div id="fbList"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="dialog" class="panel" role="dialog" aria-modal="true" aria-labelledby="dlgTitle"
+     style="display:none;position:fixed;left:50%;top:12vh;transform:translateX(-50%);width:min(560px,calc(100% - 32px));z-index:20;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+  <form class="stack" id="dlgForm" autocomplete="off">
+    <h2 id="dlgTitle">Not bırak</h2>
+    <div class="small muted" id="dlgContext"></div>
+    <label class="field" for="dlgExp" id="dlgExpWrap">Olması gereken seviye
+      <select id="dlgExp"></select>
+    </label>
+    <label class="field" for="dlgText">Not
+      <textarea id="dlgText" placeholder="Ne eksik ya da yanlış? Kaynağınız varsa ekleyin."></textarea>
+    </label>
+    <div class="row">
+      <button class="btn primary" type="submit">Kaydet</button>
+      <button class="btn" type="button" id="dlgCancel">Vazgeç</button>
+      <span class="small muted" id="dlgMsg"></span>
+    </div>
+  </form>
+</div>
+
+<script>/*__DATA__*/</script>
+<script>/*__CORE__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

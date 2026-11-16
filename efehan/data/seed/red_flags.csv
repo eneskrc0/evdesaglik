@@ -1,0 +1,16 @@
+code,name_tr,keywords,action,message_tr,source_id
+RF_BILINC,Bilinç kaybı / yanıt vermeme,bilinci kapalı|bilinç kaybı|bilincini kaybet|yanıt vermiyor|tepki vermiyor|uyandıramıyor|kendinde değil,112,Bilinç bozukluğu acil durumdur. Hemen 112'yi arayın.,S01
+RF_BAYILMA,Bayılma,bayıldı|bayılıp|bayılma geçir|bayıldım,112,Bayılma ciddi bir hastalığın belirtisi olabilir. 112'yi arayın.,S01
+RF_NOBET,Nöbet / kasılma,nöbet geçir|havale geçir|kasılıyor|kasılma nöbet|sara nöbet,112,Nöbet sırasında ve sonrasında 112'yi arayın; hastanın başında kalın.,S01
+RF_COCUK_HAVALE,Çocukta ateşli havale,ateşli havale|ateş;havale|bebek;kasıl|çocuk;kasıl,112,Çocukta ateşe bağlı nöbette 112 mutlaka aranır.,S01
+RF_INME,İnme belirtisi (yüz-kol-konuşma),yüzü kay|ağzı kay|yüzünde kayma|kolunu kaldıramıyor|kolunda güçsüzlük|kolu tutmuyor|konuşması bozul|konuşamıyor|peltek konuş|ani görme kaybı|aniden göremiyor|tek taraf;uyuş|felç geçir|inme geçir,112,İnme şüphesi: her dakika önemli. Hemen 112'yi arayın.,S01
+RF_BAS_AGRISI,Ani ve çok şiddetli baş ağrısı,hayatımın en şiddetli baş ağrısı|ani şiddetli baş ağrısı|aniden başlayan şiddetli baş ağrısı|aniden çok şiddetli baş ağrısı,112,Ani başlayan çok şiddetli baş ağrısı inme belirtisi olabilir. 112'yi arayın.,S01
+RF_GOGUS,Göğüs ağrısı / baskı / sıkışma,göğüs;ağr|göğs;ağr|göğüs;bask|göğs;bask|göğüs;sıkış|göğs;sıkış|göğüs;sıkıl|göğs;sıkıl|göğüs;yanma;terl|göğs;yanma;terl|sol kol;uyuş;terl|kalp krizi|kalbim sıkış,112,Göğüs ağrısı / baskısı kalp krizi belirtisi olabilir. Kendi aracınızla gitmeyin; 112'yi arayın.,S03
+RF_NEFES_KOTU,Kötüleşen nefes darlığı,nefes darlığı;kötüleş|nefes darlığı;artıyor|nefes darlığı;ani|nefes darlığı;geçmiyor|nefes darlığı;ilaca rağmen,112,İlaca rağmen geçmeyen ya da kötüleşen nefes darlığında 112'yi arayın.,S01
+RF_YIRTILMA,Yırtılır gibi ani ağrı (göğüs / sırt / karın),yırtılır gibi|yırtılıyor gibi,112,Ani yırtılır gibi ağrı damar acili olabilir. Hemen 112'yi arayın.,S04
+RF_ANAFILAKSI,Şiddetli alerji (anafilaksi),dudağı şiş|dudakları şiş|dudaklarım şiş|dili şiş|dilim şiş|boğazı şiş|boğazım şiş|boğazım kapan|alerji;nefes|arı sok;nefes|göz kapağı şiş;nefes,112,Şiddetli alerji belirtisi. Hemen 112'yi arayın.,S01
+RF_NEFES,Ağır nefes darlığı / morarma,nefes alamıyor|cümle kuramıyor|dudakları morar|dudaklar morar|morarıyor|boğuluyor|nefesi kesil,112,Ağır nefes darlığı acil durumdur. 112'yi arayın.,S01
+RF_SEKER,Şeker düşüklüğü / yüksekliği + bilinç bulanıklığı,şeker;bilinç|şeker;bayıl|şeker;kendinde değil|hipoglisemi;bilinç|aseton koku,112,Kan şekeri acili olabilir. 112'yi arayın.,S01
+RF_KANAMA,Durmayan / şiddetli kanama,kanama durmuyor|durmayan kanama|şiddetli kanama|çok kan kaybı|kan fışkır,112,Şiddetli kanamada bası uygulayın ve 112'yi arayın.,S06
+RF_ZEHIR,Zehirlenme şüphesi,zehirlen|çamaşır suyu iç|fazla ilaç iç|yanlışlıkla ilaç|mantar yedi;bulantı|kimyasal iç,114,Ulusal Zehir Danışma Merkezi 114'ü arayın. Bilinç kaybı nöbet veya nefes sorunu varsa 112.,S05
+RF_KENDINE_ZARAR,Kendine zarar verme / intihar düşüncesi,kendime zarar|kendine zarar|intihar|kendimi öldür|kendini öldür|yaşamak istemiyorum,112,Şu an güvende olmanız önemli. Hemen 112'yi arayın ya da yanınızdaki birinden yardım isteyin.,S14
