@@ -8,7 +8,7 @@ Kullanım: python -m sim.build_hospitals
 
 Tür kuralları elle belirlendi (OSM işleten bilgisi + ad). Emin olunamayanlar 'kontrol' sütununda işaretli.
 """
-import json
+import json, os
 from pathlib import Path
 
 import numpy as np
@@ -82,7 +82,7 @@ def main():
     print(out.groupby("tur_ad").size().to_string())
 
     # ---- yol süresi analizi (İzmir konum havuzu) ----
-    z = np.load(ROOT / "data/izmir/pool.npz")
+    z = np.load(ROOT / ("data/izmir/pool_orta.npz" if os.environ.get("OLCEK") == "orta" else "data/izmir/pool.npz"))
     plat, plon, tt, ilce = z["lat"], z["lon"], z["tt"], z["ilce"]
 
     def nearest(la, lo):

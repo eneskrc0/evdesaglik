@@ -39,6 +39,9 @@ WORLD = os.environ.get("DUNYA", "bornova")
 OLCEK = os.environ.get("OLCEK", "")
 WORLD_TAG = f"{WORLD}_{OLCEK}" if OLCEK else WORLD
 _POOL_FILE = Path(__file__).resolve().parent.parent / "data" / WORLD / "pool.npz"
+# Ölçeğe özel havuz varsa onu kullan (ör. data/izmir/pool_orta.npz: yerleşim filtresiyle temizlenmiş)
+if OLCEK and (_POOL_FILE.parent / f"pool_{OLCEK}.npz").exists():
+    _POOL_FILE = _POOL_FILE.parent / f"pool_{OLCEK}.npz"
 if _POOL_FILE.exists():
     _z = np.load(_POOL_FILE)
     POOL = [(float(a), float(b), i) for i, (a, b) in enumerate(zip(_z["lat"], _z["lon"]))]

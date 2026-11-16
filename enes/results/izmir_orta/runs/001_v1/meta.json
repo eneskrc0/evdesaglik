@@ -4,9 +4,9 @@
   "versiyon": "v1",
   "name": "v1",
   "model": "gbm_v1",
-  "note": "izmir_orta referans: 80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün",
+  "note": "izmir_orta referans, temiz konum havuzu (pool_orta.npz)",
   "set": "dev",
-  "date": "2026-11-16T18:57",
+  "date": "2026-11-16T19:48",
   "protocol": {
     "hist_days": 12,
     "train_days": 12,
@@ -30,12 +30,12 @@
       "belirsiz_yol"
     ]
   },
-  "heuristic_hash": "26a5198dbd73",
+  "heuristic_hash": "95c1a3daae9a",
   "files": {
     "data/izmir/pool.npz": "3de31e84dbf5",
     "sim/engine.py": "2ae9078592af",
     "sim/world.py": "74c7e3215026",
-    "sim/geo.py": "e9f146c29eff",
-    "sim/models.py": "d3eaf96effeb"
+    "sim/geo.py": "2fe8508afba9",
+    "sim/models.py": "11abc559af5e"
   }
 }

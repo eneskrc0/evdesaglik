@@ -7,7 +7,7 @@ Girdi : Bornova -> data/bornova/drive.graphml ; İzmir -> data/izmir/ag.npz
         kenar süresi desisaniye uint16; hepsi base64. pool[i] = havuz noktası i'nin ağdaki sırası.
 Kullanım: python3 sim/build_route_graph.py bornova|izmir
 """
-import base64, json, sys
+import base64, json, os, sys
 from pathlib import Path
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -38,7 +38,8 @@ def b64(a):
 
 def main(world):
     node, lat, lon, u, v, tt = load(world)
-    pool = np.load(ROOT / f"data/{world}/pool.npz")
+    _pf = ROOT / f"data/{world}/pool_{os.environ.get('OLCEK', '')}.npz"
+    pool = np.load(_pf if os.environ.get("OLCEK") and _pf.exists() else ROOT / f"data/{world}/pool.npz")
     n = len(node)
     # paralel kenarlarda en kısa süre
     key = u * n + v

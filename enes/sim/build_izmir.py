@@ -7,6 +7,7 @@ Girdi:  data/izmir/ag.npz          (Colab'da osmnx ile üretilen sıkıştırıl
         web/roads_izmir.json       (demo sayfası: ana yollar, ilçe sınırları, süre matrisi)
 
 Kullanım: python -m sim.build_izmir --n 1200
+          python -m sim.build_izmir --n 1200 --temiz --out pool_orta.npz   (yerleşim filtresi; izmir_orta + demo)
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from pathlib import Path
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import connected_components, dijkstra
+from scipy.spatial import cKDTree
 from shapely.geometry import box, shape
 from shapely.prepared import prep
 from shapely import points as shp_points
@@ -30,6 +32,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=1200)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--temiz", action="store_true", help="otoyol/çevre yolu ve yerleşim dışı düğümleri ele")
+    ap.add_argument("--out", default="pool.npz")
+    ap.add_argument("--yogunluk", type=int, default=25, help="250 m içinde en az bu kadar yol düğümü (yerleşim vekili)")
     a = ap.parse_args()
 
     z = np.load(D / "ag.npz", allow_pickle=False)
@@ -55,7 +60,33 @@ def main():
         pp = prep(pg)
         mask = np.array([pp.contains(p) for p in pts])
         district[mask & (district == "")] = nm
-    cand = np.flatnonzero(in_scc & (district != ""))
+    ok = in_scc & (district != "")
+    if a.temiz:
+        # Bina verisi yok; yerleşim vekili = sokak ağı yoğunluğu. Ayrıca otoyol/çevre yolu üstü ve yalnızca hızlı yola bağlı düğümler elenir.
+        c = np.cos(np.radians(float(y.mean())))
+        XY = np.c_[x * 111.32 * c, y * 110.57]
+        L = np.linalg.norm(XY[u] - XY[v], axis=1)
+        spd = np.where(tt > 0, L / (tt / 3600.0), 0.0)
+        minspd = np.full(n, 1e9)
+        np.minimum.at(minspd, u, spd)
+        np.minimum.at(minspd, v, spd)
+        dens = np.array([len(r) for r in cKDTree(XY).query_ball_point(XY, 0.25)])
+        seg = []
+        for f in json.load(open(D / "anayollar.geojson"))["features"]:
+            if f["properties"].get("h") not in ("motorway", "trunk"):
+                continue
+            g = shape(f["geometry"])
+            for ln in ([g] if g.geom_type == "LineString" else list(g.geoms)):
+                cc = np.array(ln.coords)
+                for p0, p1 in zip(cc[:-1], cc[1:]):
+                    seg.append(np.linspace(p0, p1, max(2, int(np.hypot(*(p1 - p0)) * 111 / 0.02))))
+        S = np.vstack(seg)
+        dmw, _ = cKDTree(np.c_[S[:, 0] * 111.32 * c, S[:, 1] * 110.57]).query(XY)
+        f_dens, f_mw, f_spd = dens >= a.yogunluk, dmw >= 0.08, minspd <= 40
+        print(f"Temizlik: yoğunluk eler {(~f_dens & ok).sum()}, otoyol/çevre yolu yakını eler {(~f_mw & ok).sum()}, "
+              f"yalnız hızlı yol eler {(~f_spd & ok).sum()} (aday {ok.sum()})")
+        ok &= f_dens & f_mw & f_spd
+    cand = np.flatnonzero(ok)
     print("İlçelere göre aday düğüm:", {nm: int((district[cand] == nm).sum()) for nm in names})
 
     rng = np.random.default_rng(a.seed)
@@ -63,7 +94,7 @@ def main():
     Dm = dijkstra(M, directed=True, indices=pool)[:, pool].astype(np.float32)
     assert np.isfinite(Dm).all()
     ilce = np.array([district[i] for i in pool])
-    np.savez_compressed(D / "pool.npz", lat=y[pool], lon=x[pool], node=z["node"][pool], tt=Dm, ilce=ilce)
+    np.savez_compressed(D / a.out, lat=y[pool], lon=x[pool], node=z["node"][pool], tt=Dm, ilce=ilce)
     print(f"Havuz: {len(pool)} konum; ort. süre {Dm[Dm > 0].mean() / 60:.1f} dk, en uzun {Dm.max() / 60:.1f} dk")
     print("Havuzda ilçe dağılımı:", {nm: int((ilce == nm).sum()) for nm in names})
 

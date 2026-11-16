@@ -33,6 +33,9 @@ CONFIGS = {
     # v5 parametre ızgarası (a: yol cezası, b: bildirim yükü, c: ziyaret yükü)
     **{f"v5_a{a}_b{b}_c{c}": f"pol:a={a},b={b},c={c},alpha=0.95,base=3"
        for a in (0.3, 0.9) for b in (0.03, 0.12) for c in (0.08, 0.3)},
+    # en iyi iki ızgara noktası + kota 5
+    "v5_a0.3_b0.03_c0.08_zkota5": "pol:a=0.3,b=0.03,c=0.08,alpha=0.95,base=3,vc=5",
+    "v5_a0.9_b0.03_c0.08_zkota5": "pol:a=0.9,b=0.03,c=0.08,alpha=0.95,base=3,vc=5",
 }
 COLS = {"uygun_teklif_5dk": "5dk_uygun", "eslesmeyen_oran": "eslesmeyen", "zamaninda_ziyaret": "zamaninda",
         "bildirim_gini": "bildirim_gini", "hemsire_kazanc_gini": "kazanc_gini", "hemsire_issiz_gun_orani": "issiz_gun",

@@ -1,0 +1,41 @@
+{
+  "id": "002_v2",
+  "world": "izmir_orta",
+  "versiyon": "v2",
+  "name": "v2",
+  "model": "v2_adil",
+  "note": "v1 + yük cezası",
+  "set": "dev",
+  "date": "2026-11-16T19:20",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "26a5198dbd73",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "74c7e3215026",
+    "sim/geo.py": "e9f146c29eff",
+    "sim/models.py": "11abc559af5e"
+  }
+}

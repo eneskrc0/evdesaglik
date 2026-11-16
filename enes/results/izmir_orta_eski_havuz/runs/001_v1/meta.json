@@ -1,0 +1,41 @@
+{
+  "id": "001_v1",
+  "world": "izmir_orta",
+  "versiyon": "v1",
+  "name": "v1",
+  "model": "gbm_v1",
+  "note": "izmir_orta referans: 80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün",
+  "set": "dev",
+  "date": "2026-11-16T18:57",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "26a5198dbd73",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "74c7e3215026",
+    "sim/geo.py": "e9f146c29eff",
+    "sim/models.py": "d3eaf96effeb"
+  }
+}

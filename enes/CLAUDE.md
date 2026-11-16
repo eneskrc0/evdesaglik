@@ -93,11 +93,17 @@ python -m pytest -q tests
 ## İzmir orta ölçek (2026-11-16) — güncel ana dünya
 - `DUNYA=izmir OLCEK=orta` → sonuçlar results/izmir_orta/. Ölçek: 80 hemşire, 25 doktor, 20 fizyoterapist, 155 talep/gün
   (world.SCALE["izmir_orta"]; hizmet karışımı pansuman %60 / doktor %25 / fizyoterapi %15; fizyoterapi 60 dk, 1200 TL temsili).
-- Eski dünyalar birebir aynı (fizyoterapist yoksa RNG sırası değişmez; kontrol: izmir tohum 0 sonuçları aynı).
+- Konum havuzu: data/izmir/pool_orta.npz (`python -m sim.build_izmir --n 1200 --temiz --yogunluk 30 --out pool_orta.npz`).
+  Otoyol/çevre yolu 80 m yakını, yalnızca >40 km/s yola bağlı düğümler ve seyrek alanlar (250 m içinde <30 yol düğümü; bina verisi
+  olmadığından yerleşim vekili) elenir. geo.py, OLCEK=orta iken bu dosyayı okur. Eski havuzla alınan sonuçlar: results/izmir_orta_eski_havuz/.
+  Hastane ve rota ağı da bu havuzla: `OLCEK=orta python sim/build_hospitals.py`, `OLCEK=orta python sim/build_route_graph.py izmir`.
+- Eski dünyalar (bornova, izmir büyük) birebir aynı (fizyoterapist yoksa RNG sırası değişmez).
 - Hızlı arama: `python -m sim.search_orta` (yalnızca baz, tohum 0–9) → results/izmir_orta/arama_ozet.csv; grafik `python sim/plot_kota.py`.
-- Seçilen: `v5_kota5` = v5 kuralları + sert günlük ziyaret kotası 5 (models.policy_capped). Seçim kuralı: v1'e göre en fazla ~1 puan
-  başarı kaybıyla en düşük yük/eşitsizlik. Kota 4 → −2 puan; kota 6 → yük azalması küçük.
-- Sonuçlar (baz, geliştirme / ayrılmış): kural 52,4 / 51,6 · v1 72,7 / 71,5 · v5 72,3 / 70,6 · v5_kota5 71,7 / 70,1 (5 dk uygun %).
-  v5_kota5 v1'e göre: günlük en fazla iş 8,9→5,1, kazanç Gini 0,63→0,55, bildirim Gini 0,46→0,35, iş alamayan hemşire-gün %57→%48.
-- Orta ölçekte başarı büyük ölçekten düşük (72 vs 88): çalışan yoğunluğu az, yakında aday az.
-- Demo (izmir.html) bu ölçekte: fizyoterapist dahil. Harita görünümleri: Genel / Hasta gözüyle / Çalışan gözüyle (viewSeg).
+- Seçilen: `v5_kota5_ayarli` = gbm_v3 + a=0.9, b=0.03, c=0.08, alpha=0.95 + sert günlük ziyaret kotası 5.
+  Seçim kuralı: v1'e göre en fazla ~1 puan başarı kaybıyla en düşük yük (günlük en fazla iş) ve kısa yol.
+- Sonuçlar, baz senaryo (geliştirme / ayrılmış), 5 dk uygun %: kural 53,8 / 52,4 · v1 76,3 / 74,0 · v5 75,1 / 73,2 ·
+  v5_kota5 74,3 / 72,6 · v5_kota5_ayarli 75,3 / 73,1. Ayrılmış: ayarlı − kural +20,7 ± 1,1 puan; ayarlı − v1 −0,9 ± 0,4.
+  Ayarlı, v1'e göre: günlük en fazla iş 8,6→5,2, kazanç Gini 0,65→0,57, bildirim Gini 0,48→0,39, yol 12,95→12,32 dk.
+- Orta ölçekte başarı büyük ölçekten düşük (75 vs 88): çalışan yoğunluğu az, yakında aday az.
+- Demo (izmir.html) bu ölçek ve havuzla: fizyoterapist dahil; harita görünümleri Genel / Hasta gözüyle / Çalışan gözüyle;
+  yakınlaştırma/kaydırma (tekerlek, iki parmak, sürükleme, +/−/⤢).

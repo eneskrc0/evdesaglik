@@ -119,6 +119,8 @@ MODELS["v4_mesafe"] = policy(gbm_v1, a=0.7, b=0.08, c=0.1, alpha=0.95)
 MODELS["v5_denge"] = policy(gbm_v3, a=0.6, b=0.06, c=0.15, alpha=0.95)
 # izmir_orta (2026-11-16): v5 kuralları + sert günlük ziyaret kotası 5 (arama: results/izmir_orta/arama_ozet.csv)
 MODELS["v5_kota5"] = policy_capped(gbm_v3, visit_cap=5, a=0.6, b=0.06, c=0.15, alpha=0.95)
+# Temiz konum havuzunda yeniden ayar: daha güçlü yol cezası, hafif yük cezaları + kota 5 (arama: v5_a0.9_b0.03_c0.08_zkota5)
+MODELS["v5_kota5_ayarli"] = policy_capped(gbm_v3, visit_cap=5, a=0.9, b=0.03, c=0.08, alpha=0.95)
 # Demo sayfasının kullandığı bileşim: lojistik regresyon + v5 kuralları
 MODELS["v5_demo_lr"] = policy(logreg_v1, a=0.6, b=0.06, c=0.15, alpha=0.95)
 for _n in (4, 6, 8, 10, 12):

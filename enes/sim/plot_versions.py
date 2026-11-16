@@ -17,7 +17,7 @@ WORLD = os.environ.get("DUNYA", "bornova")
 OLCEK = os.environ.get("OLCEK", "")
 TAG = f"{WORLD}_{OLCEK}" if OLCEK else WORLD
 RES = ROOT / "results" if TAG == "bornova" else ROOT / "results" / TAG
-VERSIONS = ["v1", "v2", "v3", "v4", "v5"] + (["v5+kota"] if OLCEK == "orta" else [])
+VERSIONS = ["v1", "v2", "v3", "v4", "v5"] + (["v5+kota", "v5+kota+ayar"] if OLCEK == "orta" else [])
 GREEN, BLUE, ORANGE = "#1baf7a", "#2a78d6", "#eb6834"
 
 # (sütun, başlık, birim, yüzde mi, yüksek mi iyi)
@@ -45,7 +45,7 @@ def main():
     heur = r[r.model.isin(["en_yakin", "en_erken"])]
     mods = r[r["versiyon"].isin(VERSIONS)] if "versiyon" in r else r.iloc[0:0]
     mods = mods.drop_duplicates("versiyon", keep="last").set_index("versiyon")
-    fig, axes = plt.subplots(2, 5, figsize=(18 + 2 * (len(VERSIONS) > 5), 7.6))
+    fig, axes = plt.subplots(2, 5, figsize=(18 + 1.6 * max(0, len(VERSIONS) - 5), 7.6))
     x = np.arange(len(VERSIONS))
     for ax, (col, title, unit, pct, higher) in zip(axes.flat, PANELS):
         vals = [mods.loc[v, col] if v in mods.index and col in mods.columns else np.nan for v in VERSIONS]

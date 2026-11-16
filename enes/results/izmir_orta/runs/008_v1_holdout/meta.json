@@ -1,0 +1,41 @@
+{
+  "id": "008_v1_holdout",
+  "world": "izmir_orta",
+  "versiyon": "v1",
+  "name": "v1",
+  "model": "gbm_v1",
+  "note": "ayrılmış referans, temiz havuz",
+  "set": "holdout",
+  "date": "2026-11-16T20:22",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "a4e3df9a7841",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "2ae9078592af",
+    "sim/world.py": "74c7e3215026",
+    "sim/geo.py": "2fe8508afba9",
+    "sim/models.py": "6972e3b93773"
+  }
+}
