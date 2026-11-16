@@ -100,8 +100,9 @@ def get_model(name):
         base = {1: gbm_v1, 2: gbm_v2, 3: gbm_v3}[int(cfg.pop("base", 1))]
         caps = {k: cfg.pop(k) for k in ("nc", "vc", "soft") if k in cfg}
         if caps:  # ör. 'pol:a=0.6,b=0.06,c=0.15,alpha=0.95,base=3,vc=3,soft=1'
+            vcv = caps.get("vc")
             return policy_capped(base, notif_cap=int(caps["nc"]) if "nc" in caps else None,
-                                 visit_cap=int(caps["vc"]) if "vc" in caps else None, soft=bool(caps.get("soft", 0)), **cfg)
+                                 visit_cap=("auto" if vcv == -1 else int(vcv)) if vcv is not None else None, soft=bool(caps.get("soft", 0)), **cfg)
         return policy(base, **cfg)
     raise KeyError(name)
 
@@ -121,6 +122,8 @@ MODELS["v5_denge"] = policy(gbm_v3, a=0.6, b=0.06, c=0.15, alpha=0.95)
 MODELS["v5_kota5"] = policy_capped(gbm_v3, visit_cap=5, a=0.6, b=0.06, c=0.15, alpha=0.95)
 # Temiz konum havuzunda yeniden ayar: daha güçlü yol cezası, hafif yük cezaları + kota 5 (arama: v5_a0.9_b0.03_c0.08_zkota5)
 MODELS["v5_kota5_ayarli"] = policy_capped(gbm_v3, visit_cap=5, a=0.9, b=0.03, c=0.08, alpha=0.95)
+# Uyarlanır kota: kota = round(2,5 + 2 × beklenen talep/çalışan) (duyarlılık testi, results/izmir_orta/duyarlilik.csv)
+MODELS["v5_ukota_ayarli"] = policy_capped(gbm_v3, visit_cap="auto", a=0.9, b=0.03, c=0.08, alpha=0.95)
 # Demo sayfasının kullandığı bileşim: lojistik regresyon + v5 kuralları
 MODELS["v5_demo_lr"] = policy(logreg_v1, a=0.6, b=0.06, c=0.15, alpha=0.95)
 for _n in (4, 6, 8, 10, 12):

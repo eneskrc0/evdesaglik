@@ -107,3 +107,13 @@ python -m pytest -q tests
 - Orta ölçekte başarı büyük ölçekten düşük (75 vs 88): çalışan yoğunluğu az, yakında aday az.
 - Demo (izmir.html) bu ölçek ve havuzla: fizyoterapist dahil; harita görünümleri Genel / Hasta gözüyle / Çalışan gözüyle;
   yakınlaştırma/kaydırma (tekerlek, iki parmak, sürükleme, +/−/⤢).
+
+## Dayanıklılık testi (2026-11-16)
+- `python -m sim.duyarlilik` (OLCEK=orta havuzu, baz, tohum 0–9): çalışan 0,5/1/2 × orta (40–160 hemşire), talep/çalışan 0,8/1,25/2,0.
+  Sonuç results/izmir_orta/duyarlilik.csv, grafik `python sim/plot_duyarlilik.py` → duyarlilik.png.
+- Yapay zekâ − kural: küçük ekip +13–14, orta +21, büyük +26–27 puan (her hücrede). Başarıyı en çok çalışan sayısı belirliyor
+  (v1: küçük ~63, orta ~76, büyük ~83); talep yoğunluğu 2–4 puan etkiliyor.
+- En iyi sabit kota talebe bağlı: sakin 4, normal 5, yoğun 6–8. Uyarlanır kota `v5_ukota_ayarli`
+  (vc="auto": round(2,5 + 2 × beklenen talep/çalışan); engine.notify) 9 hücrenin ortalamasında v1'e göre −1,1 puan (sabit kota 5: −1,4),
+  günlük en fazla işi 5,5–12,4'ten 4,0–6,9'a indiriyor. Yoğun-büyük hücrede kayıp en yüksek (−2,4).
+- Önerilen ürün kuralı: uyarlanır kota (sabit 5 yerine). Ayrılmış tohumlarla henüz doğrulanmadı.

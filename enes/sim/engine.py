@@ -204,6 +204,8 @@ def run_day(sc: Scenario, workers0: list[Worker], reqs: list[Request], policy: s
             ranked = rank(policy, cands, req, t, hist, model, pol_rng)
         if policy == "model" and model is not None:
             nc, vc = getattr(model, "notif_cap", None), getattr(model, "visit_cap", None)
+            if vc == "auto":  # uyarlanır kota: beklenen günlük talep/çalışan oranına göre (ρ=0,8→4, 1,25→5, 2→6-7)
+                vc = int(round(2.5 + 2.0 * sc.requests_per_day / max(1, len(workers))))
             soft = getattr(model, "soft", False)
 
             def over_cap(c):
