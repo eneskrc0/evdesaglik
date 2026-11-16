@@ -32,7 +32,9 @@ button.btn.sm{padding:5px 9px;font-size:12px}
 .seg button.on{background:var(--accent);color:#fff}
 #map line,#map polyline,#map path,#map polygon,#map circle,#map rect{vector-effect:non-scaling-stroke}
 #map{transition:none;width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:none;cursor:crosshair}
-.mapwrap{position:relative}.zoomBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+.mapwrap{position:relative}.viewCard{position:absolute;left:8px;top:8px;max-width:min(62%,330px);background:color-mix(in srgb,var(--card) 95%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.vcHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.vcRow{margin-top:3px}.vcN{display:inline-grid;margin-right:5px;vertical-align:-3px;place-items:center;width:16px;height:16px;border-radius:50%;border:2px solid var(--blue);font-size:10px;font-weight:700;flex:none}
+.vcReq{margin-top:6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--orange) 12%,transparent)}.vcOk{margin-top:6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--aqua) 14%,transparent)}.vcLeg{margin-top:6px;color:var(--ink3)}.zoomBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
 .zoomBtns button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;font-weight:700;cursor:pointer;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .zoomBtns button:hover{border-color:var(--blue)}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink2);margin-top:6px}
@@ -89,7 +91,7 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
    </div>
    <div class="seg" id="viewSeg" style="margin-bottom:4px"><button data-v="genel" class="on">Genel (yönetici)</button><button data-v="hasta">Hasta gözüyle</button><button data-v="calisan">Çalışan gözüyle</button></div>
    <div class="tiny" id="viewNote" style="min-height:2.4em;margin-bottom:4px">Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.</div>
-   <div class="mapwrap"><svg id="map" viewBox="0 0 600 470"></svg>
+   <div class="mapwrap"><svg id="map" viewBox="0 0 600 470"></svg><div id="viewCard" class="viewCard hide"></div>
     <div class="zoomBtns"><button id="zIn" title="Yakınlaştır" aria-label="Yakınlaştır">+</button><button id="zOut" title="Uzaklaştır" aria-label="Uzaklaştır">−</button><button id="zFit" title="Tümünü göster / ortala" aria-label="Ortala">⤢</button></div></div>
    <div class="tiny" style="margin-top:3px">Fareyle tekerlek ya da telefonda iki parmakla yakınlaştırın, sürükleyerek kaydırın; ⤢ ile geri dönün.</div>
    <div class="legend">
@@ -618,7 +620,7 @@ function setViewBox(pts,minKm){if(D.manual)return;const m=$("map");const H=baseH
  applyVB(vx,vy,w,h,false);}
 function jitter(loc,id){const h=(id*2654435761)>>>0,a=(h%360)*Math.PI/180,r=0.0012+((h>>>9)%100)/100*0.0014;return[loc[0]+r*Math.sin(a),loc[1]+r*Math.cos(a)/0.78];}
 function cachedRoute(a,b){D.rc=D.rc||{};const k=(a[2]??a.join())+"-"+(b[2]??b.join());return D.rc[k]||(D.rc[k]=makeRoute(a,b));}
-function setView(v){hideTip();D.manual=false;D.view=v;[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
+function setView(v){hideTip();D.manual=false;D.view=v;$("viewCard").classList.toggle("hide",v!=="calisan");[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
  D.gHex.style.display=v==="genel"?"":"none";D.gLines.style.display=v==="genel"?"":"none";
  if(D.gHosp)D.gHosp.style.display=(v==="calisan"||!$("hospToggle").checked)?"none":"";
  if(v==="genel")setViewBox([],0);drawWorkers();drawPatient();if(D.track)updateTracking(true);}
@@ -633,25 +635,43 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
    c.addEventListener("mousemove",e=>showTip(e,`Müsait ${roleNameV(w.role).toLowerCase()}<br><span class="tiny">yaklaşık konum · kimlik kabulden sonra</span>`));c.addEventListener("mouseleave",hideTip);}
   const txt=Object.entries(near).map(([r,n])=>`${n} ${roleNameV(r).toLowerCase()}`).join(", ");
   $("viewNote").textContent=(txt?`Yakınınızda (5 km) şu an müsait: ${txt}.`:"5 km içinde şu an müsait çalışan yok; teklifler daha uzaktan gelebilir.")+(D.req&&!D.booked?" Teklif bekleniyor.":"");return;}
- // çalışan gözüyle
- const w=D.workers[D.controlled];if(!w)return;const pf=w.posFree(D.clock);const pts=[pf.loc];
- const bl=[...w.blocks].sort((a,b)=>a.s-b.s);let prev=null;
- bl.forEach((b,i)=>{if(!prev){prev=b.p;pts.push(b.p);return;}const r=cachedRoute(prev,b.p);const P=r.pts.map(p=>proj(p).join(",")).join(" ");const done=b.e<=D.clock;
-  el("polyline",{points:P,fill:"none",stroke:done?"var(--ink3)":"var(--blue)","stroke-width":2.5,opacity:done?.35:.75,"stroke-dasharray":done?"":"6 4"},g);prev=b.p;pts.push(b.p);});
- bl.forEach((b,i)=>{const[x,y]=proj(b.p),done=b.e<=D.clock,now=b.s<=D.clock&&D.clock<b.e;
-  el("circle",{cx:x,cy:y,r:8*z,fill:done?"var(--ink3)":now?"var(--busy)":"var(--card)",stroke:"var(--blue)","stroke-width":2},g);
-  const t=el("text",{x,y:y+3.2*z,"text-anchor":"middle","font-size":9*z,"font-weight":700,fill:done?"var(--card)":"var(--ink)"},g);t.textContent=i+1;
-  const lb=el("text",{x:x+11*z,y:y+3*z,"font-size":8.5*z,fill:"var(--ink2)"},g);lb.textContent=fmtT(b.s+0)+(b.plat?" · platform":"");});
- if(D.inbox&&!D.booked&&D.req){const loc=D.req.loc;pts.push(loc);
-  if(HAS_H3){const poly=h3.cellToBoundary(cellOf(loc)).map(p=>proj(p).join(",")).join(" ");el("polygon",{points:poly,fill:"color-mix(in srgb,var(--orange) 22%,transparent)",stroke:"var(--orange)","stroke-width":2},g);}
-  else{const[x,y]=proj(loc);el("circle",{cx:x,cy:y,r:kmUnit(loc)*0.6,fill:"color-mix(in srgb,var(--orange) 22%,transparent)",stroke:"var(--orange)","stroke-width":2},g);}
-  const[x,y]=proj(loc),tm=Math.round(travelMin(pf.loc,loc,D.clock));const t=el("text",{x,y:y-12*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--orange)"},g);t.textContent=`Yeni talep · ~${tm} dk`;}
- const mine=D.booked&&D.booked.worker===w.id;if(mine)pts.push(D.req.loc);
- if(D.gTrack)D.gTrack.style.display=D.track&&D.track.wid===w.id?"":"none";
- if(!(D.track&&D.track.wid===w.id)){const[x,y]=proj(pf.loc);el("circle",{cx:x,cy:y,r:9*z,fill:roleColorV(w.role),stroke:"var(--card)","stroke-width":3},g);
-  const t=el("text",{x,y:y-13*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent="Siz";}
- setViewBox(pts,1.6);
- const nxt=bl.find(b=>b.s>D.clock);$("viewNote").textContent=`${roleNameV(w.role)} #${w.id} · bugün ${bl.length} durak${nxt?` · sıradaki ${fmtT(nxt.s)}`:""}${D.inbox&&!D.booked?" · yeni talep var (açık adres kabulden sonra)":""}${mine?" · kabul ettiğiniz ziyaret haritada":""}`;}
+ // çalışan gözüyle: kendi konumu, önündeki işler ve yolları, gelen talebin bölgesi
+ const w=D.workers[D.controlled];if(!w)return;const pf=w.posFree(D.clock),now=D.clock;const pts=[pf.loc];
+ const bl=[...w.blocks].sort((a,b)=>a.s-b.s),future=bl.filter(b=>b.e>now),done=bl.filter(b=>b.e<=now);
+ const ilce=l=>(ROADS&&ROADS.ilce&&l.length>2)?ROADS.ilce[l[2]]:"";
+ const trk=D.track&&D.track.wid===w.id,tb=trk?future.find(b=>b.plat&&Math.abs(b.s-D.track.depart)<0.5):null; // canlı takipteki ziyaret
+ const startOf=b=>b===tb?D.track.arrive:b.s;
+ // rota: şu anki konum → sıradaki iş (düz mavi) → sonrakiler (kesikli)
+ let prev=pf.loc,leg=0;
+ for(const b of future){if(b.s<=now||b===tb){prev=b.p;continue;}const r=cachedRoute(prev,b.p);
+  el("polyline",{points:r.pts.map(p=>proj(p).join(",")).join(" "),fill:"none",stroke:"var(--blue)","stroke-width":leg===0?3.5:2,"stroke-dasharray":leg===0?"":"6 5",opacity:leg===0?.9:.55,"stroke-linecap":"round"},g);
+  prev=b.p;pts.push(b.p);leg++;}
+ future.forEach((b,i)=>{const[x,y]=proj(b.p),cur=b.s<=now;
+  el("circle",{cx:x,cy:y,r:9*z,fill:(cur&&b!==tb)?"var(--busy)":"var(--card)",stroke:"var(--blue)","stroke-width":2.5},g);
+  const t=el("text",{x,y:y+3.3*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent=i+1;
+  const lb=el("text",{x:x+12*z,y:y+3.5*z,"font-size":9.5*z,"font-weight":600,fill:"var(--ink2)"},g);lb.textContent=`${fmtT(startOf(b))} · ${b.plat?"platform ziyareti":"kendi randevunuz"}`;});
+ const req=(D.inbox&&!D.booked&&D.req)?D.req:null;let tmReq=null;
+ if(req){const loc=req.loc,ku=kmUnit(loc),[x,y]=proj(loc),[sx,sy]=proj(pf.loc);tmReq=Math.round(travelMin(pf.loc,loc,now));
+  el("line",{x1:sx,y1:sy,x2:x,y2:y,stroke:"var(--orange)","stroke-width":2,"stroke-dasharray":"5 4",opacity:.8},g);
+  el("circle",{cx:x,cy:y,r:ku*0.6,fill:"color-mix(in srgb,var(--orange) 20%,transparent)",stroke:"var(--orange)","stroke-width":2},g);
+  const t=el("text",{x,y:y-ku*0.6-5*z,"text-anchor":"middle","font-size":11*z,"font-weight":700,fill:"var(--orange)"},g);t.textContent=`Yeni talep · ~${tmReq} dk`;
+  pts.push([loc[0]+0.008,loc[1]],[loc[0]-0.008,loc[1]],[loc[0],loc[1]+0.01],[loc[0],loc[1]-0.01]);}
+ const mine=D.booked&&D.booked.worker===w.id;if(mine){const l=D.req.loc;pts.push(l,[l[0]+0.006,l[1]+0.012],[l[0]-0.006,l[1]-0.004]);}
+ if(D.gTrack)D.gTrack.style.display=trk?"":"none";
+ if(!trk){const[x,y]=proj(pf.loc);el("circle",{cx:x,cy:y,r:10*z,fill:roleColorV(w.role),stroke:"var(--card)","stroke-width":3},g);
+  const t=el("text",{x,y:y-14*z,"text-anchor":"middle","font-size":11*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent="Siz";}
+ setViewBox(pts,2.2);
+ // bilgi kartı
+ const st=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trackState().step]:pf.inVisit?`Ziyarette · ${fmtT(pf.free)}'de biter`:"Müsait";
+ const items=future.map((b,i)=>`<div class="vcRow"><span class="vcN">${i+1}</span>${fmtT(startOf(b))}–${fmtT(b.e)} · ${b.plat?"<b>platform ziyareti</b>":"kendi randevunuz"}${ilce(b.p)?" · "+ilce(b.p):""}${b===tb?(trackState().step<3?" · <i>yoldasınız</i>":" · <i>şu an</i>"):b.s<=now?" · <i>şu an</i>":""}</div>`).join("")
+  ||'<div class="vcRow tiny">Bugün önünüzde başka iş yok.</div>';
+ const S=req?SERVICES[req.service]:null;
+ $("viewCard").innerHTML=`<div class="vcHead"><b>${roleNameV(w.role)} #${w.id}</b><span class="pill">${st}</span></div>
+  <div class="tiny" style="margin:4px 0 2px">Bugün önünüzdeki işler${done.length?` · ${done.length} tamamlandı`:""}</div>${items}
+  ${req?`<div class="vcReq">🔔 <b>Yeni talep:</b> ${S.label}, ${fmtT(req.ws)}–${fmtT(req.we)} arası · ~${tmReq} dk uzakta${ilce(req.loc)?" · "+ilce(req.loc):""}<div class="tiny">Açık adres kabulden sonra görünür. Teklifinizi sağdaki panelden verin.</div></div>`:""}
+  ${mine?`<div class="vcOk">✅ Kabul ettiğiniz ziyaret haritada; rota ve kalan süre canlı.</div>`:""}
+  <div class="tiny vcLeg"><span style="color:var(--blue)">━</span> sıradaki işinize yol · <span style="color:var(--blue)">┅</span> sonraki işler${req?' · <span style="color:var(--orange)">◯</span> talep bölgesi':""}</div>`;
+ $("viewNote").textContent="Seçili çalışanın telefonunda gördüğü. Başka bir çalışanın ekranı için sağdaki “Hangi çalışan sizsiniz?” listesini kullanın.";}
 const ROLE_TR={hemsire:"Hemşire",doktor:"Doktor",fizyoterapist:"Fizyoterapist",dil_konusma:"Dil ve konuşma terapisti",klinik_psikolog:"Klinik psikolog",diyetisyen:"Diyetisyen",ergoterapist:"Ergoterapist",odyolog:"Odyolog",podolog:"Podolog"};
 const ROLE_COL={hemsire:"var(--aqua)",doktor:"var(--blue)",fizyoterapist:"#8b5cf6",dil_konusma:"#d6409f",klinik_psikolog:"#f59e0b",diyetisyen:"#65a30d",ergoterapist:"#0891b2",odyolog:"#a16207",podolog:"#64748b"};
 const roleNameV=r=>(typeof roleName==="function")?roleName(r):(ROLE_TR[r]||r);
