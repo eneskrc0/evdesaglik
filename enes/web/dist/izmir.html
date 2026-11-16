@@ -87,7 +87,7 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
    <h2>Bornova haritası <span class="pill" id="loadPill">model eğitiliyor…</span></h2>
    <div class="row small" style="align-items:center;margin-bottom:6px">
      <div>Saat: <span class="clock" id="clock">10:00</span></div>
-     <div class="seg" id="speedSeg" style="flex:1.4"><button data-s="0">Durdur</button><button data-s="1" class="on">1 dk/sn</button><button data-s="4">4 dk/sn</button></div>
+     <div class="seg" id="speedSeg" style="flex:2"><button data-s="0">Durdur</button><button data-s="0.016667" title="1 saniye = 1 saniye">Gerçek zaman</button><button data-s="0.25" title="1 saniye = 15 saniye">15 sn/sn</button><button data-s="1" class="on" title="1 saniye = 1 dakika">1 dk/sn</button><button data-s="4" title="1 saniye = 4 dakika">4 dk/sn</button></div>
    </div>
    <div class="seg" id="viewSeg" style="margin-bottom:4px"><button data-v="genel" class="on">Genel (yönetici)</button><button data-v="hasta">Hasta gözüyle</button><button data-v="calisan">Çalışan gözüyle</button></div>
    <div class="tiny" id="viewNote" style="min-height:2.4em;margin-bottom:4px">Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.</div>
@@ -633,7 +633,7 @@ function initDemo(){
 function fillWindows(){const s=$("fWindow");const cur=s.value;s.innerHTML="";const start=Math.ceil((D.clock+30)/15)*15;
  for(let t=start;t<=Math.min(start+300,DAY_END-120);t+=15){const o=document.createElement("option");o.value=t;o.textContent=`Bugün ${fmtT(t)}–${fmtT(t+60)}`;s.appendChild(o);}
  if(cur&&[...s.options].some(o=>o.value===cur))s.value=cur;}
-$("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.speed=+b.dataset.s;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",x===b));};
+$("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.speed=+b.dataset.s;D.slowed=false;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",x===b));};
 
 function drawWorkers(){if(D.view&&D.view!=="genel"){drawViewLayer();drawPatient();return;}const g=D.gWorkers;g.innerHTML="";
  for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=w.posFree(D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
@@ -715,7 +715,8 @@ function routeNodes(s,t){const G=graphDecode();const n=G.n,dist=new Float64Array
 function makeRoute(a,b){if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();const r=routeNodes(G.pool[a[2]],G.pool[b[2]]);if(r)return r;}
  const sec=(TT&&a.length>2&&b.length>2)?TT[a[2]*POOL.length+b[2]]:60*60*haversine(a,b)*DETOUR/speedKmh(D.clock);
  return{pts:[a.slice(0,2),b.slice(0,2)],cum:[0,sec],km:[0,haversine(a,b)*DETOUR],total:sec};}
-function startTracking(w,ea,planned,S){const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-3);// dk
+function setSpeed(v){D.speed=v;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",Math.abs(+x.dataset.s-v)<1e-6));}
+function startTracking(w,ea,planned,S){D.slowed=D.speed>0.25;/* otomatik izleme hızı: yola çıkana kadar hızlı, yolda yavaş, varınca normal */const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-3);// dk
  const depart=planned-travelMin(ea.from,D.req.loc,ea.depart);
  D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(roleNameV(w.role))+" #"+w.id,lastStep:-1};
  if(!D.gTrack){D.gTrack=el("g",{},$("map"));$("map").insertBefore(D.gTrack,D.gPatient);}
@@ -729,6 +730,7 @@ function trackState(){const T=D.track,t=D.clock,r=T.r;
  const end=r.pts[r.pts.length-1];if(t<T.arrive)return{step:3,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};
  if(t<T.end)return{step:4,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};return{step:5,f:1,pos:end,idx:r.pts.length-1,kmLeft:0};}
 function updateTracking(force){const T=D.track;if(!T)return;const s=trackState(),r=T.r,g=D.gTrack;g.innerHTML="";
+ if(D.slowed){const want=s.step===0?4:s.step<=2?0.25:1;if(Math.abs(D.speed-want)>1e-6)setSpeed(want);if(s.step>=3)D.slowed=false;}
  // rota: geçilen kısım soluk, kalan kısım belirgin
  const P=r.pts.map(proj);const done=P.slice(0,s.idx).concat([proj(s.pos)]),left=[proj(s.pos)].concat(P.slice(s.idx));
  if(s.step<3){if(done.length>1)el("polyline",{points:done.map(p=>p.join(",")).join(" "),fill:"none",stroke:"var(--ink3)","stroke-width":2.5,opacity:.45,"stroke-linecap":"round"},g);
@@ -746,7 +748,7 @@ function updateTracking(force){const T=D.track;if(!T)return;const s=trackState()
   ${s.step<=2?`<div class="eta"><div class="etaBig">${Math.ceil(rem)} dk</div><div class="tiny">tahmini varış ${fmtT(T.arrive)}</div></div>`:""}</div>
   <div class="steps">${steps.map((n,i)=>`<div class="st ${i<cur?"ok":i===cur?"now":""}"><span></span>${n}</div>`).join("")}</div>
   <div class="bar"><div style="width:${(s.step===0?0:s.step>=3?100:100*s.f).toFixed(1)}%"></div></div>
-  <div class="tiny" style="margin-top:6px">${s.step<=2?`Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park 3 dk`}</div></div>`;
+  <div class="tiny" style="margin-top:6px">${s.step<=2?`${D.slowed?`<span style="color:var(--blue)">${s.step===0?"Çalışan yola çıkana kadar saat hızlı akıyor (1 sn = 4 dk).":"Yolculuğu izleyebilmeniz için saat yavaşlatıldı (1 sn = 15 sn)."}</span> `:""}Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park 3 dk`}</div></div>`;
  if(s.step!==T.lastStep){T.lastStep=s.step;drawWorkers();renderWorker();}}
 function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.posFree(D.clock);
  const trk=(D.track&&D.track.wid===w.id)?trackState():null;const trTxt=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trk.step]+(trk.step<=2?` · varış ${fmtT(D.track.arrive)}`:""):null;
