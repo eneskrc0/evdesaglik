@@ -636,14 +636,14 @@ function fillWindows(){const s=$("fWindow");const cur=s.value;s.innerHTML="";con
 $("speedSeg").onclick=e=>{const b=e.target.closest("button");if(!b||!D)return;D.speed=+b.dataset.s;D.slowed=false;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",x===b));};
 
 function drawWorkers(){if(D.view&&D.view!=="genel"){drawViewLayer();drawPatient();return;}const g=D.gWorkers;g.innerHTML="";
- for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=w.posFree(D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
+ for(const w of D.workers){if(D.track&&D.track.wid===w.id)continue;const pf=posDraw(w,D.clock);const [x,y]=proj(pf.loc);const notified=D.notified.has(w.id);
   const col=pf.inVisit?"var(--busy)":roleColorV(w.role);
   if(notified)el("circle",{cx:x,cy:y,r:11*zz(),fill:"none",stroke:"var(--orange)","stroke-width":2},g);
   if(w.id===D.controlled)el("circle",{cx:x,cy:y,r:8.5*zz(),fill:"none",stroke:"var(--ink)","stroke-width":1.5,"stroke-dasharray":"2 2"},g);
   const c=el("circle",{cx:x,cy:y,r:5.5*zz(),fill:col,stroke:"var(--card)","stroke-width":2},g);
-  c.addEventListener("mousemove",e=>showTip(e,`<b>${roleNameV(w.role)} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
+  c.addEventListener("mousemove",e=>showTip(e,`<b>${roleNameV(w.role)} #${w.id}</b><br>${pf.inVisit?"Ziyarette (bitiş "+fmtT(pf.free)+")":pf.moving?"Yolda · "+fmtT(pf.arr)+"'de varır":"Müsait"}`));c.addEventListener("mouseleave",hideTip);
   c.addEventListener("click",e=>{$("wSelect").value=w.id;D.controlled=w.id;renderWorker();drawWorkers();});}
- const gl=D.gLines;gl.innerHTML="";if(D.req&&!D.booked){for(const id of D.notified){const w=D.workers[id];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);
+ const gl=D.gLines;gl.innerHTML="";if(D.req&&!D.booked){for(const id of D.notified){const w=D.workers[id];const a=proj(posDraw(w,D.clock).loc),b=proj(D.req.loc);
    el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--orange)","stroke-width":1.2,"stroke-dasharray":"4 3",opacity:.8},gl);}}
  if(D.booked&&!D.track){const w=D.workers[D.booked.worker];const a=proj(w.posFree(D.clock).loc),b=proj(D.req.loc);el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"var(--aqua)","stroke-width":2.2},gl);}}
 function drawPatient(){const g=D.gPatient;g.innerHTML="";const loc=D.req?D.req.loc:D.loc;if(!loc)return;if(D.view==="calisan"&&!(D.booked&&D.booked.worker===D.controlled))return;const[x,y]=proj(loc);
@@ -796,19 +796,19 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
   if(!me){setViewBox([],0);$("viewNote").textContent="Önce haritadan konumunuzu seçin; yakınınızdaki müsait çalışanlar görünür.";
    return;}
   setViewBox([me],3.2);const near={};
-  for(const w of D.workers){const pf=w.posFree(D.clock);if(pf.inVisit||haversine(pf.loc,me)>5)continue;near[w.role]=(near[w.role]||0)+1;
+  for(const w of D.workers){const pf=posDraw(w,D.clock);if(pf.inVisit||pf.moving||haversine(pf.loc,me)>5)continue;near[w.role]=(near[w.role]||0)+1;
    const[x,y]=proj(jitter(pf.loc,w.id));const c=el("circle",{cx:x,cy:y,r:5*z,fill:roleColorV(w.role),opacity:.75,stroke:"var(--card)","stroke-width":1.5},g);
    c.addEventListener("mousemove",e=>showTip(e,`Müsait ${roleNameV(w.role).toLowerCase()}<br><span class="tiny">yaklaşık konum · kimlik kabulden sonra</span>`));c.addEventListener("mouseleave",hideTip);}
   const txt=Object.entries(near).map(([r,n])=>`${n} ${roleNameV(r).toLowerCase()}`).join(", ");
   $("viewNote").textContent=(txt?`Yakınınızda (5 km) şu an müsait: ${txt}.`:"5 km içinde şu an müsait çalışan yok; teklifler daha uzaktan gelebilir.")+(D.req&&!D.booked?" Teklif bekleniyor.":"");return;}
  // çalışan gözüyle: kendi konumu, önündeki işler ve yolları, gelen talebin bölgesi
- const w=D.workers[D.controlled];if(!w)return;const pf=w.posFree(D.clock),now=D.clock;const pts=[pf.loc];
+ const w=D.workers[D.controlled];if(!w)return;const pf=posDraw(w,D.clock),now=D.clock;const pts=[pf.loc];
  const bl=[...w.blocks].sort((a,b)=>a.s-b.s),future=bl.filter(b=>b.e>now),done=bl.filter(b=>b.e<=now);
  const ilce=l=>(ROADS&&ROADS.ilce&&l.length>2)?ROADS.ilce[l[2]]:"";
  const trk=D.track&&D.track.wid===w.id,tb=trk?future.find(b=>b.plat&&Math.abs(b.s-D.track.depart)<0.5):null; // canlı takipteki ziyaret
  const startOf=b=>b===tb?D.track.arrive:b.s;
  // rota: şu anki konum → sıradaki iş (düz mavi) → sonrakiler (kesikli)
- let prev=pf.loc,leg=0;
+ let prev=pf.moving?pf.from:pf.loc,leg=0;
  for(const b of future){if(b.s<=now||b===tb){prev=b.p;continue;}const r=cachedRoute(prev,b.p);
   el("polyline",{points:r.pts.map(p=>proj(p).join(",")).join(" "),fill:"none",stroke:"var(--blue)","stroke-width":leg===0?3.5:2,"stroke-dasharray":leg===0?"":"6 5",opacity:leg===0?.9:.55,"stroke-linecap":"round"},g);
   prev=b.p;pts.push(b.p);leg++;}
@@ -828,7 +828,7 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
   const t=el("text",{x,y:y-14*z,"text-anchor":"middle","font-size":11*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent="Siz";}
  setViewBox(pts,2.2);
  // bilgi kartı
- const st=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trackState().step]:pf.inVisit?`Ziyarette · ${fmtT(pf.free)}'de biter`:"Müsait";
+ const st=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trackState().step]:pf.inVisit?`Ziyarette · ${fmtT(pf.free)}'de biter`:pf.moving?`Yolda · ${fmtT(pf.arr)}'de varır`:"Müsait";
  const items=future.map((b,i)=>`<div class="vcRow"><span class="vcN">${i+1}</span>${fmtT(startOf(b))}–${fmtT(b.e)} · ${b.plat?"<b>platform ziyareti</b>":"kendi randevunuz"}${ilce(b.p)?" · "+ilce(b.p):""}${b===tb?(trackState().step<3?" · <i>yoldasınız</i>":" · <i>şu an</i>"):b.s<=now?" · <i>şu an</i>":""}</div>`).join("")
   ||'<div class="vcRow tiny">Bugün önünüzde başka iş yok.</div>';
  const S=req?SERVICES[req.service]:null;
@@ -876,6 +876,17 @@ function applyVB(x,y,w,h,manual){const m=$("map"),H=baseH();w=Math.min(600,Math.
  $("zIn").onclick=()=>zoomAt(1.6);$("zOut").onclick=()=>zoomAt(1/1.6);
  $("zFit").onclick=()=>{if(!D)return;D.manual=false;if(!D.view||D.view==="genel")applyVB(0,0,600,baseH(),false);drawWorkers();drawPatient();if(D.track)updateTracking(true);};})();
 
+// Çizim için konum: çalışan her işe yol süresi kadar önce çıkar ve rota üzerinde ilerler (ışınlanma yok).
+// Motorun posFree'si değişmez (simülasyon sonuçları aynı); bu yalnızca haritadaki görüntü içindir.
+function routePoint(r,frac){const target=frac*r.total;let i=1;while(i<r.cum.length-1&&r.cum[i]<target)i++;
+ const seg=r.cum[i]-r.cum[i-1],g=seg>0?(target-r.cum[i-1])/seg:1,a=r.pts[i-1],b=r.pts[i];return[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g];}
+function posDraw(w,t){let prev=w.home;const bl=[...w.blocks].sort((a,b)=>a.s-b.s);
+ for(const b of bl){const tr=travelMin(prev,b.p,b.s)-3;let dep,arr;
+  if(b.plat){dep=b.s;arr=b.s+tr+3;}else{arr=b.s;dep=b.s-tr;}
+  if(t<dep)return{loc:prev,inVisit:false,moving:false,free:t};
+  if(t<arr){const r=cachedRoute(prev,b.p),f=Math.min(1,Math.max(0,(t-dep)/Math.max(0.1,tr)));return{loc:f>=1?b.p:routePoint(r,f),inVisit:false,moving:true,arr,free:b.e,plat:!!b.plat,from:prev};}
+  if(t<b.e)return{loc:b.p,inVisit:true,moving:false,free:b.e};prev=b.p;}
+ return{loc:prev,inVisit:false,moving:false,free:t};}
 let lastDraw=0;
 function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.clock+dt,DAY_END-60);}
  $("clock").textContent=fmtT(D.clock);
@@ -886,7 +897,7 @@ function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.cl
   if(D.round===1&&!anyFit&&D.clock>=D.req.t+ROUND_WAIT)sendRound();
   if(D.clock>=D.req.t+DECIDE_MAX+20&&!D.offers.length&&!D.pending.length&&!$("patientBanner").innerHTML)$("patientBanner").innerHTML='<div class="banner warn">Uygun teklif gelmedi. Zaman aralığını veya bütçeyi değiştirip yeni talep açabilirsiniz.</div>';
   renderPatient();}
- if(performance.now()-lastDraw>1000){lastDraw=performance.now();drawWorkers();if(!D.req)fillWindows();
+ if(performance.now()-lastDraw>300){lastDraw=performance.now();drawWorkers();if(!D.req)fillWindows();
   if(!(D.inbox&&!D.wOffered&&!D.booked&&!D.declined))renderWorker();}}
 
 /* ======================= DENEY ======================= */
