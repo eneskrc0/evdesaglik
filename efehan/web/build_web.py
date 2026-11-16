@@ -2,7 +2,7 @@
 
 Çalıştır:  python web/build_web.py
   -> web/dist/index.html   (veritabanı test prototipi: template.html + app.js)
-  -> web/dist/kapida.html  (hasta + sağlık çalışanı uygulaması: kapida.html + kapida.js)
+  -> web/dist/kapida.html  (hasta + sağlık çalışanı uygulaması: kapida.html + dogrulama.js + kapida.js)
 (önce: python data/build_db.py && python web/export_json.py)
 """
 from pathlib import Path
@@ -16,6 +16,8 @@ def build(template: str, app: str, out_name: str) -> Path:
     data = (WEB / "data.json").read_text(encoding="utf-8").replace("</", "<\\/")
     html = html.replace("/*__DATA__*/", "window.EVDE_DATA = " + data + ";")
     html = html.replace("/*__CORE__*/", (WEB / "core.js").read_text(encoding="utf-8"))
+    if "/*__DOGRULAMA__*/" in html:
+        html = html.replace("/*__DOGRULAMA__*/", (WEB / "dogrulama.js").read_text(encoding="utf-8"))
     html = html.replace("/*__APP__*/", (WEB / app).read_text(encoding="utf-8"))
     out = WEB / "dist" / out_name
     out.parent.mkdir(exist_ok=True)

@@ -10,12 +10,16 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - `app/matching.py` — yetkinlik/fiyat/hız ağırlıklı, açıklanabilir sıralama.
 - `web/core.js` — Python mantığının JS kopyası; `web/parity_test.py` eşitliği dener. `web/kapida.html` hasta+çalışan arayüzü (YZ sohbeti, foto, çalışana rapor). `python web/build_web.py` → `web/dist/`.
 
+- `web/dogrulama.js` — sağlık çalışanı mesleki doğrulama akışı (prototip; resmî doğrulama yok, dosyalar yalnız bellekte). `web/e2e_dogrulama.py` uçtan uca prova.
+
 ## Kurallar
 - Model anlar, protokol karar verir: acil kararı her zaman kırmızı bayrak kurallarından gelir, YZ tanı koymaz.
 - Hemşire ve diğer meslekler yalnız hekim planıyla hizmet verir (S08).
 - Yeni tıbbi kural eklerken kaynağını `sources.csv`'ye yaz; `data/eval/triage_cases.csv`'ye vaka ekle.
 - Python ve JS mantığı aynı kalmalı: değişiklikten sonra `python web/parity_test.py`.
 - Testler: `python -m pytest -q tests && python eval_triage.py` (48 vaka bizim yazdığımız, bağımsız test değil).
+
+- Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 
 ## Açık birleştirme kararları
 Uygulama adı (Kapıda / Vizit), fiyat (çalışan teklifi + paylaşım indirimi), tek şehir (İzmir/Ankara), ücret varsayımları.

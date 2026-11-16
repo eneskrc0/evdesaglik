@@ -15,6 +15,8 @@ Ayrıntılar: [enes/README.md](enes/README.md).
 
 Hasta/çalışan arayüzü için: `efehan/web/dist/kapida.html`. Ayrıntılar: [efehan/README.md](efehan/README.md).
 
+**Tüm demolar tek sayfada:** kökteki `index.html` (GitHub Pages açıldığında site ana sayfası).
+
 GitHub'ı nasıl kullanacağımız: [GITHUB_KULLANIMI.md](GITHUB_KULLANIMI.md).
 
 Yeni bir ekip üyesi kendi klasörünü (ör. `app/` veya kendi adı) açıp çalışmalarını oraya koyar.

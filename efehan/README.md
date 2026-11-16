@@ -95,3 +95,8 @@ Hastanın ödediği = sağlıkçı + platform (testle doğrulanır). Oranlar `ap
 4. **TELE_HEMSIRE için hekim ataması**: hemşire ziyaret saatine uygun hekim seçimi.
 5. **Güvenlik**: sağlık çalışanı için konum paylaşımı / panik butonu, ruhsat doğrulama akışı.
 6. **Klinisyen doğrulaması**: `red_flags` ve `complaint_routes` tablolarını bir hekim ve bir hemşireye gözden geçirtmek.
+
+## Mesleki doğrulama ekranı (sağlık çalışanı ilk girişi)
+`web/dogrulama.js` — 3 adım: Mesleğini belirt → Belgelerini ekle → Başvurunu gönder. Hekim seçilince pratisyen/uzman, uzman seçilince uzmanlık alanı ve uzmanlık belgesi sorulur. PDF/JPG/PNG, dosya başına 10 MB. Başvuru onaylanmadan (demo) görev kabul edilemez.
+**Prototiptir:** belgeler resmî sistemlerden doğrulanmaz; dosyalar yalnızca tarayıcı belleğinde tutulur, hiçbir yere gönderilmez. Görev kabul kilidi arayüz simülasyonudur; gerçek uygulamada yetkilendirme sunucuda yapılır. Sağlık çalışanı telefonunun altındaki “Demo kontrolleri” ile İnceleme bekliyor / Eksik belge / Onaylandı — demo / Uygun bulunmadı — demo durumları gösterilir.
+Prova: `python web/e2e_dogrulama.py <örnek dosya klasörü>` (56 kontrol).
