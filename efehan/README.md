@@ -100,3 +100,7 @@ Hastanın ödediği = sağlıkçı + platform (testle doğrulanır). Oranlar `ap
 `web/dogrulama.js` — 3 adım: Mesleğini belirt → Belgelerini ekle → Başvurunu gönder. Hekim seçilince pratisyen/uzman, uzman seçilince uzmanlık alanı ve uzmanlık belgesi sorulur. PDF/JPG/PNG, dosya başına 10 MB. Başvuru onaylanmadan (demo) görev kabul edilemez.
 **Prototiptir:** belgeler resmî sistemlerden doğrulanmaz; dosyalar yalnızca tarayıcı belleğinde tutulur, hiçbir yere gönderilmez. Görev kabul kilidi arayüz simülasyonudur; gerçek uygulamada yetkilendirme sunucuda yapılır. Sağlık çalışanı telefonunun altındaki “Demo kontrolleri” ile İnceleme bekliyor / Eksik belge / Onaylandı — demo / Uygun bulunmadı — demo durumları gösterilir.
 Prova: `python web/e2e_dogrulama.py <örnek dosya klasörü>` (56 kontrol).
+
+## Gerçek yapay zekâ (Claude dışında)
+Kapıda, Claude içinde açılınca Claude'u; GitHub sayfasında ya da telefonda açılınca ücretsiz bir Cloudflare sunucusu üzerinden Groq'u kullanır (konuşmayı Whisper ile yazıya çevirme, sohbet, rapor, fotoğraf tarifi). Sunucu yoksa hazır sorulu demo moduna düşer. YZ her mesajda ne anladığını kullanıcıya gösterir ("Anladığım: …"); bu, yöresel ağız ve şiveyle anlatılanların doğru anlaşıldığını hem hastanın hem jürinin görmesini sağlar. Sağlık çalışanı raporunda hastanın kendi sözleri, hizmet önerisinin gerekçesi ve dikkat edilecekler yer alır. Kurulum: [`sunucu/KURULUM.md`](sunucu/KURULUM.md).
+
