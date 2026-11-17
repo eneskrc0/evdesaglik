@@ -75,6 +75,8 @@ class Scenario:
     travel_noise_sd: float = 0.25 if geo.WORLD_TAG == "izmir_tam" else 0.15  # yol süresinin göreli sapması (izmir_tam: daha geniş)
     overrun_sd: float = 6.0  # önceki ziyaretin uzaması, dk
     late_share: float = 0.25  # ziyaretleri sık uzayan çalışan oranı
+    # Ulaşım (izmir_tam): arabası olmayan, toplu taşımayla giden çalışan oranı (varsayım)
+    transit_share: float = 0.4 if geo.TRANSIT is not None else 0.0
 
 
 SCENARIOS = {
@@ -86,6 +88,9 @@ SCENARIOS = {
     ),
     "belirsiz_yol": Scenario("belirsiz_yol", travel_noise_sd=0.45 if geo.WORLD_TAG == "izmir_tam" else 0.35, overrun_sd=12.0),
 }
+if geo.TRANSIT is not None:  # ulaşım duyarlılığı (yalnız izmir_tam)
+    SCENARIOS["arabali"] = Scenario("arabali", transit_share=0.0)
+    SCENARIOS["toplu_cok"] = Scenario("toplu_cok", transit_share=0.8)
 
 
 @dataclass
@@ -100,6 +105,7 @@ class Worker:
     often_late: bool
     # günlük durum
     blocks: list = field(default_factory=list)  # (başlangıç, bitiş, konum, platform_mu)
+    mode: str = "araba"  # ulaşım: "araba" veya "toplu" (toplu taşıma; yalnız izmir_tam)
 
     def reset_day(self, rng: np.random.Generator):
         """Gün başında platform dışı mevcut ziyaretleri oluştur."""
@@ -127,9 +133,9 @@ class Worker:
         cur_t, cur_loc = max(t, free), loc
         future = [b for b in self.blocks if b[0] >= cur_t]
         for b in future + [None]:
-            arr = max(cur_t + geo.travel_minutes(cur_loc, dest, cur_t), window_start)
+            arr = max(cur_t + geo.travel_minutes(cur_loc, dest, cur_t, self.mode), window_start)
             end = arr + duration
-            nxt_ok = b is None or end + geo.travel_minutes(dest, b[2], end) <= b[0]
+            nxt_ok = b is None or end + geo.travel_minutes(dest, b[2], end, self.mode) <= b[0]
             if nxt_ok and end <= DAY_END:
                 return arr, cur_t, cur_loc
             if b is None:
@@ -159,6 +165,12 @@ def make_workers(sc: Scenario, rng: np.random.Generator) -> list[Worker]:
             price_mult=float(np.clip(rng.normal(1.0, sc.price_sd), 0.7, 1.5)),
             often_late=bool(rng.random() < sc.late_share),
         ))
+    if sc.transit_share > 0:
+        # ayrı akış (jumped): ana RNG'nin sırası değişmez, eski sonuçlar korunur
+        mr = np.random.Generator(rng.bit_generator.jumped())
+        for w in ws:
+            if mr.random() < sc.transit_share:
+                w.mode = "toplu"
     return ws
 
 

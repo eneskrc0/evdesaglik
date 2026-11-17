@@ -108,7 +108,7 @@ def _candidates_in(workers, req, t, exclude, near):
             "w": w, "loc": loc, "free": free, "in_visit": in_visit, "exp_arrival": ea[0],
             "dist_km": geo.haversine_km(loc, req.loc),
             # pencere başlangıcıyla kırpılmamış en erken varış (eşitlikleri bozmak için)
-            "raw_arrival": max(t, free) + geo.travel_minutes(loc, req.loc, max(t, free)),
+            "raw_arrival": max(t, free) + geo.travel_minutes(loc, req.loc, max(t, free), w.mode),
         })
     return out
 
@@ -121,7 +121,7 @@ def features(c: dict, req: Request, t: float, hist: dict) -> list[float]:
     exp_price = base * h.get("price_mult", 1.0)
     has_b = req.budget is not None
     return [
-        geo.travel_minutes(c["loc"], req.loc, t),
+        geo.travel_minutes(c["loc"], req.loc, t, c["w"].mode),
         max(0.0, c["free"] - t),
         req.win_end - c["exp_arrival"],
         t / 60.0,
@@ -306,14 +306,14 @@ def _decide(sc, req, t, st, wmap, res, seed, day, live_hist=None):
         if ea is None or ea[0] > o.arrival + 5:
             continue  # çalışan bu arada başka ziyaret almış
         planned, depart, from_loc = max(ea[0], o.arrival), ea[1], ea[2]
-        w.blocks.append((planned - geo.travel_minutes(from_loc, req.loc, depart), planned + dur, req.loc, True))
+        w.blocks.append((planned - geo.travel_minutes(from_loc, req.loc, depart, w.mode), planned + dur, req.loc, True))
         w.blocks.sort()
         res.accepted += 1
         if not o.fits:
             res.over_budget_accepted += 1
         # gerçekleşen varış
         r = _rng(seed, day, req.id, 10_000 + w.id)
-        travel = geo.travel_minutes(from_loc, req.loc, depart)
+        travel = geo.travel_minutes(from_loc, req.loc, depart, w.mode)
         noise = r.normal(0, sc.travel_noise_sd * travel)
         prev_end = max([b[1] for b in w.blocks if b[1] <= depart + 1e-6], default=None)
         overrun = 0.0

@@ -147,3 +147,26 @@ python -m pytest -q tests
   Günlük en fazla iş 8,2 → 5,1. Yollar uzayınca güçlü yol cezası (a=0,9) faydasını yitiriyor; a=0,3 daha iyi.
 - Meslek (ayrılmış, kural → seçilen): hemşire 56→83, doktor 48→63, fizyoterapist 53→64, psikolog 50→57, dil-konuşma 49→54,
   diyetisyen 56→60, ergoterapist 45→47, odyolog 38→38, podolog 48→48.
+
+## Toplu taşıma (2026-11-18) — izmir_tam
+- Kaynak: İzmir Büyükşehir açık veri GTFS — ESHOT otobüs (eylül–ekim 2026 tarifesi, 421 hat), Metro (M1), Tramvay
+  (Konak, Karşıyaka, Çiğli iç/dış, Turuncu ring), İZBAN (dosya tarihi 2022–2025, sefer yapısı kullanıldı). Hafta içi servis.
+  İZDENİZ vapurları veride yok (Karşıyaka–Konak gibi yollarda toplu taşıma süresi gerçekten biraz uzun çıkabilir).
+  Moovit kullanılmadı: ticari, kullanım koşulları veri çekmeyi yasaklıyor; Moovit de aynı resmi GTFS'i kullanıyor.
+- `OLCEK=orta python -m sim.build_transit --gtfs <klasör>` (4 alt klasör: bus-eshot-gtfs, rail-metro-gtfs, rail-tramizmir-gtfs,
+  rail-izban-gtfs) → data/izmir/transit_orta.npz (tt_d[dilim,i,j] desidakika, 4 dilim: sabah 7–10, gündüz 10–16, akşam 16–20, gece 20–23)
+  ve web/transit_izmir.json (demo ağı, ~2 MB). Ham GTFS repoda yok (ESHOT stop_times 86 MB).
+- Model: kapıdan kapıya = yürü (adres-durak ≤1 km, 4,5 km/s × 1,3) + bekle (sefer aralığı/2, en çok 12 dk) + 1,5 dk biniş cezası
+  + araçta (o dilimdeki medyan süre; otobüs zirvede ×1,25–1,35 trafik payı) + aktarma (durak-durak ≤400 m yürüme + yeniden bekleme)
+  + 2 dk bina. Yakın adreste doğrudan yürüme daha kısaysa o seçilir. Sefer aralığı hat+yön bazında (aynı durağı paylaşan farklı
+  hatların ortak sıklığı hesaba katılmıyor → bekleme biraz kötümser; İZBAN'da belirgin).
+- Sonuç (gündüz, havuz çiftleri medyanı): toplu taşıma arabanın ~2 katı (2–4 km: araba 18 / toplu 42 dk; 7–12 km: 37 / 76 dk).
+  Örnek: Bornova Metro → Konak 37 dk (araba 28), Buca Şirinyer → Karşıyaka 57 dk (İZBAN), Çiğli → Gaziemir 85 dk.
+- Simülasyon: Worker.mode ("araba" | "toplu"); geo.travel_minutes(a, b, t, mode). world.Scenario.transit_share = 0,4 (izmir_tam,
+  varsayım: çalışanların %40'ının arabası yok). Mod ayrı bir RNG akışından (jumped) çekilir; eski dünyalar birebir aynı.
+  Ek senaryolar (yalnız izmir_tam): arabali (0), toplu_cok (0,8). Model yol süresini çalışanın kendi ulaşımıyla görür.
+- Arabalı (eski) izmir_tam sonuçları: results/izmir_tam_arabali/. Yeni sonuçlar results/izmir_tam/.
+- Demo: aynı ağ JS'te kurulur, aynı Dijkstra (ters, dilim başına önbellekli; sorgu ~5 ms). Toplu taşımalı çalışanın canlı takibinde
+  yolculuk planı ("🚶 5 dk → 🚇 M1 Bornova → Stadyum · 3 durak → 🚌 ESHOT 119 … → 🚶 2 dk"), o anki bacak vurgulu; harita durakta
+  beklemeyi gösterir. Çalışan ekranında 🚗/🚌. `python tests/tutarlilik/transit_test.py web/dist/izmir.html`: JS = Python %99 aynı,
+  en büyük fark 0,1 dk (calistir.sh'ye eklendi).

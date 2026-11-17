@@ -19,6 +19,8 @@ for world, res in [("bornova", d.parent / "results"), ("izmir", d.parent / "resu
     graph = gf.read_text() if gf.exists() else "null"
     # İzmir sayfası tüm meslek kataloğuyla (izmir_tam); Bornova eski iki hizmetle
     cat = (d.parent / "data" / "hizmet_katalogu.json").read_text() if world == "izmir" else "null"
+    tf = d / "transit_izmir.json"  # GTFS toplu taşıma ağı (sim/build_transit.py), yalnız İzmir
+    transit = tf.read_text() if (world == "izmir" and tf.exists()) else "null"
     out = d / "dist" / f"{world}.html"
-    out.write_text(html.replace("/*ROADS_JSON*/null", rf.read_text()).replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp).replace("/*GRAPH_JSON*/null", graph).replace("/*CATALOG_JSON*/null", cat))
+    out.write_text(html.replace("/*ROADS_JSON*/null", rf.read_text()).replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp).replace("/*GRAPH_JSON*/null", graph).replace("/*CATALOG_JSON*/null", cat).replace("/*TRANSIT_JSON*/null", transit))
     print(out, round(out.stat().st_size / 1e6, 2), "MB")

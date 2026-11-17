@@ -129,8 +129,30 @@ def congestion(minute_of_day: float) -> float:
     return 1.15
 
 
-def travel_minutes(a, b, minute_of_day: float) -> float:
-    """Tahmini (beklenen) yol süresi, dakika. Hazırlık/park için +PARK_DK (3 dk; izmir_tam 6 dk)."""
+# Toplu taşıma (izmir_tam): GTFS'ten kapıdan kapıya süre matrisi (sim/build_transit.py), 4 saat dilimi.
+_TRANSIT_FILE = _POOL_FILE.parent / f"transit_{_POOL_TAG}.npz" if _POOL_TAG else None
+TRANSIT = None
+if TRAFIK_TOMTOM and _TRANSIT_FILE is not None and _TRANSIT_FILE.exists():
+    _tz = np.load(_TRANSIT_FILE)
+    TRANSIT = _tz["tt_d"].astype(np.float32) / 10.0  # [dilim, i, j] dakika (yürüme + bekleme + araç + aktarma + bina)
+    TRANSIT_SLOTS = [int(x[1]) for x in _tz["dilim"]]  # dilim bitişleri (dk): 600, 960, 1200, 1380
+
+
+def _transit_slot(minute_of_day: float) -> int:
+    m = minute_of_day % 1440
+    for i, end in enumerate(TRANSIT_SLOTS[:-1]):
+        if m < end:
+            return i
+    return len(TRANSIT_SLOTS) - 1
+
+
+def travel_minutes(a, b, minute_of_day: float, mode: str = "araba") -> float:
+    """Tahmini (beklenen) yol süresi, dakika. Araba: +PARK_DK (3 dk; izmir_tam 6 dk).
+    mode="toplu": GTFS toplu taşıma matrisi (izmir_tam; yoksa araba)."""
+    if mode == "toplu" and TRANSIT is not None and len(a) > 2 and len(b) > 2:
+        if a[2] == b[2]:
+            return 2.0
+        return float(TRANSIT[_transit_slot(minute_of_day), a[2], b[2]])
     if ROAD_NETWORK and len(a) > 2 and len(b) > 2:
         return PARK_DK + float(TT_SEC[a[2], b[2]]) / 60.0 * congestion(minute_of_day)
     km = haversine_km(a, b) * DETOUR
