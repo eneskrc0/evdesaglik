@@ -170,3 +170,10 @@ python -m pytest -q tests
   yolculuk planı ("🚶 5 dk → 🚇 M1 Bornova → Stadyum · 3 durak → 🚌 ESHOT 119 … → 🚶 2 dk"), o anki bacak vurgulu; harita durakta
   beklemeyi gösterir. Çalışan ekranında 🚗/🚌. `python tests/tutarlilik/transit_test.py web/dist/izmir.html`: JS = Python %99 aynı,
   en büyük fark 0,1 dk (calistir.sh'ye eklendi).
+- Sonuç (5 dk uygun %, geliştirme / ayrılmış; seçilen = v5_ukota_trafik). Senaryo = arabası olmayan çalışan oranı:
+  herkes arabalı: kural 54,7 / 52,7 · v1 74,2 / 72,1 · seçilen 73,2 / 71,1 (arşivle birebir aynı — kontrol tuttu)
+  %40 toplu (yeni baz): kural 54,2 / 52,1 · v1 72,6 / 70,2 · seçilen 71,8 / 69,3; ayrılmış seçilen − kural +17,2 ± 1,0, − v1 −0,9 ± 0,2
+  %80 toplu: kural 53,0 / 51,4 · v1 70,4 / 68,1 · seçilen 69,9 / 67,5; ayrılmış seçilen − kural +16,1 ± 0,9
+  Ziyaret başına yol 27 → 35 → 45 dk; zamanında ziyaret %84 → %83 → %81. Toplu taşıma başarıyı yalnızca 2–4 puan düşürüyor
+  (model yakındaki/arabalı çalışanı seçerek telafi ediyor); yapay zekâ farkı her durumda +16–18 puan.
+- Uzun koşular yavaşsa: `OMP_NUM_THREADS=1` (2 çekirdekte sklearn iş parçacıkları süreçlerle çakışıyordu; tohum başına 9 sn).

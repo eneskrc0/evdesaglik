@@ -1,0 +1,43 @@
+{
+  "id": "002_v5_ukota_trafik",
+  "world": "izmir_tam",
+  "versiyon": "v5+kota+trafik",
+  "name": "v5_ukota_trafik",
+  "model": "v5_ukota_trafik",
+  "note": "toplu taşıma %40 (GTFS)",
+  "set": "dev",
+  "date": "2026-11-18T01:29",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol",
+      "arabali",
+      "toplu_cok"
+    ]
+  },
+  "heuristic_hash": "5ce86b7fe38e",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "b577c11bf0ac",
+    "sim/world.py": "8466aa424ea8",
+    "sim/geo.py": "1aa80f3c45de",
+    "sim/models.py": "e96504a77930"
+  }
+}
