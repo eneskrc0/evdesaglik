@@ -4,6 +4,12 @@ Kaynak: `enes/` (simülasyon) ve `ortak/` (birleşik demo). Ekip kararı (16.11)
 Bu not, Kapıda'ya (efehan/web) harita/rota eklerken neyin nerede olduğunu ve nasıl okunacağını özetler.
 Tüm yol verisi OpenStreetMap'ten → sayfada **"© OpenStreetMap katkıcıları"** atfı gösterilmeli (ODbL).
 
+## Güncel durum (17.11)
+- **Ana dünya artık `DUNYA=izmir OLCEK=tam`** ve **temiz havuz `enes/data/izmir/pool_orta.npz`** (1.200 nokta; otoyol/çevre yolu üstü ve yerleşim dışı düğümler elendi; ortanca 12,6 dk, en uzun 46,6 dk). Demo (`roads_izmir.json`, `graph_izmir.json`, `hospitals.json`) bu havuzla üretiliyor. Aşağıdaki `pool.npz` eski/büyük ölçek içindir.
+- 9 meslek, 155 çalışan, 195 talep/gün; yakında 3'ten az aday varsa arama genişliyor.
+- **Bizim katalog Enes'te de kullanılıyor:** `enes/data/hizmet_katalogu.json` = `efehan/data/seed/services.csv` + `profession_services.csv`'den 20 ev hizmeti (tele_muayene ve reçete hariç; ebe → hemşire, uzman hekim → doktor). Bizde hizmet/süre/ücret/hekim planı değişirse onun kopyası da güncellenmeli (17.11'de birebir aynı). `ortak/build.py` ise `efehan/web/data.json` ve `core.js`'i doğrudan okur.
+- Haritada yakınlaştırma/kaydırma, hasta/çalışan gözüyle görünümler, zaman çubuğu ve çalışanların yol üzerinde hareketi `enes/web/index.html`'de.
+
 ## Dosyalar
 
 | Dosya | Boyut | İçerik |
