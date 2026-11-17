@@ -32,6 +32,8 @@ button.btn.sm{padding:5px 9px;font-size:12px}
 .seg button.on{background:var(--accent);color:#fff}
 #map line,#map polyline,#map path,#map polygon,#map circle,#map rect{vector-effect:non-scaling-stroke}
 #map{transition:none;width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 85%,var(--blue) 4%);touch-action:none;cursor:crosshair}
+.timeRow{display:flex;gap:4px;align-items:center;margin:2px 0 4px}.timeRow input[type=range]{flex:1;accent-color:var(--blue);height:28px}
+.tbtn{font:inherit;font-size:12px;padding:4px 7px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;min-width:38px}.tbtn:hover{border-color:var(--blue)}
 .mapwrap{position:relative}.viewCard{position:absolute;left:8px;top:8px;max-width:min(62%,330px);background:color-mix(in srgb,var(--card) 95%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .vcHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.vcRow{margin-top:3px}.vcN{display:inline-grid;margin-right:5px;vertical-align:-3px;place-items:center;width:16px;height:16px;border-radius:50%;border:2px solid var(--blue);font-size:10px;font-weight:700;flex:none}
 .vcReq{margin-top:6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--orange) 12%,transparent)}.vcOk{margin-top:6px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--aqua) 14%,transparent)}.vcLeg{margin-top:6px;color:var(--ink3)}.zoomBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
@@ -89,6 +91,10 @@ details summary{cursor:pointer;color:var(--ink2);font-size:12px}
      <div>Saat: <span class="clock" id="clock">10:00</span></div>
      <div class="seg" id="speedSeg" style="flex:2"><button data-s="0">Durdur</button><button data-s="0.016667" title="1 saniye = 1 saniye">Gerçek zaman</button><button data-s="0.25" title="1 saniye = 15 saniye">15 sn/sn</button><button data-s="1" class="on" title="1 saniye = 1 dakika">1 dk/sn</button><button data-s="4" title="1 saniye = 4 dakika">4 dk/sn</button></div>
    </div>
+   <div class="timeRow"><button class="tbtn" data-d="-15" title="15 dk geri">−15</button><button class="tbtn" data-d="-5" title="5 dk geri">−5</button>
+    <input type="range" id="timeSlider" min="480" max="1140" step="1" value="600" aria-label="Günün saati">
+    <button class="tbtn" data-d="5" title="5 dk ileri">+5</button><button class="tbtn" data-d="15" title="15 dk ileri">+15</button></div>
+   <div class="tiny" id="timeNote" style="margin:-2px 0 6px">Çubuğu sürükleyerek günün istediğin dakikasına git (08:00–19:00).</div>
    <div class="seg" id="viewSeg" style="margin-bottom:4px"><button data-v="genel" class="on">Genel (yönetici)</button><button data-v="hasta">Hasta gözüyle</button><button data-v="calisan">Çalışan gözüyle</button></div>
    <div class="tiny" id="viewNote" style="min-height:2.4em;margin-bottom:4px">Yönetici görünümü: tüm çalışanlar, talepler ve bildirim çizgileri.</div>
    <div class="mapwrap"><svg id="map" viewBox="0 0 600 470"></svg><div id="viewCard" class="viewCard hide"></div>
@@ -887,6 +893,21 @@ function posDraw(w,t){let prev=w.home;const bl=[...w.blocks].sort((a,b)=>a.s-b.s
   if(t<arr){const r=cachedRoute(prev,b.p),f=Math.min(1,Math.max(0,(t-dep)/Math.max(0.1,tr)));return{loc:f>=1?b.p:routePoint(r,f),inVisit:false,moving:true,arr,free:b.e,plat:!!b.plat,from:prev};}
   if(t<b.e)return{loc:b.p,inVisit:true,moving:false,free:b.e};prev=b.p;}
  return{loc:prev,inVisit:false,moving:false,free:t};}
+// ---------- Zaman çubuğu: günün istenen dakikasına ileri / geri git ----------
+// Çalışan konumları ve canlı takip zamana bağlı hesaplandığı için ileri-geri sorunsuz. Açık talebin açıldığı andan
+// öncesine dönülürse o talep (ve kabul edildiyse ziyareti) geri alınır, çünkü o an henüz yaşanmamıştır.
+function jumpTo(t){if(!D)return;t=Math.max(DAY_START,Math.min(DAY_END-60,t));let note="";
+ if(D.req&&t<D.req.t){if(D.booked){const w=D.workers[D.booked.worker];w.blocks=w.blocks.filter(b=>!(b.plat&&b.p===D.req.loc));}
+  const keepLoc=D.req.loc;$("btnNew").click();D.loc=keepLoc;if(typeof showNearestHospital==="function")showNearestHospital(keepLoc);
+  $("locHint").textContent="Konum seçildi ✓";$("btnRequest").disabled=false;note="Talebin açıldığı andan öncesine dönüldü; talep geri alındı (konum korundu).";}
+ D.clock=t;D.slowed=false;$("clock").textContent=fmtT(t);$("timeSlider").value=Math.round(t);if(!D.req)fillWindows();
+ drawWorkers();drawPatient();if(D.track)updateTracking(true);renderWorker();if(D.req&&!D.booked)renderPatient();
+ $("timeNote").textContent=note||"Çubuğu sürükleyerek günün istediğin dakikasına git (08:00–19:00).";}
+(function(){const sl=$("timeSlider");let dragging=false;
+ sl.addEventListener("input",()=>{dragging=true;jumpTo(+sl.value);});sl.addEventListener("change",()=>{dragging=false;});
+ sl.addEventListener("pointerup",()=>{dragging=false;});
+ document.querySelectorAll(".tbtn").forEach(b=>b.onclick=()=>{if(D)jumpTo(D.clock+(+b.dataset.d));});
+ setInterval(()=>{if(D&&!dragging)sl.value=Math.round(D.clock);},250);})();
 let lastDraw=0;
 function tick(){if(!D)return;const dt=0.1*D.speed;if(dt>0){D.clock=Math.min(D.clock+dt,DAY_END-60);}
  $("clock").textContent=fmtT(D.clock);
