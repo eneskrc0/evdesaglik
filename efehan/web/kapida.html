@@ -206,6 +206,53 @@ svg.map { width: 100%; height: auto; border-radius: 16px; background: var(--soft
 svg.map text { fill: var(--muted); font-size: 11px; font-family: var(--font); }
 .toast { position: absolute; left: 14px; right: 14px; bottom: 16px; background: var(--ink); color: var(--phone); border-radius: 14px; padding: 10px 14px; font-size: 13px; font-weight: 600; z-index: 9; }
 .note { background: var(--saffron-soft); border-radius: 14px; padding: 10px 12px; font-size: 13px; }
+/* Mesleki doğrulama (dogrulama.js): okunaklı boyutlar — metin ≥18 px, başlık 26 px, düğme ≥52 px */
+.v { display: flex; flex-direction: column; min-height: 100%; font-size: 18px; line-height: 1.45; }
+.v-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 18px; }
+.v-body { padding: 18px; display: flex; flex-direction: column; gap: 18px; flex: 1; }
+.v-h { font-size: 26px; line-height: 1.2; font-weight: 800; }
+.v-p { margin: 0; }
+.v-steps { display: flex; gap: 6px; } .v-steps span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); } .v-steps span.on { background: var(--brand); }
+.v-steplabel { font-size: 16px; font-weight: 600; color: var(--muted); margin-top: -10px; }
+.v-field { display: flex; flex-direction: column; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.v-label { font-weight: 700; font-size: 18px; padding: 0; }
+.v-opt { font-weight: 500; color: var(--muted); }
+.v-inp { width: 100%; min-height: 52px; border: 1.5px solid var(--line); background: var(--soft); border-radius: 14px; padding: 10px 14px; font-size: 18px; }
+.v-inp[aria-invalid="true"], .v-check input[aria-invalid="true"] { border-color: var(--coral); outline-color: var(--coral); }
+.v-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.v-choice { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; font-weight: 600; }
+.v-choice input { width: 22px; height: 22px; accent-color: var(--brand); flex: none; margin: 0; }
+.v-choice:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+.v-err { margin: 0; color: var(--coral); font-weight: 600; font-size: 16px; }
+.v-main { min-height: 56px; font-size: 18px; margin-top: 4px; }
+.v-btn2 { min-height: 52px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--brand); }
+.v-link { font-size: 16px; min-height: 48px; }
+.v-back { font-size: 18px; align-self: flex-start; min-height: 48px; }
+.v-row { display: flex; gap: 10px; } .v-row > * { flex: 1; }
+.v-drop { display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; text-align: center; min-height: 96px; border: 2px dashed var(--line); border-radius: 16px; padding: 14px; cursor: pointer; color: var(--brand); background: var(--soft); }
+.v-drop span { font-size: 16px; color: var(--muted); }
+.v-drop:hover, .v-drop:focus-visible { border-color: var(--brand); }
+.v-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.v-file { display: flex; gap: 12px; align-items: center; border: 1.5px solid var(--line); border-radius: 16px; padding: 12px; }
+.v-file-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-size: 13px; font-weight: 800; flex: none; }
+.v-file-meta { display: flex; flex-direction: column; min-width: 0; } .v-file-meta b { overflow-wrap: anywhere; } .v-file-meta span { font-size: 16px; color: var(--muted); }
+.v-card { border: 1.5px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.v-sum { display: grid; grid-template-columns: 1fr; gap: 2px; margin: 0; }
+.v-sum dt { color: var(--muted); font-size: 16px; margin-top: 8px; } .v-sum dt:first-child { margin-top: 0; }
+.v-sum dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.v-doc { display: flex; flex-direction: column; } .v-doc span { font-weight: 500; font-size: 16px; } .v-doc + .v-doc { margin-top: 6px; }
+.v-check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.v-check input { width: 26px; height: 26px; accent-color: var(--brand); flex: none; margin: 1px 0 0; }
+.v-statusrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v-pill { font-size: 16px; padding: 5px 12px; }
+.v-done { width: 64px; height: 64px; border-radius: 20px; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 34px; font-weight: 800; }
+.v-reason { background: var(--coral-soft); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.v-reason b { color: var(--coral); }
+.v-notice { margin: 0; padding: 12px 18px 18px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); }
+.v-banner { margin: 14px 18px 0; border: 1.5px solid var(--saffron); background: var(--saffron-soft); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; }
+.v-banner .btn { background: var(--phone); }
+.lockmsg { font-size: 14px; color: var(--muted); }
+.democtl { width: 390px; max-width: 100%; border: 1px dashed var(--muted); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; background: var(--phone); }
 select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 10px 12px; }
 </style>
 </head>
@@ -228,12 +275,14 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
   <div class="col hide-m" id="colH">
     <div class="cap">Sağlık çalışanı</div>
     <div class="phone"><div class="statusbar"><span>09:30</span><span>kapıda · sağlıkçı</span></div><div class="screen" id="hScreen"></div></div>
+    <section class="democtl" id="demoCtl" aria-label="Demo kontrolleri"></section>
   </div>
 </div>
-<p class="foot-note" id="footNote">Hastanın gönderdiği talep, seçtiği sağlık çalışanının ekranına raporuyla birlikte düşer. Teşhis koymaz; acil belirtide randevu yerine 112'ye yönlendirir.</p>
+<p class="foot-note" id="footNote">Hastanın gönderdiği talep, seçtiği sağlık çalışanının ekranına raporuyla birlikte düşer. Teşhis koymaz; acil belirtide randevu yerine 112'ye yönlendirir. Sağlık çalışanı ilk girişte mesleki başvurusunu yapar; başvuru onaylanmadan görev kabul edemez (prototip: belgeler resmî sistemlerden doğrulanmaz).</p>
 
 <script>/*__DATA__*/</script>
 <script>/*__CORE__*/</script>
+<script>/*__DOGRULAMA__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

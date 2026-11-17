@@ -65,6 +65,8 @@
     voice: false, listening: false, mode: "loading", demoStep: 0, demoAnswers: [], toast: "",
   };
   const H = { pid: "HEM-12", tab: "talepler", open: null, accepted: {}, rejected: {}, toast: "" };
+  // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
+  const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   const REQ = []; // tüm talepler (yerel + ortak)
   const CAP = { sample: null, images: false, dictation: null, tts: null, db: null, uid: null };
 
@@ -633,6 +635,13 @@ YANIT yalnızca şu JSON olsun:
   }
   function renderH() {
     const el = $("#hScreen");
+    const ctl = $("#demoCtl"); if (ctl) ctl.innerHTML = DG.demoPanel();
+    if (DG.state.open) {
+      el.innerHTML = DG.render() + (H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : "");
+      DG.afterRender(el);
+      if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
+      return;
+    }
     const pid = H.pid, p = repo.providers[pid], pp = person(pid);
     const stops = hStops(pid), home = [p.home_lat, p.home_lon];
     let km = 0, prev = home; for (const s of stops) { km += C.roadKm(prev, [s.lat, s.lon]); prev = [s.lat, s.lon]; } if (stops.length) km += C.roadKm(prev, home);
@@ -648,11 +657,11 @@ YANIT yalnızca şu JSON olsun:
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      <div class="h-head"><div class="row between"><div class="who"><span class="avatar">${esc(pp.initials)}</span><div><b>${esc(pp.full)}</b><div class="tiny" style="opacity:.85">${esc(pp.prof)} · ${esc(p.home_district)} · ruhsat ${p.licence_verified ? "doğrulandı" : "doğrulanmadı"}</div></div></div>
+      <div class="h-head"><div class="row between"><div class="who"><span class="avatar">${esc(pp.initials)}</span><div><b>${esc(pp.full)}</b><div class="tiny" style="opacity:.85">${esc(pp.prof)} · ${esc(p.home_district)} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
         <span class="pill" style="background:rgba(255,255,255,.18);color:inherit">Çevrimiçi</span></div>
         <div class="stats"><div><b class="num">${stops.length}</b><span>bugünkü ziyaret</span></div><div><b class="num">${km.toFixed(1)} km</b><span>toplam yol</span></div><div><b class="num">${tl(earn)} TL</b><span>bugünkü kazanç</span></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
-      <div style="flex:1">${body}</div></div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
+      ${DG.banner()}<div style="flex:1">${body}</div></div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
     if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
   }
   function hInbox(box) {
@@ -694,7 +703,8 @@ YANIT yalnızca şu JSON olsun:
           ${pr.saving > 0 ? `<span class="disc">Paylaşım primi</span><span class="disc num">+${tl(pr.saving * C.CFG.SPLIT.saglikci)} TL</span>` : ""}
           <span class="tot">Sana kalan</span><span class="tot num">${tl(pr.provider_gets)} TL</span></div></div>
       <div style="height:70px"></div></div>
-      <div class="hbar"><button class="btn" type="button" data-act="hreject" data-id="${esc(r.id)}">Reddet</button><button class="btn primary" type="button" data-act="haccept" data-id="${esc(r.id)}" style="flex:1">Kabul et · ${C.hhmm(r.arrival_min)}</button></div>`;
+      <div class="hbar" style="flex-wrap:wrap"><button class="btn" type="button" data-act="hreject" data-id="${esc(r.id)}">Reddet</button><button class="btn primary" type="button" data-act="haccept" data-id="${esc(r.id)}" style="flex:1"${DG.canAccept() ? "" : ` disabled aria-describedby="lockMsg"`}>Kabul et · ${C.hhmm(r.arrival_min)}</button>
+        ${DG.canAccept() ? "" : `<div class="lockmsg" id="lockMsg" style="width:100%">Başvurun onaylanınca görev kabul edebilirsin.</div>`}</div>`;
   }
   function hRoute(p, stops) {
     const home = [p.home_lat, p.home_lon];
@@ -711,7 +721,12 @@ YANIT yalnızca şu JSON olsun:
       <div class="stack" style="gap:6px"><b class="small">Hizmet verdiğim ilçeler</b><div class="seg">${window.EVDE_DATA.districts.map((d) => `<button class="chip" type="button" aria-pressed="${d.name === p.home_district}" data-toggle="1">${esc(d.name)}</button>`).join("")}</div></div>
       <div class="note small">Taslak ekran: değişiklikler kaydedilmez.</div></div>`;
   }
+  $("#hScreen").addEventListener("input", (e) => DG.onInput(e));
+  $("#hScreen").addEventListener("change", (e) => DG.onChange(e));
+  $("#hScreen").addEventListener("keydown", (e) => DG.onKey(e));
+  $("#demoCtl").addEventListener("click", (e) => DG.demoClick(e));
   $("#hScreen").addEventListener("click", async (e) => {
+    if (DG.onClick(e)) return;
     const t = e.target.closest("[data-tab],[data-open],[data-act],[data-toggle]");
     if (!t) return;
     if (t.dataset.toggle) { t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true"); return; }
@@ -723,6 +738,8 @@ YANIT yalnızca şu JSON olsun:
       const id = t.dataset.id, pid = H.pid;
       const r = inbox(pid).find((x) => x.id === id);
       if (!r) return;
+      // Arayüz simülasyonu: gerçek uygulamada kabul yetkisi sunucuda denetlenir.
+      if (a === "haccept" && !DG.canAccept()) { H.toast = "Başvurun onaylanmadan görev kabul edemezsin."; renderH(); return; }
       if (a === "haccept") {
         (H.accepted[pid] ||= []).push({ reqId: id, lat: r.patient.lat, lon: r.patient.lon, start_min: r.arrival_min, duration_min: svc(r.service).duration_min, service_code: r.service, earn: r.price.provider_gets });
         H.toast = `Kabul edildi. ${C.hhmm(r.arrival_min)} rotana eklendi.`;
