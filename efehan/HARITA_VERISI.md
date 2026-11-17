@@ -9,6 +9,7 @@ Tüm yol verisi OpenStreetMap'ten → sayfada **"© OpenStreetMap katkıcıları
 - 9 meslek, 155 çalışan, 195 talep/gün; yakında 3'ten az aday varsa arama genişliyor.
 - **Bizim katalog Enes'te de kullanılıyor:** `enes/data/hizmet_katalogu.json` = `efehan/data/seed/services.csv` + `profession_services.csv`'den 20 ev hizmeti (tele_muayene ve reçete hariç; ebe → hemşire, uzman hekim → doktor). Bizde hizmet/süre/ücret/hekim planı değişirse onun kopyası da güncellenmeli (17.11'de birebir aynı). `ortak/build.py` ise `efehan/web/data.json` ve `core.js`'i doğrudan okur.
 - Haritada yakınlaştırma/kaydırma, hasta/çalışan gözüyle görünümler, zaman çubuğu ve çalışanların yol üzerinde hareketi `enes/web/index.html`'de.
+- **Gerçekçi trafik (17.11, a958bd3):** eski katsayılar İzmir'de ~2 kat hızlıydı. `izmir_tam` artık TomTom Trafik Endeksi 2025 İzmir'e göre saatlik eğri kullanıyor (10 km: gece 16, ortalama 23, akşam zirvesi 34,7 dk), park + bina girişi **6 dk**, yol sapması %25. Ziyaret başına ortalama yol ~27 dk (eskiden ~15). Ayrıntı aşağıda "Yol süresi modeli". Veri dosyalarının biçimi değişmedi.
 
 ## Dosyalar
 
@@ -35,8 +36,13 @@ Bilinen boşluk: Gaziemir'de hastane yok, Karşıyaka'da kamu hastanesi yok (OSM
 5. `python web/build.py` JSON'ları `/*ROADS_JSON*/`, `/*GRAPH_JSON*/`, `/*HOSP_JSON*/` yer tutucularına gömer.
 
 ## Yol süresi modeli (Python `enes/sim/geo.py` = JS `enes/web/index.html`)
-- `travel_minutes(a, b, dakika) = 3 + tt[a.i, b.i] / 60 × trafik(dakika)`  (+3 dk hazırlık/park)
-- Trafik katsayısı: 07:30–09:30 ve 17:00–19:30 → **1,8**; 09:30–17:00 → **1,35**; diğer → **1,15**.
+- `travel_minutes(a, b, dakika) = PARK_DK + tt[a.i, b.i] / 60 × congestion(dakika)` (JS: `travelMin`, `PARK`)
+- **İzmir tam (`geo.TRAFIK_TOMTOM`, JS `WORLD==="izmir"`)**: `PARK_DK = 6`. Katsayı = saatlik "10 km kaç dk" hedefi / 9,3 (bizim ağda serbest akışta 10 km = 9,3 dk). Saat ortaları (x:30) arasında doğrusal geçiş. Hedef dizi `_TT10_HEDEF` (saat 0–23):
+  `16,16,16,16,16,16,17,20,25.6,24,21.5,21.5,22.5,23,23,24.5,27,31.5,34.7,29,23,19.5,18,17`
+  → katsayı gece ~1,72, öğlen ~2,4, sabah zirvesi ~2,75, akşam zirvesi (18:30) ~3,73. Kaynak: tomtom.com/traffic-index/izmir-traffic.
+- Yol süresi sapması (göreli SS): izmir_tam %25 (`belirsiz_yol` senaryosu %45); varış aralığı ±1,645 × SS × kalan süre.
+- Diğer dünyalar (Bornova, eski İzmir ölçekleri) eski model: `PARK_DK = 3`; 07:30–09:30 ve 17:00–19:30 → **1,8**; 09:30–17:00 → **1,35**; diğer → **1,15**; sapma %15 (%35).
+- Eski trafikle alınan izmir_tam sonuçları `enes/results/izmir_tam_eski_trafik/` altında. Eğri grafiği: `cd enes && python sim/plot_trafik.py` → `results/izmir_tam/trafik.png`.
 - Konumlar `(lat, lon, havuz_indeksi)` üçlüsü; havuz dışı nokta en yakın havuz noktasına **2 km** içinde yapışır (Bornova 0,7 km).
 - Havuz yoksa yedek: kuş uçuşu × 1,35, hız 16/24/30 km/sa.
 - Talep/çalışan konumu: önce ilçe (TÜİK nüfusuna orantılı, `DISTRICT_POP`), sonra ilçe içinde rastgele havuz noktası.
@@ -51,10 +57,10 @@ Bilinen boşluk: Gaziemir'de hastane yok, Karşıyaka'da kamu hastanesi yok (OSM
 
 ## Kapıda'ya ekleme planı (sonraki aşamalar)
 1. **Şehri İzmir'e taşı:** `efehan/data` sentetik Ankara ilçe/konumları yerine İzmir havuz noktaları; çalışan ve hasta konumları havuzdan.
-2. **Yol süresi:** `core.js` içindeki `roadKm × 1,3 / 25 km/sa` tahmini yerine `travelMin` (matris + trafik katsayısı). Ziyaret paylaşımı (en ucuz ekleme) gerçek sürelerle çalışır; Python `routing.py` ve parity testi birlikte güncellenmeli.
+2. **Yol süresi:** `core.js` içindeki `roadKm × 1,3 / 25 km/sa + 5 dk park` tahmini yerine `travelMin` (matris + TomTom saatlik katsayısı + 6 dk park). Not: 25 km/sa günün ortalamasına (~26 km/sa) yakın ama zirve saatlerde (17 km/sa) varışı iyimser gösterir. Ziyaret paylaşımı (en ucuz ekleme) gerçek sürelerle çalışır; Python `routing.py` ve parity testi birlikte güncellenmeli.
 3. **Harita:** hasta seçenek kartları ve çalışanın "Rotam" sekmesi için `roads_izmir.json` çizimi + `routeNodes` ile gerçek sokak rotası.
 4. **Acil ekranı:** 112 yönlendirmesinin yanına en yakın acil servisli hastane (`acil=true`) ve yol süresi.
 5. **Canlı takip:** kabulden sonra hasta ekranında Enes'in takip kartı.
 6. **Boyut:** Kapıda şu an 185 KB; İzmir verisiyle ~6 MB olur. Telefon için `tt` matrisini yalnız gereken satırlarla ya da `graph` + istemci Dijkstra ile vermek, `anayollar` çizimini sadeleştirmek düşünülmeli.
 
-Not: `ortak/build.py` bu birleşimin bir kısmını (triyaj + katalog + paylaşım + takip) Enes'in şablonu üzerinde zaten yapıyor; `efehan/web/data.json` ve `core.js`'i oradan okur — bu iki dosyanın biçimi değişirse `python3 ortak/build.py` yeniden çalıştırılıp kontrol edilmeli.
+Not: `ortak/build.py` bu birleşimin bir kısmını (triyaj + katalog + paylaşım + takip) Enes'in şablonu üzerinde zaten yapıyor; `efehan/web/data.json` ve `core.js`'i oradan okur — bu iki dosyanın biçimi değişirse `python3 ortak/build.py` yeniden çalıştırılıp kontrol edilmeli. (17.11 akşamı: `ortak/build.py` bizim dosyalardan değil, `enes/web/index.html`'de `+(req.service==="doktor")` satırı 2907586'da değiştiği için "özellik" yamasında duruyor; düzeltmesi `ortak/` tarafında.)
