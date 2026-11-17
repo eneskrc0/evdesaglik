@@ -1,6 +1,6 @@
 /* Kapıda — hasta ve sağlık çalışanı uygulaması prototipi.
    Mantık: EvdeCore (core.js, Python sürümüyle birebir). Veri: EVDE_DATA (sentetik).
-   YZ: claude.use("sample") varsa gerçek sohbet + rapor; yoksa senaryolu demo modu.
+   YZ: claude.use("sample") varsa Claude; yoksa Cloudflare sunucusu (sunucu.js, Groq); o da yoksa senaryolu demo modu.
    Güvenlik: her mesaj önce kural motorunun kırmızı bayraklarından geçer; YZ ayrıca işaretler. */
 (function () {
   "use strict";
@@ -68,24 +68,39 @@
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   const REQ = []; // tüm talepler (yerel + ortak)
-  const CAP = { sample: null, images: false, dictation: null, tts: null, db: null, uid: null };
+  const CAP = { sample: null, server: null, images: false, dictation: null, tts: null, db: null, uid: null };
 
   // ---------- yetenekler ----------
   async function initCaps() {
     const use = window.claude && typeof window.claude.use === "function" ? window.claude.use.bind(window.claude) : null;
-    if (!use) { P.mode = "demo"; renderP(); return; }
+    if (!use) { await initServer(); return; }
     const [sample, dict, tts, db, user] = await Promise.all(["sample", "dictation", "tts", "db", "user"].map((n) => use(n).catch(() => null)));
     CAP.sample = sample; CAP.dictation = dict; CAP.tts = tts; CAP.db = db;
     if (sample) { try { const l = await sample.limits(); CAP.images = !!(l && l.images); } catch (e) { CAP.images = false; } }
     P.mode = sample ? "ai" : "demo";
-    if (dict) {
-      dict.onPartial(({ text }) => { const ta = $("#pInput"); if (ta && text) ta.placeholder = text; });
-      dict.onFinal(({ text }) => { const ta = $("#pInput"); if (ta) ta.value = (ta.value ? ta.value : text.trimStart()) + (ta.value ? text : ""); });
-      dict.onState(({ state }) => { P.listening = state !== "idle"; const b = $("#pMic"); if (b) b.classList.toggle("listening", P.listening); if (!P.listening) { const ta = $("#pInput"); if (ta) ta.placeholder = "Yaz ya da konuş…"; } });
-    }
+    if (dict) bindDictation(dict);
     if (user) { try { CAP.uid = await user.id(); } catch (e) { /* yok */ } }
     if (db) subscribeDb();
     renderP(); renderH();
+  }
+  // Claude dışında (GitHub Pages, telefon): Cloudflare sunucusu varsa gerçek YZ, yoksa demo soruları.
+  async function initServer() {
+    const S = window.KapidaSunucu;
+    CAP.tts = S ? S.telefonSesi() : null;
+    const url = S ? S.adres() : "";
+    if (url) {
+      const srv = S.create(url);
+      if (await srv.saglik()) {
+        CAP.server = srv; CAP.images = true; CAP.dictation = srv.dictation; P.mode = "ai";
+        if (CAP.dictation) bindDictation(CAP.dictation);
+      } else { P.mode = "demo"; P.toast = "Yapay zekâ sunucusuna ulaşılamadı; demo sorularıyla devam ediyoruz."; }
+    } else P.mode = "demo";
+    renderP(); renderH();
+  }
+  function bindDictation(dict) {
+    dict.onPartial(({ text }) => { const ta = $("#pInput"); if (ta && text) ta.placeholder = text; });
+    dict.onFinal(({ text }) => { const ta = $("#pInput"); if (ta) { ta.value = ta.value ? ta.value + " " + text.trim() : text.trimStart(); ta.focus(); } });
+    dict.onState(({ state }) => { P.listening = state !== "idle"; const b = $("#pMic"); if (b) b.classList.toggle("listening", P.listening); if (!P.listening) { const ta = $("#pInput"); if (ta && !/çevril|tekrar|yoğun/.test(ta.placeholder)) ta.placeholder = "Yaz ya da konuş…"; } });
   }
   function subscribeDb() {
     try {
@@ -164,24 +179,9 @@
 
   // ---------- YZ ----------
   const SERVICE_LIST = Object.values(repo.services).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
-  const CHAT_RULES = `Sen "Kapıda" adlı evde sağlık uygulamasının Türkçe konuşan karşılama asistanısın. Hasta ya da yakınıyla sıcak, sade ve kısa konuşursun.
-GÖREVİN: Durumu anlamak ve sağlık çalışanına iletilecek bilgileri toplamak. Teşhis KOYMAZSIN, ilaç, doz ya da tedavi ÖNERMEZSİN, "acil değil" GÜVENCESİ VERMEZSİN.
-Toplaman gerekenler (bilinmeyenleri sırayla sor, her mesajda YALNIZCA BİR soru): 1) kim için, yaklaşık yaş; 2) ne oldu, nerede, nasıl görünüyor; 3) ne zamandır, kötüleşiyor mu; 4) bu konuda hekim planı ya da reçete var mı; 5) yatağa bağımlı mı / evden çıkabiliyor mu; 6) bilinen kronik hastalık, kullandığı ilaçlar, alerji (kısaca). İstersen bir kez fotoğraf eklemesini öner (yara gibi görünür durumlarda).
-Acil belirti (göğüs ağrısı/baskısı, nefes alamama, bilinç kaybı, bayılma, inme belirtisi, nöbet, şiddetli kanama, zehirlenme, ani çok şiddetli baş ağrısı, kendine zarar düşüncesi, ateşle birlikte ense sertliği vb.) sezersen red_flag=true yap ve 112'yi aramasını söyle.
-Fotoğraf gelirse photo_notes alanına yalnızca NESNEL tarif yaz (vücut bölgesi, yaklaşık boyut, renk, akıntı ya da kabuk görünümü); evre ya da tanı söyleme.
-En fazla 6 soru sorduktan sonra ya da bilgiler yeterliyse ready=true yap ve kısa bir kapanış cümlesi yaz.
-YANITIN yalnızca şu JSON olsun: {"reply": "kısa yanıt + tek soru", "quick_replies": ["en fazla 4 kısa hazır cevap"], "red_flag": false, "red_flag_reason": "", "photo_notes": "", "ready": false}`;
-  function reportPrompt(transcript) {
-    return `Aşağıda evde sağlık uygulamasında hasta/yakını ile asistan arasındaki konuşma var. Sağlık çalışanı için yapılandırılmış bir ön bilgi raporu hazırla.
-KURALLAR: Yalnızca anlatılanı yaz; olmayanı uydurma, bilinmeyeni "belirtilmedi" yaz. Teşhis, evreleme, ilaç ya da tedavi önerisi YAZMA. Hasta beyanı olduğunu unutma. Türkçe yaz.
-Hizmet önerisi şu kodlardan biri olmalı:
-${SERVICE_LIST}
-Fotoğraf notları: ${P.photoNotes.join(" | ") || "fotoğraf yok"}
-KONUŞMA:
-${transcript}
-YANIT yalnızca şu JSON olsun:
-{"kim_icin": "", "yas_araligi": "", "sikayet": "", "baslangic": "", "seyir": "", "siddet_beyani": "", "yataga_bagimli": true|false|null, "hekim_plani": "var|yok|bilinmiyor", "plan_detayi": "", "kronik_ilac_alerji": "", "ihtiyaclar": ["hastanın istediği hizmetler, kısa"], "malzeme": ["sağlık çalışanının getirmesi ya da evde hazır olması gerekebilecekler, kısa; emin değilsen boş bırak"], "foto_ozeti": "", "eksik_bilgiler": ["ziyarette netleştirilecek"], "hizmet_onerisi": "kod", "hasta_icin_ozet": "hastaya gösterilecek 1-2 sade cümle", "saglikci_icin_ozet": "sağlık çalışanı için 2-3 cümle, beyan olduğunu belirterek", "tek_satir": "talep listesinde görünecek en fazla 10 kelime"}`;
-  }
+  // İstemler tek kaynaktan (istemler.js): Claude sürümü ve sunucu aynı talimatları kullanır.
+  const CHAT_RULES = window.KAPIDA_ISTEMLER.SOHBET_KURALLARI;
+  const reportPrompt = (transcript) => window.KAPIDA_ISTEMLER.raporIstemi(transcript, P.photoNotes, SERVICE_LIST);
   const DEMO_Q = [
     ["Ne oldu? Kendi cümlelerinle anlat. Görünür bir durumsa fotoğraf da ekleyebilirsin.", []],
     ["Bu yardım kimin için? Yaklaşık kaç yaşında?", ["Annem, 70 üstü", "Babam, 70 üstü", "Kendim için", "Eşim için"]],
@@ -204,6 +204,10 @@ YANIT yalnızca şu JSON olsun:
     return P.msgs.map((m) => `${m.who === "me" ? "Hasta/yakını" : "Asistan"}: ${m.text}${m.photo ? " [fotoğraf eklendi]" : ""}`).join("\n");
   }
   async function aiReply() {
+    if (CAP.server) {
+      const imgs = P.pendingPhotos.map((p) => p.url); P.pendingPhotos = [];
+      return CAP.server.sohbet(P.turns, P.photoNotes, imgs);
+    }
     const turns = [{ role: "user", content: CHAT_RULES + (P.photoNotes.length ? `\nŞimdiye kadarki fotoğraf notları: ${P.photoNotes.join(" | ")}` : "") }, ...P.turns];
     const opts = { cache: false, modelTier: "quick" };
     if (P.pendingPhotos.length && CAP.images) opts.images = P.pendingPhotos.map((p) => p.blob);
@@ -211,6 +215,7 @@ YANIT yalnızca şu JSON olsun:
     return CAP.sample.json(turns, opts);
   }
   async function aiReport() {
+    if (CAP.server) return CAP.server.rapor(transcriptText(), P.photoNotes, P.photos.map((p) => p.url).filter(Boolean).slice(0, 3));
     const opts = {};
     const blobs = P.photos.map((p) => p.blob).filter(Boolean);
     if (blobs.length && CAP.images) opts.images = blobs.slice(0, 3);
@@ -252,6 +257,7 @@ YANIT yalnızca şu JSON olsun:
         const reply = String((r && r.reply) || "Anladım. Biraz daha anlatır mısın?");
         P.turns.push({ role: "assistant", content: reply });
         if (r && r.photo_notes) P.photoNotes.push(String(r.photo_notes));
+        if (r && r.anlasilan) { const me = [...P.msgs].reverse().find((m) => m.who === "me"); if (me) me.understood = String(r.anlasilan).slice(0, 240); }
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
@@ -315,7 +321,7 @@ YANIT yalnızca şu JSON olsun:
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
-    ["ihtiyaclar", "malzeme", "eksik_bilgiler"].forEach((k) => { if (!Array.isArray(rep[k])) rep[k] = rep[k] ? [String(rep[k])] : []; });
+    ["ihtiyaclar", "malzeme", "eksik_bilgiler", "dikkat_edilecekler"].forEach((k) => { if (!Array.isArray(rep[k])) rep[k] = rep[k] ? [String(rep[k])] : []; });
     P.report = rep;
     P.info.bed = rep.yataga_bagimli === true;
     P.info.plan = ["var", "yok"].includes(rep.hekim_plani) ? rep.hekim_plani : "bilinmiyor";
@@ -395,10 +401,10 @@ YANIT yalnızca şu JSON olsun:
     const quick = !P.busy && last && last.who === "ai" && last.quick && last.quick.length ? last.quick : [];
     return `<div class="chatwrap">
       <div class="chathead"><button class="back" type="button" data-act="home" aria-label="Geri">${ICO.back}</button><div class="bot">K</div>
-        <div style="flex:1"><b>Kapıda asistanı</b><div class="tiny muted">${P.mode === "ai" ? "Yapay zekâ · teşhis koymaz" : "Demo soruları · teşhis koymaz"}</div></div>
+        <div style="flex:1"><b>Kapıda asistanı</b><div class="tiny muted">${P.mode === "ai" ? (CAP.server ? "Yapay zekâ (sunucu) · teşhis koymaz" : "Yapay zekâ · teşhis koymaz") : "Demo soruları · teşhis koymaz"}</div></div>
         ${CAP.tts ? `<button class="iconbtn" type="button" data-act="voice" aria-pressed="${P.voice}" title="Yanıtları sesli oku" style="${P.voice ? "background:var(--brand-soft)" : ""}">${ICO.speaker}</button>` : ""}</div>
       <div class="pad" style="padding:10px 16px 0">${stepsBar(1)}</div>
-      <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>`).join("")}
+      <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>${m.understood ? `<div class="understood">Anladığım: ${esc(m.understood)}</div>` : ""}`).join("")}
         ${P.busy ? `<div class="msg ai"><span class="typing"><i></i><i></i><i></i></span></div>` : ""}</div>
       ${quick.length ? `<div class="quick">${quick.map((q) => `<button class="chip" type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
       ${(P.pendingShow || []).length ? `<div class="thumbs">${P.pendingShow.map((p) => `<img src="${p.url}" alt="Gönderilecek fotoğraf">`).join("")}<span class="tiny muted">gönderince eklenir</span></div>` : ""}
@@ -690,10 +696,13 @@ YANIT yalnızca şu JSON olsun:
       <div class="sec card stack" style="gap:8px"><h3>Hastanın durumu</h3>
         <div>${esc(rep.saglikci_icin_ozet || rep.sikayet)}</div>
         <dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}</dd>`).join("")}</dl>
+        ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}
+        ${rep.oneri_gerekcesi ? `<div class="small"><span class="muted">Neden bu hizmet önerildi:</span> ${esc(rep.oneri_gerekcesi)} <span class="muted">(öneri; kararı sen verirsin)</span></div>` : ""}
         <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir; kontrol et. Kırmızı bayrak kontrolü: temiz.</div></div>
       ${(r.photos || []).length || rep.foto_ozeti ? `<div class="sec card stack" style="gap:8px"><h3>Fotoğraflar</h3>${(r.photos || []).length ? `<div class="photos">${r.photos.map((u) => `<img src="${u}" alt="Hastanın eklediği fotoğraf">`).join("")}</div>` : ""}${rep.foto_ozeti ? `<div class="small">${esc(rep.foto_ozeti)}</div>` : ""}</div>` : ""}
       ${(rep.ihtiyaclar || []).length || (rep.malzeme || []).length ? `<div class="sec card stack" style="gap:4px"><h3>İhtiyaçlar ve getirmen gerekenler</h3><div class="checklist">
         ${[...(rep.ihtiyaclar || []).map((x) => "İstenen: " + x), ...(rep.malzeme || [])].map((x, i) => `<label for="ck${i}"><input type="checkbox" id="ck${i}"> <span>${esc(x)}</span></label>`).join("")}</div></div>` : ""}
+      ${(rep.dikkat_edilecekler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Dikkat</h3>${rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
       ${(rep.eksik_bilgiler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Ziyarette netleştir</h3>${rep.eksik_bilgiler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
       <div class="sec card stack" style="gap:8px"><h3>Rotan ve kazancın</h3>
         ${mapSVG(home, stops)}
