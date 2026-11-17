@@ -133,3 +133,17 @@ python -m pytest -q tests
 - Meslek bazında (ayrılmış): yapay zekâ kazancı hemşire +28, doktor +17, fizyoterapist +12, psikolog +7, dil-konuşma +7, diyetisyen +4,
   ergoterapist +2, odyolog/podolog 0 (3 kişi: herkese bildirim gidiyor, seçim yok). Nadir mesleklerde sınır kadro.
 - Demo (izmir.html) bu dünyada: 20 hizmet (meslek gruplu liste), 9 meslek renkli, genişleyen arama; build.py katalogu /*CATALOG_JSON*/ ile gömer.
+
+## Gerçekçi trafik (2026-11-17) — izmir_tam
+- Eski trafik modeli İzmir için ~2 kat hızlıydı: OSM serbest akış 10 km = 9,3 dk (65 km/s) × 1,15/1,35/1,8 → 10,6–16,7 dk.
+  TomTom Trafik Endeksi 2025 İzmir: ortalama 22:59, sabah zirvesi 25:38 (23,4 km/s), akşam zirvesi 34:41 (17,3 km/s), gece ~16 dk / 10 km.
+- geo.congestion (yalnız izmir_tam, geo.TRAFIK_TOMTOM): saatlik "10 km kaç dk" eğrisi (_TT10_HEDEF) / 9,3; saat ortaları arası doğrusal.
+  Park + bina girişi 6 dk (geo.PARK_DK; diğer dünyalar 3). Yol sapması baz %25, belirsiz_yol %45 (diğer dünyalar %15/%35).
+  JS demo (izmir.html) aynı eğri, PARK=6, travelNoiseSd 0,25. Grafik: `python sim/plot_trafik.py` → results/izmir_tam/trafik.png.
+- Eski trafikle alınan izmir_tam sonuçları: results/izmir_tam_eski_trafik/.
+- Yeni sonuçlar (baz, geliştirme / ayrılmış), 5 dk uygun %: kural 54,6 / 52,6 · v1 74,2 / 72,1 · v5 73,3 / – ·
+  v5_ukota_ayarli (a=0,9) 72,6 / 70,7 · **seçilen v5_ukota_trafik** (a=0,3, b=0,03, c=0,08, uyarlanır kota) 73,2 / 71,1.
+  Ayrılmış: seçilen − kural +18,4 ± 0,7; − v1 −1,0 ± 0,4; − ayarlı +0,4 ± 0,4. Ziyaret başına yol ~27 dk (eskiden ~15).
+  Günlük en fazla iş 8,2 → 5,1. Yollar uzayınca güçlü yol cezası (a=0,9) faydasını yitiriyor; a=0,3 daha iyi.
+- Meslek (ayrılmış, kural → seçilen): hemşire 56→83, doktor 48→63, fizyoterapist 53→64, psikolog 50→57, dil-konuşma 49→54,
+  diyetisyen 56→60, ergoterapist 45→47, odyolog 38→38, podolog 48→48.

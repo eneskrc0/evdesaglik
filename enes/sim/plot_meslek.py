@@ -18,7 +18,7 @@ def g(run, y):
 
 
 src = [("Klasik kural", g("007_v1_holdout", "en_erken"), "#9aa0a6"), ("v1", g("007_v1_holdout", "model"), "#2b6fd6"),
-       ("Seçilen (v5 + kota + ayar)", g("008_v5_ukota_ayarli_holdout", "model"), "#1aa874")]
+       ("Seçilen (v5 + kota, trafiğe göre ayarlı)", g("010_v5_ukota_trafik_holdout", "model"), "#1aa874")]
 x = np.arange(len(ROLES)); w = 0.27
 fig, ax = plt.subplots(figsize=(14, 5))
 for i, (lab, d, col) in enumerate(src):

@@ -1,0 +1,41 @@
+{
+  "id": "010_v5_ukota_trafik_holdout",
+  "world": "izmir_tam",
+  "versiyon": "v5+kota+trafik",
+  "name": "v5_ukota_trafik",
+  "model": "v5_ukota_trafik",
+  "note": "ayrılmış",
+  "set": "holdout",
+  "date": "2026-11-17T19:12",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol"
+    ]
+  },
+  "heuristic_hash": "6e5d7bdea693",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "0aa945a5f10a",
+    "sim/world.py": "6cd25196e87e",
+    "sim/geo.py": "cf6a7b0645a2",
+    "sim/models.py": "e96504a77930"
+  }
+}

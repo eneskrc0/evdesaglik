@@ -267,8 +267,11 @@ function samplePoint(r){if(BY_D){const u=r.random();let k=DCUM.findIndex(c=>u<=c
  if(POOL)return POOL[r.int(0,POOL.length)];for(;;){const lon=r.uniform(BB.minLon,BB.maxLon),lat=r.uniform(BB.minLat,BB.maxLat);if(inPoly(lat,lon))return[lat,lon];}}
 function haversine(a,b){const R=Math.PI/180,dl=(b[0]-a[0])*R,dn=(b[1]-a[1])*R;const d=Math.sin(dl/2)**2+Math.cos(a[0]*R)*Math.cos(b[0]*R)*Math.sin(dn/2)**2;return 6371*2*Math.asin(Math.sqrt(d));}
 function speedKmh(m){const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 16;if(h>=9.5&&h<17)return 24;return 30;}
-function congestion(m){const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 1.8;if(h>=9.5&&h<17)return 1.35;return 1.15;}
-function travelMin(a,b,m){if(TT&&a.length>2&&b.length>2)return 3+TT[a[2]*POOL.length+b[2]]/60*congestion(m);return 3+60*haversine(a,b)*DETOUR/speedKmh(m);}
+// İzmir: TomTom 2025 saatlik "10 km kaç dakika" eğrisi / OSM serbest akış 9,3 dk (Python geo.congestion ile aynı); park 6 dk
+const TRAFIK_TOMTOM=WORLD==="izmir",TT10=[16,16,16,16,16,16,17,20,25.6,24,21.5,21.5,22.5,23,23,24.5,27,31.5,34.7,29,23,19.5,18,17],PARK=TRAFIK_TOMTOM?6:3;
+function congestion(m){if(TRAFIK_TOMTOM){const x=((m/60-0.5)%24+24)%24,i=Math.floor(x),f=x-i;return(TT10[i]*(1-f)+TT10[(i+1)%24]*f)/9.3;}
+ const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 1.8;if(h>=9.5&&h<17)return 1.35;return 1.15;}
+function travelMin(a,b,m){if(TT&&a.length>2&&b.length>2)return PARK+TT[a[2]*POOL.length+b[2]]/60*congestion(m);return PARK+60*haversine(a,b)*DETOUR/speedKmh(m);}
 const cellCache=new Map();
 function cellOf(p){const k=p[0]+","+p[1];let c=cellCache.get(k);if(c)return c;
  c=HAS_H3?h3.latLngToCell(p[0],p[1],H3_RES):(Math.round(p[0]/0.006)+":"+Math.round(p[1]/0.0075));cellCache.set(k,c);return c;}
@@ -287,9 +290,10 @@ function catalogMix(staff){const tot=Object.values(staff).reduce((a,b)=>a+b,0),b
 const DAY_START=480,DAY_END=1200;
 const BASE_SC={name:"baz",nNurses:40,nDoctors:15,reqPerDay:70,budgetShare:0.6,respA:4,respB:3,peakSensShare:0.4,peakFactor:0.45,
  longDelayShare:0.4,shortDelay:[0.3,3],longDelay:[3,12],priceSd:0.12,homogeneous:false,travelNoiseSd:0.15,overrunSd:6,lateShare:0.25,notifyK:3,fairness:0};
-if(WORLD==="izmir"&&CATALOG){Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:195,extraStaff:EXTRA_STAFF,expand:true});
+if(WORLD==="izmir"&&CATALOG){Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:195,extraStaff:EXTRA_STAFF,expand:true,travelNoiseSd:0.25});
  BASE_SC.serviceMix=catalogMix({hemsire:80,doktor:25,fizyoterapist:20,...Object.fromEntries(EXTRA_STAFF)});} // izmir_tam (Python: OLCEK=tam)
 const SCENARIOS={baz:{},homojen:{homogeneous:true},yuksek_degiskenlik:{respA:2,respB:2,peakSensShare:0.6,longDelayShare:0.55,priceSd:0.2},belirsiz_yol:{travelNoiseSd:0.35,overrunSd:12}};
+if(WORLD==="izmir"&&CATALOG)SCENARIOS.belirsiz_yol.travelNoiseSd=0.45; // izmir_tam: daha geniş yol belirsizliği
 const clip=(x,a,b)=>Math.max(a,Math.min(b,x));
 
 class Worker{
@@ -558,7 +562,7 @@ function makeRoute(a,b){if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();
  const sec=(TT&&a.length>2&&b.length>2)?TT[a[2]*POOL.length+b[2]]:60*60*haversine(a,b)*DETOUR/speedKmh(D.clock);
  return{pts:[a.slice(0,2),b.slice(0,2)],cum:[0,sec],km:[0,haversine(a,b)*DETOUR],total:sec};}
 function setSpeed(v){D.speed=v;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",Math.abs(+x.dataset.s-v)<1e-6));}
-function startTracking(w,ea,planned,S){D.slowed=D.speed>0.25;/* otomatik izleme hızı: yola çıkana kadar hızlı, yolda yavaş, varınca normal */const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-3);// dk
+function startTracking(w,ea,planned,S){D.slowed=D.speed>0.25;/* otomatik izleme hızı: yola çıkana kadar hızlı, yolda yavaş, varınca normal */const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-PARK);// dk
  const depart=planned-travelMin(ea.from,D.req.loc,ea.depart);
  D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(roleNameV(w.role))+" #"+w.id,lastStep:-1};
  if(!D.gTrack){D.gTrack=el("g",{},$("map"));$("map").insertBefore(D.gTrack,D.gPatient);}
@@ -590,7 +594,7 @@ function updateTracking(force){const T=D.track;if(!T)return;const s=trackState()
   ${s.step<=2?`<div class="eta"><div class="etaBig">${Math.ceil(rem)} dk</div><div class="tiny">tahmini varış ${fmtT(T.arrive)}</div></div>`:""}</div>
   <div class="steps">${steps.map((n,i)=>`<div class="st ${i<cur?"ok":i===cur?"now":""}"><span></span>${n}</div>`).join("")}</div>
   <div class="bar"><div style="width:${(s.step===0?0:s.step>=3?100:100*s.f).toFixed(1)}%"></div></div>
-  <div class="tiny" style="margin-top:6px">${s.step<=2?`${D.slowed?`<span style="color:var(--blue)">${s.step===0?"Çalışan yola çıkana kadar saat hızlı akıyor (1 sn = 4 dk).":"Yolculuğu izleyebilmeniz için saat yavaşlatıldı (1 sn = 15 sn)."}</span> `:""}Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park 3 dk`}</div></div>`;
+  <div class="tiny" style="margin-top:6px">${s.step<=2?`${D.slowed?`<span style="color:var(--blue)">${s.step===0?"Çalışan yola çıkana kadar saat hızlı akıyor (1 sn = 4 dk).":"Yolculuğu izleyebilmeniz için saat yavaşlatıldı (1 sn = 15 sn)."}</span> `:""}Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park ${PARK} dk`}</div></div>`;
  if(s.step!==T.lastStep){T.lastStep=s.step;drawWorkers();renderWorker();}}
 function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.posFree(D.clock);
  const trk=(D.track&&D.track.wid===w.id)?trackState():null;const trTxt=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trk.step]+(trk.step<=2?` · varış ${fmtT(D.track.arrive)}`:""):null;
@@ -723,8 +727,8 @@ function applyVB(x,y,w,h,manual){const m=$("map"),H=baseH();w=Math.min(600,Math.
 function routePoint(r,frac){const target=frac*r.total;let i=1;while(i<r.cum.length-1&&r.cum[i]<target)i++;
  const seg=r.cum[i]-r.cum[i-1],g=seg>0?(target-r.cum[i-1])/seg:1,a=r.pts[i-1],b=r.pts[i];return[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g];}
 function posDraw(w,t){let prev=w.home;const bl=[...w.blocks].sort((a,b)=>a.s-b.s);
- for(const b of bl){const tr=travelMin(prev,b.p,b.s)-3;let dep,arr;
-  if(b.plat){dep=b.s;arr=b.s+tr+3;}else{arr=b.s;dep=b.s-tr;}
+ for(const b of bl){const tr=travelMin(prev,b.p,b.s)-PARK;let dep,arr;
+  if(b.plat){dep=b.s;arr=b.s+tr+PARK;}else{arr=b.s;dep=b.s-tr;}
   if(t<dep)return{loc:prev,inVisit:false,moving:false,free:t};
   if(t<arr){const r=cachedRoute(prev,b.p),f=Math.min(1,Math.max(0,(t-dep)/Math.max(0.1,tr)));return{loc:f>=1?b.p:routePoint(r,f),inVisit:false,moving:true,arr,free:b.e,plat:!!b.plat,from:prev};}
   if(t<b.e)return{loc:b.p,inVisit:true,moving:false,free:b.e};prev=b.p;}

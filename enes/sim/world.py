@@ -72,7 +72,7 @@ class Scenario:
     price_sd: float = 0.12  # çalışanlar arası ücret çarpanı yayılımı
     homogeneous: bool = False  # True: tüm çalışanlar aynı davranır
     # Belirsizlik
-    travel_noise_sd: float = 0.15  # yol süresinin göreli sapması
+    travel_noise_sd: float = 0.25 if geo.WORLD_TAG == "izmir_tam" else 0.15  # yol süresinin göreli sapması (izmir_tam: daha geniş)
     overrun_sd: float = 6.0  # önceki ziyaretin uzaması, dk
     late_share: float = 0.25  # ziyaretleri sık uzayan çalışan oranı
 
@@ -84,7 +84,7 @@ SCENARIOS = {
         "yuksek_degiskenlik", resp_alpha=2.0, resp_beta=2.0, peak_sensitive_share=0.6,
         long_delay_share=0.55, price_sd=0.2,
     ),
-    "belirsiz_yol": Scenario("belirsiz_yol", travel_noise_sd=0.35, overrun_sd=12.0),
+    "belirsiz_yol": Scenario("belirsiz_yol", travel_noise_sd=0.45 if geo.WORLD_TAG == "izmir_tam" else 0.35, overrun_sd=12.0),
 }
 
 

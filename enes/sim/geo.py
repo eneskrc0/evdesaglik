@@ -104,8 +104,23 @@ def speed_kmh(minute_of_day: float) -> float:
     return 30.0
 
 
+# Gerçekçi trafik (izmir_tam): TomTom Trafik Endeksi 2025 İzmir'e göre saatlik "10 km kaç dakika" eğrisi.
+# Kaynak: tomtom.com/traffic-index/izmir-traffic — ortalama 22 dk 59 sn, sabah zirvesi 25 dk 38 sn (23,4 km/s),
+# akşam zirvesi 34 dk 41 sn (17,3 km/s), gece ~16 dk. OSM serbest akış süreleri bizim ağda 10 km = 9,3 dk
+# (ölçüm: 989 rastgele havuz yolculuğu), katsayı = hedef / 9,3. Saat ortaları arasında doğrusal geçiş.
+TRAFIK_TOMTOM = WORLD_TAG == "izmir_tam"
+_TT10_HEDEF = [16, 16, 16, 16, 16, 16, 17, 20, 25.6, 24, 21.5, 21.5, 22.5, 23, 23, 24.5, 27, 31.5, 34.7, 29, 23, 19.5, 18, 17]
+_FF10 = 9.3
+PARK_DK = 6.0 if TRAFIK_TOMTOM else 3.0  # park yeri arama + yürüme + bina girişi
+
+
 def congestion(minute_of_day: float) -> float:
     """Serbest akış süresine uygulanan trafik katsayısı."""
+    if TRAFIK_TOMTOM:
+        x = (minute_of_day / 60.0 - 0.5) % 24
+        i = int(x)
+        f = x - i
+        return (_TT10_HEDEF[i] * (1 - f) + _TT10_HEDEF[(i + 1) % 24] * f) / _FF10
     h = (minute_of_day / 60.0) % 24
     if 7.5 <= h < 9.5 or 17 <= h < 19.5:
         return 1.8
@@ -115,11 +130,11 @@ def congestion(minute_of_day: float) -> float:
 
 
 def travel_minutes(a, b, minute_of_day: float) -> float:
-    """Tahmini (beklenen) yol süresi, dakika. Hazırlık/park için +3 dk."""
+    """Tahmini (beklenen) yol süresi, dakika. Hazırlık/park için +PARK_DK (3 dk; izmir_tam 6 dk)."""
     if ROAD_NETWORK and len(a) > 2 and len(b) > 2:
-        return 3.0 + float(TT_SEC[a[2], b[2]]) / 60.0 * congestion(minute_of_day)
+        return PARK_DK + float(TT_SEC[a[2], b[2]]) / 60.0 * congestion(minute_of_day)
     km = haversine_km(a, b) * DETOUR
-    return 3.0 + 60.0 * km / speed_kmh(minute_of_day)
+    return PARK_DK + 60.0 * km / speed_kmh(minute_of_day)
 
 
 @lru_cache(maxsize=None)

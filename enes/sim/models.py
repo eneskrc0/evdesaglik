@@ -124,6 +124,8 @@ MODELS["v5_kota5"] = policy_capped(gbm_v3, visit_cap=5, a=0.6, b=0.06, c=0.15, a
 MODELS["v5_kota5_ayarli"] = policy_capped(gbm_v3, visit_cap=5, a=0.9, b=0.03, c=0.08, alpha=0.95)
 # Uyarlanır kota: kota = round(2,5 + 2 × beklenen talep/çalışan) (duyarlılık testi, results/izmir_orta/duyarlilik.csv)
 MODELS["v5_ukota_ayarli"] = policy_capped(gbm_v3, visit_cap="auto", a=0.9, b=0.03, c=0.08, alpha=0.95)
+# Gerçekçi trafikte (TomTom, izmir_tam) yeniden ayar: yollar uzayınca yol cezası hafif (a=0.3) daha iyi
+MODELS["v5_ukota_trafik"] = policy_capped(gbm_v3, visit_cap="auto", a=0.3, b=0.03, c=0.08, alpha=0.95)
 # Demo sayfasının kullandığı bileşim: lojistik regresyon + v5 kuralları
 MODELS["v5_demo_lr"] = policy(logreg_v1, a=0.6, b=0.06, c=0.15, alpha=0.95)
 for _n in (4, 6, 8, 10, 12):

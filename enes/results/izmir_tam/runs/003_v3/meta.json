@@ -4,9 +4,9 @@
   "versiyon": "v3",
   "name": "v3",
   "model": "v3_garanti",
-  "note": "izmir_tam",
+  "note": "izmir_tam, TomTom trafik",
   "set": "dev",
-  "date": "2026-11-16T23:48",
+  "date": "2026-11-17T18:49",
   "protocol": {
     "hist_days": 12,
     "train_days": 12,
@@ -30,12 +30,12 @@
       "belirsiz_yol"
     ]
   },
-  "heuristic_hash": "99990cf4324a",
+  "heuristic_hash": "5bf6963b4a85",
   "files": {
     "data/izmir/pool.npz": "3de31e84dbf5",
     "sim/engine.py": "0aa945a5f10a",
-    "sim/world.py": "8826826b792f",
-    "sim/geo.py": "2c60efdf5d1d",
-    "sim/models.py": "b4c386d98999"
+    "sim/world.py": "6cd25196e87e",
+    "sim/geo.py": "cf6a7b0645a2",
+    "sim/models.py": "e96504a77930"
   }
 }
