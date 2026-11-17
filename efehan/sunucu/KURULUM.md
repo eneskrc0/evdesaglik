@@ -3,7 +3,7 @@
 Uygulama Claude dışında (GitHub sayfası, telefon) açıldığında gerçek yapay zekâyı bu küçük sunucu üzerinden kullanır.
 Sunucu yapay zekâ anahtarını saklar; anahtar uygulamaya ya da GitHub'a **asla** konmaz (depo herkese açık).
 
-Kullanılanlar: **Groq** (ses → yazı: Whisper large-v3; sohbet: `openai/gpt-oss-120b`; fotoğraf: Llama 4 Scout) ve
+Kullanılanlar: **Groq** (ses → yazı: Whisper large-v3; sohbet: `openai/gpt-oss-120b`; fotoğraf: Qwen 3.8 27B) ve
 **Cloudflare Workers** (anahtarı saklayan sunucu). İkisinin de ücretsiz planı prototip için yeterli; sınırlar değişebilir.
 
 ## 1. Groq anahtarı

@@ -55,7 +55,7 @@ const HIZMET_LISTESI = "tele_muayene: Hekimle video görüşme (ön değerlendir
 
 const VARSAYILAN_KOKENLER = ["https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
 const GROQ = "https://api.groq.com/openai/v1";
-const VARSAYILAN = { MODEL: "openai/gpt-oss-120b", GORSEL_MODEL: "meta-llama/llama-4-scout-17b-16e-instruct", SES_MODEL: "whisper-large-v3" };
+const VARSAYILAN = { MODEL: "openai/gpt-oss-120b", GORSEL_MODEL: "qwen/qwen3.8-27b", SES_MODEL: "whisper-large-v3" };
 const SINIR = { sesBayt: 10 * 1024 * 1024, tur: 40, turKarakter: 2000, transkript: 20000, resim: 3, resimKarakter: 1_600_000, istekPencereSn: 600, istekSayisi: 60 };
 
 // Basit kötüye kullanım sınırı: IP başına 10 dakikada 60 istek (yalnızca aynı sunucu örneği içinde; kaba bir korumadır).
