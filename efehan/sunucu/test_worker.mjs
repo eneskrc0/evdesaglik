@@ -47,7 +47,7 @@ sahte = () => groqYanit('{"reply":"foto"}'); cagrilar = [];
 const resim = "data:image/jpeg;base64," + "A".repeat(100);
 r = await iste("/sohbet", { turlar: [{ role: "user", content: "yara" }], resimler: [resim, "javascript:alert(1)", resim, resim, resim] });
 const gg = JSON.parse(cagrilar[0].init.body);
-assert.match(gg.model, /llama-4-scout/); const parcalar = gg.messages.at(-1).content;
+assert.match(gg.model, /qwen3/); const parcalar = gg.messages.at(-1).content;
 assert.equal(parcalar.filter((p) => p.type === "image_url").length, 3); ok("fotoğraf: görsel model, en fazla 3 geçerli resim");
 
 sahte = () => groqYanit('{"hizmet_onerisi":"basi_yarasi_bakimi","oneri_gerekcesi":"sırtta yara"}'); cagrilar = [];
