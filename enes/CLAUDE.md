@@ -177,3 +177,14 @@ python -m pytest -q tests
   Ziyaret başına yol 27 → 35 → 45 dk; zamanında ziyaret %84 → %83 → %81. Toplu taşıma başarıyı yalnızca 2–4 puan düşürüyor
   (model yakındaki/arabalı çalışanı seçerek telafi ediyor); yapay zekâ farkı her durumda +16–18 puan.
 - Uzun koşular yavaşsa: `OMP_NUM_THREADS=1` (2 çekirdekte sklearn iş parçacıkları süreçlerle çakışıyordu; tohum başına 9 sn).
+
+## Kayıtlı bildirim modeli — Kapıda için (2026-11-18)
+- `DUNYA=izmir OLCEK=tam OMP_NUM_THREADS=1 python -m sim.export_model` (~1 dk) → data/izmir/model_v5_demo_lr.json:
+  özellik sırası (Türkçe + kod adı + tanım), mu/sd (StandardScaler, ddof=0 = JS trainLogReg), w/b (LogisticRegression C=1),
+  v5 kuralları (a=0,6 b=0,06 c=0,15 alpha=0,95, 3 bildirim, 5 dk tur) + önerilen trafik kuralları, çalışan geçmiş profili
+  yüzdelikleri (tüm + meslek), ölçüm. Eğitim: izmir_tam baz, tohum 0–9 keşif günleri birleşik (~45 bin örnek).
+- Ölçüm: AUC eğitim 0,811 / ayrılmış (tohum 1000–1009 keşif verisi) 0,817. Sabit model ile ayrılmış 5 dk uygun:
+  v5 kuralları %68,4, trafik kuralları + kota %67,9, klasik kural %52,1 (karşılaştırma: GBM v1 %70,2, seçilen v5_ukota_trafik %69,3).
+- models.py: `lr_sabit_demo`, `lr_sabit_trafik` dosyadaki sabit modeli kullanır (tohumda yeniden eğitim yok).
+- ortak/build.py: enes/ şablonunun kendisi yaptığı yamalar ('özellik', meslek adı/rengi) artık atlanıyor (patch(..., done=...));
+  toplu taşıma ağı da gömülüyor. `python3 ortak/test_akis.py` hatasız.

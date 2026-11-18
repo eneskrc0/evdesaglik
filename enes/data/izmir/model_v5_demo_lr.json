@@ -1,0 +1,443 @@
+{
+ "ad": "v5_demo_lr",
+ "aciklama": "Bildirim modeli: bir çalışana bildirim gönderilirse 5 dk içinde hastanın saatine ve bütçesine uygun teklif verme olasılığı. p = 1/(1+exp(-(b + Σ w_j·(x_j−mu_j)/sd_j))). Özellik sırası 'ozellikler' ile aynı olmalı.",
+ "dunya": "izmir_tam (İzmir, 9 meslek, TomTom trafiği, çalışanların %40'ı toplu taşıma), sentetik veri",
+ "egitim": {
+  "tohumlar": "0-9 (geliştirme)",
+  "gun": "12 geçmiş + 12 eğitim günü/tohum, rastgele bildirim",
+  "ornek": 94365,
+  "pozitif_oran": 0.2372,
+  "yontem": "sklearn StandardScaler + LogisticRegression(C=1, L2); sd = nüfus std (ddof=0), JS trainLogReg ile aynı tanım"
+ },
+ "tarih": "2026-11-18",
+ "ozellikler": [
+  "yol süresi",
+  "boşalmaya kalan",
+  "aralık payı",
+  "saat",
+  "yoğun saat",
+  "ziyarette",
+  "geçmiş yanıt",
+  "hızlı yanıt",
+  "yoğun saat yanıtı",
+  "bütçe farkı",
+  "bütçe var",
+  "doktor"
+ ],
+ "ozellikler_kod": [
+  "yol_suresi",
+  "bosalmaya_kalan",
+  "pencere_payi",
+  "saat",
+  "yogun_saat",
+  "ziyarette",
+  "gecmis_yanit_orani",
+  "gecmis_hizli_yanit_orani",
+  "gecmis_yogun_saat_yanit",
+  "butce_farki",
+  "butce_var",
+  "doktor"
+ ],
+ "ozellik_tanimi": [
+  "yol süresi: çalışanın şu anki/boşalacağı konumdan hastaya tahmini yol süresi, dk (kendi ulaşımıyla; araba +6 dk park)",
+  "boşalmaya kalan: çalışanın elindeki işi bitirmesine kalan dk (boşsa 0)",
+  "aralık payı: hastanın istediği aralığın bitişi − çalışanın en erken varışı, dk",
+  "saat: talep anı, saat (ör. 13.5)",
+  "yoğun saat: 1/0 (sabah 8–10 veya akşam 17–19 zirvesi; engine.is_peak)",
+  "ziyarette: 1/0, çalışan şu an bir ziyarette",
+  "geçmiş yanıt: çalışanın geçmişte bildirimlere teklif verme oranı (az veride 0,5'e büzülmüş); yeni çalışan 0,5",
+  "hızlı yanıt: 5 dk içinde teklif verme oranı; yeni çalışan 0,5",
+  "yoğun saat yanıtı: zirve saatlerdeki teklif oranı; yoksa geçmiş yanıt",
+  "bütçe farkı: (hasta bütçesi − taban ücret × çalışanın fiyat çarpanı) / taban ücret; bütçe yoksa 0",
+  "bütçe var: 1/0",
+  "doktor: 1/0, hizmet doktor mesleğine ait"
+ ],
+ "mu": [
+  34.78047418700523,
+  7.199072699735868,
+  53.16933767022514,
+  12.17668513094771,
+  0.22704392518412547,
+  0.21060774651618713,
+  0.48576641389198727,
+  0.33148442263069716,
+  0.42812117872745853,
+  -0.0027363866155935422,
+  0.6368674826471679,
+  0.17101679648174642
+ ],
+ "sd": [
+  20.754172100747343,
+  17.51653611044931,
+  14.681804905712578,
+  2.7352940523837104,
+  0.4189212112329738,
+  0.40774026490373816,
+  0.15621993791394923,
+  0.20738077097295046,
+  0.2043540484573571,
+  0.11814014803166749,
+  0.4809025807726672,
+  0.37652364043068876
+ ],
+ "w": [
+  -0.036548329771824054,
+  0.003267520623426943,
+  -0.01657894194669196,
+  0.012642415150234785,
+  -0.16097233791283508,
+  -0.3428195654610438,
+  -0.14794476004443938,
+  1.0821174793495836,
+  0.027977115650797545,
+  0.807678527592103,
+  -0.5142586454795948,
+  -0.005066697561052198
+ ],
+ "b": -1.6085608105577345,
+ "v5": {
+  "bildirim_sayisi": 3,
+  "tur_bekleme_dk": 5.0,
+  "kural": {
+   "a": 0.6,
+   "b": 0.06,
+   "c": 0.15,
+   "alpha": 0.95
+  },
+  "kural_aciklama": "adj = p − a·yol_dk/30 − b·(çalışanın bugün aldığı bildirim) − c·(bugünkü platform ziyareti). adj'e göre sırala, ilk 3'ü al; sonra garanti: 1−Π(1−p) üçlüsü, p'ye göre en iyi üçlünün alpha katından küçükse en düşük p'liyi en yüksek p'li dışarıdakiyle değiştir. 5 dk'da uygun teklif yoksa 2. tur: sıradaki 3 kişi.",
+  "kural_trafik_onerilen": {
+   "a": 0.3,
+   "b": 0.03,
+   "c": 0.08,
+   "alpha": 0.95,
+   "gunluk_ziyaret_kotasi": "round(2.5 + 2 × günlük talep / çalışan)"
+  }
+ },
+ "olcum": {
+  "auc_egitim": 0.8107,
+  "auc_ayrilmis": 0.8173,
+  "uygun5_ayrilmis_kural_v5": 68.4,
+  "uygun5_ayrilmis_kural_trafik": 67.9,
+  "uygun5_ayrilmis_klasik_kural": 52.1,
+  "aciklama": "Baz senaryo, ayrılmış tohumlar 1000–1009, 10'ar test günü; bu JSON'daki sabit model. Yüzde = 5 dk içinde uygun teklif alan hasta oranı. Karşılaştırma: aynı dünyada GBM v1 %70,2, seçilen v5_ukota_trafik %69,3."
+ },
+ "gecmis": {
+  "yeni_calisan": {
+   "resp": 0.5,
+   "fast": 0.5,
+   "peak": 0.5,
+   "priceMult": 1.0
+  },
+  "tum": {
+   "resp": {
+    "p10": 0.28,
+    "p25": 0.384,
+    "p50": 0.493,
+    "p75": 0.596,
+    "p90": 0.685
+   },
+   "fast": {
+    "p10": 0.091,
+    "p25": 0.137,
+    "p50": 0.342,
+    "p75": 0.519,
+    "p90": 0.621
+   },
+   "peak": {
+    "p10": 0.176,
+    "p25": 0.263,
+    "p50": 0.4,
+    "p75": 0.583,
+    "p90": 0.711
+   },
+   "priceMult": {
+    "p10": 0.833,
+    "p25": 0.908,
+    "p50": 0.992,
+    "p75": 1.071,
+    "p90": 1.147
+   }
+  },
+  "meslek": {
+   "dil_konusma": {
+    "n": 60,
+    "resp": {
+     "p10": 0.308,
+     "p25": 0.411,
+     "p50": 0.516,
+     "p75": 0.585,
+     "p90": 0.66
+    },
+    "fast": {
+     "p10": 0.079,
+     "p25": 0.134,
+     "p50": 0.37,
+     "p75": 0.548,
+     "p90": 0.619
+    },
+    "peak": {
+     "p10": 0.18,
+     "p25": 0.31,
+     "p50": 0.438,
+     "p75": 0.618,
+     "p90": 0.721
+    },
+    "priceMult": {
+     "p10": 0.854,
+     "p25": 0.926,
+     "p50": 0.996,
+     "p75": 1.077,
+     "p90": 1.16
+    }
+   },
+   "diyetisyen": {
+    "n": 60,
+    "resp": {
+     "p10": 0.249,
+     "p25": 0.356,
+     "p50": 0.501,
+     "p75": 0.591,
+     "p90": 0.69
+    },
+    "fast": {
+     "p10": 0.08,
+     "p25": 0.122,
+     "p50": 0.262,
+     "p75": 0.497,
+     "p90": 0.577
+    },
+    "peak": {
+     "p10": 0.156,
+     "p25": 0.193,
+     "p50": 0.339,
+     "p75": 0.603,
+     "p90": 0.691
+    },
+    "priceMult": {
+     "p10": 0.826,
+     "p25": 0.913,
+     "p50": 1.004,
+     "p75": 1.046,
+     "p90": 1.099
+    }
+   },
+   "doktor": {
+    "n": 250,
+    "resp": {
+     "p10": 0.29,
+     "p25": 0.394,
+     "p50": 0.493,
+     "p75": 0.586,
+     "p90": 0.688
+    },
+    "fast": {
+     "p10": 0.091,
+     "p25": 0.132,
+     "p50": 0.319,
+     "p75": 0.5,
+     "p90": 0.597
+    },
+    "peak": {
+     "p10": 0.183,
+     "p25": 0.266,
+     "p50": 0.429,
+     "p75": 0.585,
+     "p90": 0.714
+    },
+    "priceMult": {
+     "p10": 0.818,
+     "p25": 0.918,
+     "p50": 0.982,
+     "p75": 1.078,
+     "p90": 1.152
+    }
+   },
+   "ergoterapist": {
+    "n": 40,
+    "resp": {
+     "p10": 0.312,
+     "p25": 0.421,
+     "p50": 0.5,
+     "p75": 0.595,
+     "p90": 0.658
+    },
+    "fast": {
+     "p10": 0.131,
+     "p25": 0.248,
+     "p50": 0.487,
+     "p75": 0.572,
+     "p90": 0.609
+    },
+    "peak": {
+     "p10": 0.172,
+     "p25": 0.26,
+     "p50": 0.408,
+     "p75": 0.5,
+     "p90": 0.645
+    },
+    "priceMult": {
+     "p10": 0.787,
+     "p25": 0.892,
+     "p50": 0.988,
+     "p75": 1.043,
+     "p90": 1.127
+    }
+   },
+   "fizyoterapist": {
+    "n": 200,
+    "resp": {
+     "p10": 0.304,
+     "p25": 0.37,
+     "p50": 0.485,
+     "p75": 0.614,
+     "p90": 0.675
+    },
+    "fast": {
+     "p10": 0.092,
+     "p25": 0.138,
+     "p50": 0.333,
+     "p75": 0.507,
+     "p90": 0.624
+    },
+    "peak": {
+     "p10": 0.166,
+     "p25": 0.263,
+     "p50": 0.4,
+     "p75": 0.6,
+     "p90": 0.723
+    },
+    "priceMult": {
+     "p10": 0.831,
+     "p25": 0.895,
+     "p50": 0.992,
+     "p75": 1.08,
+     "p90": 1.167
+    }
+   },
+   "hemsire": {
+    "n": 800,
+    "resp": {
+     "p10": 0.273,
+     "p25": 0.382,
+     "p50": 0.486,
+     "p75": 0.594,
+     "p90": 0.686
+    },
+    "fast": {
+     "p10": 0.088,
+     "p25": 0.137,
+     "p50": 0.346,
+     "p75": 0.518,
+     "p90": 0.628
+    },
+    "peak": {
+     "p10": 0.179,
+     "p25": 0.259,
+     "p50": 0.382,
+     "p75": 0.573,
+     "p90": 0.71
+    },
+    "priceMult": {
+     "p10": 0.842,
+     "p25": 0.909,
+     "p50": 0.997,
+     "p75": 1.074,
+     "p90": 1.15
+    }
+   },
+   "klinik_psikolog": {
+    "n": 80,
+    "resp": {
+     "p10": 0.355,
+     "p25": 0.421,
+     "p50": 0.514,
+     "p75": 0.631,
+     "p90": 0.677
+    },
+    "fast": {
+     "p10": 0.104,
+     "p25": 0.151,
+     "p50": 0.383,
+     "p75": 0.536,
+     "p90": 0.643
+    },
+    "peak": {
+     "p10": 0.21,
+     "p25": 0.308,
+     "p50": 0.458,
+     "p75": 0.574,
+     "p90": 0.698
+    },
+    "priceMult": {
+     "p10": 0.859,
+     "p25": 0.92,
+     "p50": 0.986,
+     "p75": 1.068,
+     "p90": 1.13
+    }
+   },
+   "odyolog": {
+    "n": 30,
+    "resp": {
+     "p10": 0.293,
+     "p25": 0.41,
+     "p50": 0.481,
+     "p75": 0.576,
+     "p90": 0.66
+    },
+    "fast": {
+     "p10": 0.101,
+     "p25": 0.158,
+     "p50": 0.268,
+     "p75": 0.46,
+     "p90": 0.542
+    },
+    "peak": {
+     "p10": 0.153,
+     "p25": 0.296,
+     "p50": 0.438,
+     "p75": 0.551,
+     "p90": 0.619
+    },
+    "priceMult": {
+     "p10": 0.867,
+     "p25": 0.894,
+     "p50": 0.935,
+     "p75": 1.043,
+     "p90": 1.126
+    }
+   },
+   "podolog": {
+    "n": 30,
+    "resp": {
+     "p10": 0.273,
+     "p25": 0.358,
+     "p50": 0.553,
+     "p75": 0.682,
+     "p90": 0.719
+    },
+    "fast": {
+     "p10": 0.078,
+     "p25": 0.115,
+     "p50": 0.315,
+     "p75": 0.574,
+     "p90": 0.7
+    },
+    "peak": {
+     "p10": 0.185,
+     "p25": 0.318,
+     "p50": 0.498,
+     "p75": 0.667,
+     "p90": 0.734
+    },
+    "priceMult": {
+     "p10": 0.841,
+     "p25": 0.902,
+     "p50": 0.98,
+     "p75": 1.078,
+     "p90": 1.162
+    }
+   }
+  }
+ }
+}

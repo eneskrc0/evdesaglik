@@ -16,9 +16,12 @@ CAT = {k: data[k] for k in ("sources", "professions", "services", "profession_se
 ek = (O / "ek.js").read_text()
 
 
-def patch(name, old, new, count=1):
+def patch(name, old, new, count=1, done=None):
+    """done: şablonda zaten bu metin varsa yama gereksiz (enes/ şablonu aynı değişikliği kendisi yapmış)."""
     global html
     n = html.count(old)
+    if n == 0 and done is not None and done in html:
+        return
     assert n == count, f"yama '{name}': {n} eşleşme (beklenen {count})"
     html = html.replace(old, new)
 
@@ -38,12 +41,13 @@ patch("katalog-hizmetler", "const DAY_START=480,DAY_END=1200;",
       "const DAY_START=480,DAY_END=1200;")
 
 # 3) Özellik: "doktor" bayrağı hizmet adından değil meslekten (pansuman/doktor için sonuç aynı)
-patch("özellik", '+(req.service==="doktor")', '+(SERVICES[req.service].role==="doktor")')
+patch("özellik", '+(req.service==="doktor")', '+(SERVICES[req.service].role==="doktor")', done='+(SERVICES[req.service].role==="doktor")')
 
 # 4) Meslek adları ve renkleri
+# (enes/ şablonu artık roleNameV / roleColorV kullanıyor; ek.js'teki roleName / roleColor tanımlıysa onları çağırıyor)
 html, n = re.subn(r'(\w+)\.role==="hemsire"\?"Hemşire":"Doktor"', r"roleName(\1.role)", html)
-assert n >= 6, n
-patch("renk", '(w.role==="hemsire"?"var(--aqua)":"var(--blue)")', "roleColor(w.role)")
+assert n >= 6 or "roleNameV" in html, n
+patch("renk", '(w.role==="hemsire"?"var(--aqua)":"var(--blue)")', "roleColor(w.role)", done="roleColorV")
 
 # 5) Ek meslekler + profiller
 patch("ek-çalışanlar", "const P=prepareSeed(SC_DEMO,DEMO_SEED);", "const P=prepareSeed(SC_DEMO,DEMO_SEED);addExtraWorkers(P);")
@@ -87,9 +91,9 @@ patch("tur-teklif", "const off=workerResponse(SC_DEMO,x.w,D.req,D.clock,DEMO_SEE
 
 # 8) Teklif listesi ve kabul: ödenecek tutar (paylaşım indirimi), profil
 patch("teklif-fiyat", "<b>${fmtTL(o.price)}</b> · varış", "<b>${fmtTL(payOf(o))}</b>${discTxt(o)} · varış")
-patch("teklif-profil", "${roleName(w.role)} #${w.id} · ${(o.t-req.t)", "${roleName(w.role)} #${w.id} · ${profTxt(w,req.service)} · ${(o.t-req.t)")
+patch("teklif-profil", "${roleNameV(w.role)} #${w.id} · ${(o.t-req.t)", "${roleNameV(w.role)} #${w.id} · ${profTxt(w,req.service)} · ${(o.t-req.t)")
 patch("kabul-tutar", "itibarıyla gelecek · ${fmtTL(o.price)}", "itibarıyla gelecek · ${fmtTL(payOf(o))}")
-patch("sıralama-profil", "<td>${roleName(r.role)} #${r.id}</td>", "<td>${roleName(r.role)} #${r.id}<div class=\"tiny\">${profTxt(D.workers[r.id],D.req.service)}</div></td>")
+patch("sıralama-profil", "<td>${roleNameV(r.role)} #${r.id}</td>", "<td>${roleNameV(r.role)} #${r.id}<div class=\"tiny\">${profTxt(D.workers[r.id],D.req.service)}</div></td>")
 
 # 9) Çalışan paneli: YZ önerisi, ±%10 bant
 patch("çalışan-öneri", "const defP=req.budget??Math.round(S.base*w.priceMult/10)*10;",
@@ -120,10 +124,13 @@ patch("başlat", "setTimeout(()=>{try{initDemo();}", "setTimeout(()=>{try{setupT
 (O / "template.html").write_text(html)
 w = E / "web"
 hosp = (w / "hospitals.json").read_text()
+tf = w / "transit_izmir.json"  # toplu taşıma ağı (enes/sim/build_transit.py)
+transit = tf.read_text() if tf.exists() else "null"
 for world, res in [("izmir", E / "results/izmir"), ("bornova", E / "results")]:
     prog = (res / "ilerleme.json").read_text().replace("NaN", "null")
     out = O / "dist" / f"{world}.html"
     out.write_text(html.replace("/*ROADS_JSON*/null", (w / f"roads_{world}.json").read_text())
                    .replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp)
-                   .replace("/*GRAPH_JSON*/null", (w / f"graph_{world}.json").read_text()))
+                   .replace("/*GRAPH_JSON*/null", (w / f"graph_{world}.json").read_text())
+                   .replace("/*TRANSIT_JSON*/null", transit if world == "izmir" else "null"))
     print(out.relative_to(R), round(out.stat().st_size / 1e6, 2), "MB")

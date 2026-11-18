@@ -136,3 +136,28 @@ for _n in (4, 6, 8):
     MODELS[f"gbm_v1_ybkota{_n}"] = capped(gbm_v1, notif_cap=_n, soft=True)
 for _v in (2, 3):
     MODELS[f"gbm_v1_yzkota{_v}"] = capped(gbm_v1, visit_cap=_v, soft=True)
+
+
+# Kaydedilmiş sabit model (sim/export_model.py → data/izmir/model_v5_demo_lr.json; Kapıda uygulaması bunu kullanır).
+# Her tohumda yeniden EĞİTİLMEZ: dosyadaki mu/sd/w/b ile tahmin. Dosya yoksa bu isimler kayıtlı olmaz.
+class SabitLR:
+    def __init__(self, path):
+        import json
+        import numpy as np
+        d = json.loads(open(path, encoding="utf-8").read())
+        self.mu, self.sd = np.array(d["mu"]), np.array(d["sd"])
+        self.w, self.b = np.array(d["w"]), float(d["b"])
+
+    def predict_proba(self, X):
+        import numpy as np
+        p = 1.0 / (1.0 + np.exp(-(self.b + ((np.asarray(X, float) - self.mu) / self.sd) @ self.w)))
+        return np.c_[1 - p, p]
+
+
+def _sabit_lr(X, y, seed):
+    from pathlib import Path
+    return SabitLR(Path(__file__).resolve().parent.parent / "data" / "izmir" / "model_v5_demo_lr.json")
+
+
+MODELS["lr_sabit_demo"] = policy(_sabit_lr, a=0.6, b=0.06, c=0.15, alpha=0.95)
+MODELS["lr_sabit_trafik"] = policy_capped(_sabit_lr, visit_cap="auto", a=0.3, b=0.03, c=0.08, alpha=0.95)
