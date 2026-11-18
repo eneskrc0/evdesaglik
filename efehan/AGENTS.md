@@ -13,6 +13,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - `web/dogrulama.js` — sağlık çalışanı mesleki doğrulama akışı (prototip; resmî doğrulama yok, dosyalar yalnız bellekte). `web/e2e_dogrulama.py` uçtan uca prova.
 
 - `web/harita.js` — gerçek İzmir haritası (Enes'in yol çizimi), yol grafiğinde Dijkstra ile sokak rotası, hastada canlı takip (kabulden sonra; 1 sn ≈ 1 dk canlandırma), çalışanın 'Rotam' sekmesinde günlük rota. Veri `data/seed/harita_izmir.json` (build_izmir.py, ~2 MB, build_web.py yalnızca kapida.html'e gömer). Prova: `python web/e2e_harita.py`.
+- `web/teklif.js` — YZ teklif katmanı: Enes'in kayıtlı bildirim modeli (`enes/data/izmir/model_v5_demo_lr.json`, build_web.py gömer; p = sigmoid(b + Σw(x−mu)/sd), 12 özellik) ile v5 kuralı → 3 kişiye bildirim (+2. tur), YZ fiyat önerisi (ortak/ek.js aiPrice) ve ±%10 teklif bandı. Hasta teklifi kabul edince randevu kesin. Yanıtlar p ile canlandırılır (1 sn ≈ 1 dk); çalışan geçmişi sentetik (modelin meslek dağılımından). Prova: `python web/e2e_teklif.py`.
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 
 - `web/istemler.js` — YZ istemlerinin TEK kaynağı (sohbet kuralları, rapor istemi, ses ipucu); Claude sürümü ve sunucu birlikte kullanır.
@@ -32,4 +33,4 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 
 ## Açık birleştirme kararları
-Uygulama adı (Kapıda / Vizit) ve ücret varsayımları açık. Ekip kararı (16.11): şehir İzmir; fiyat karma (YZ önerir, çalışan ±%10 içinde teklif verir, paylaşım indirimi hastaya). Kapıda 18.11'den beri İzmir verisiyle (konum + yol süresi + trafik + en yakın acil servis); harita, sokak rotası ve canlı takip de var (18.11). Henüz yok: Enes'in teklif akışı + YZ bildirim modeli + YZ fiyat önerisi (ortak/'ta var; Kapıda'ya taşınacak).
+Uygulama adı (Kapıda / Vizit) ve ücret varsayımları açık. Ekip kararı (16.11): şehir İzmir; fiyat karma (YZ önerir, çalışan ±%10 içinde teklif verir, paylaşım indirimi hastaya). Kapıda 18.11'den beri İzmir verisiyle (konum + yol süresi + trafik + en yakın acil servis); harita, sokak rotası ve canlı takip de var (18.11). 18.11 gece: Enes'in teklif akışı, YZ bildirim modeli ve YZ fiyat önerisi de Kapıda'da (teklif.js). Klasik liste 'Tüm uygun kişiler' altında duruyor.

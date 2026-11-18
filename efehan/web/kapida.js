@@ -67,6 +67,9 @@
   const H = { pid: "HEM-12", tab: "talepler", open: null, accepted: {}, rejected: {}, toast: "" };
   // Gerçek İzmir haritası ve sokak rotası (harita.js; Enes'in yol grafiği, © OpenStreetMap katkıcıları)
   const MAP = window.KapidaHarita && window.KAPIDA_HARITA && window.EVDE_DATA.yol ? window.KapidaHarita.create(window.KAPIDA_HARITA, window.EVDE_DATA.yol) : null;
+  // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
+  const TK = window.KapidaTeklif && window.KAPIDA_MODEL ? window.KapidaTeklif.create(window.KAPIDA_MODEL, C) : null;
+  const SIMDI = 570; // demo saati 09:30 (üst çubuktaki saat)
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   const REQ = []; // tüm talepler (yerel + ortak)
@@ -482,16 +485,87 @@
     const res = C.findCandidates(repo, service, pt, DATE, P.info.when, SORTS[P.sort][1], 20, 5);
     P.cands = res.candidates; P.pt = pt;
     const [ico, head, why] = levelCopy(t.level, service);
+    const yz = TK && P.cands.length ? teklifPlani(service, pt) : null;
     return `<div class="pad stack">
       <button class="back" type="button" data-act="summary">${ICO.back} Özete dön</button>
       ${stepsBar(3)}
       <div class="levelcard"><span class="lv-ico">${ico}</span><div class="stack" style="gap:4px"><b>${esc(head)}</b><span class="small">${esc(why)}</span>
         <span class="small muted">Hizmet: ${esc(svc(service).name_tr)} · ${svc(service).duration_min} dk</span></div></div>
       <div class="seg" role="group" aria-label="Sıralama">${Object.entries(SORTS).map(([k, [l]]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>
+      ${yz ? teklifKarti(yz) : ""}
+      ${yz ? `<details class="klasik"${teklifDurumu(yz).bitti && !teklifDurumu(yz).satirlar.some((r) => r.verir) ? " open" : ""}><summary class="small">Tüm uygun kişiler (klasik liste, ${P.cands.length})</summary><div class="stack" style="gap:10px;margin-top:10px">` : ""}
       ${P.cands.length ? P.cands.map((c, i) => optCard(c, i)).join("") : `<div class="card soft">Bu saat için uygun kişi bulamadık. "Ne zaman?" seçimini değiştirip tekrar dene.</div>`}
+      ${yz ? `</div></details>` : ""}
       <div class="tiny muted" style="text-align:center">Fiyatlar örnektir. Ödeme ziyaret tamamlanınca alınır (demo).</div>
     </div>`;
   }
+  // ---- YZ teklif akışı ----
+  // Konum ve iş durumu (demo saati SIMDI): ziyaretteyse o ziyaretin yeri, bitmişse son ziyaret, yoksa ev
+  function calisanDurumu(pid) {
+    const p = repo.providers[pid], gun = (repo.scheduled[pid + "|" + DATE] || []).slice().sort((a, b) => a.start_min - b.start_min);
+    const icinde = gun.find((v) => v.start_min <= SIMDI && SIMDI < v.start_min + v.duration_min);
+    const biten = gun.filter((v) => v.start_min + v.duration_min <= SIMDI).pop();
+    const yer = icinde ? [icinde.lat, icinde.lon] : biten ? [biten.lat, biten.lon] : [p.home_lat, p.home_lon];
+    return { yer, ziyarette: !!icinde, bosalmayaKalan: icinde ? icinde.start_min + icinde.duration_min - SIMDI : 0, ziyaretBugun: gun.length };
+  }
+  function teklifPlani(service, pt) {
+    const key = [service, pt.lat, pt.lon, P.info.when, P.cands.map((c) => c.provider_id).join(",")].join("|");
+    if (P.yz && P.yz.key === key) return P.yz;
+    const taban = svc(service).base_fee_tl;
+    const adaylar = P.cands.map((c, i) => {
+      const pv = repo.providers[c.provider_id], d = calisanDurumu(c.provider_id), uzak = !c.insertion;
+      return { pid: c.provider_id, idx: i, meslek: pv.profession_code, carpan: pv.fee_multiplier, doktor: /hekim/.test(pv.profession_code),
+        yolDk: uzak ? 0 : Math.max(1, C.travel(d.yer, [pt.lat, pt.lon], SIMDI)), bosalmayaKalan: d.bosalmayaKalan, ziyarette: d.ziyarette,
+        enErkenVaris: c.arrival_min, ziyaretBugun: d.ziyaretBugun, bildirim: 0 };
+    });
+    const plan = TK.planla({ adaylar, taban, simdi: SIMDI, pencereSonu: P.info.when + 120, tohum: key });
+    P.yz = { key, plan, t0: Date.now(), teklifler: {} };
+    return P.yz;
+  }
+  // 1 sn ≈ 1 dk canlandırma; ilk turda teklif yoksa ikinci tur (sıradaki 3 kişi)
+  function teklifDurumu(yz) {
+    const gecen = (Date.now() - yz.t0) / 1000, pl = yz.plan;
+    const t1 = pl.tur1.map((c) => ({ ...c, tur: 1, a: pl.secilen.find((a) => a.pid === c.pid), geldi: gecen >= c.gecikmeDk }));
+    const tur1Bitti = gecen >= 5, tur1Teklif = t1.some((c) => c.verir);
+    const ikinci = tur1Bitti && !tur1Teklif;
+    const t2 = ikinci ? pl.tur2.cevaplar.map((c) => ({ ...c, tur: 2, a: pl.tur2.secilen.find((a) => a.pid === c.pid), geldi: gecen - 5 >= c.gecikmeDk })) : [];
+    return { satirlar: [...t1, ...t2], ikinci, bitti: ikinci ? gecen >= 10 : tur1Bitti };
+  }
+  function teklifFiyati(c, fiyat) {
+    const pr = c.price, fark = fiyat - pr.service_fee, kom = C.CFG.COMMISSION;
+    return { ...pr, service_fee: fiyat, patient_pays: pr.patient_pays + fark, provider_gets: pr.provider_gets + fark * (1 - kom), platform_gets: (pr.platform_gets || 0) + fark * kom };
+  }
+  function teklifKarti(yz) {
+    const pl = yz.plan, o = pl.oneri, d = teklifDurumu(yz), yuzde = (x) => Math.round(100 * x) + "%";
+    const satir = (r) => {
+      const c = P.cands[r.a.idx], pp = person(r.pid), p = r.a.p;
+      let sag;
+      if (!r.geldi) sag = `<span class="pill sun">Teklif bekleniyor…</span>`;
+      else if (!r.verir) sag = `<span class="tiny muted">${r.nedenYok === "yanıt vermedi" ? "Yanıt vermedi" : "Fiyatı bandın üstünde, teklif vermedi"}</span>`;
+      else {
+        const tc = yz.teklifler[r.pid] || (yz.teklifler[r.pid] = { ...c, price: teklifFiyati(c, r.fiyat), teklif: { fiyat: r.fiyat, oneri: o.fiyat } });
+        const i = P.cands.indexOf(c); P.cands[i] = tc;
+        sag = `<button class="btn primary teklif-btn" type="button" data-pick="${i}"><span>Teklif ${tl(r.fiyat)} TL</span><span class="tiny">toplam ${tl(tc.price.patient_pays)} TL · ${C.hhmm(c.arrival_min)}</span></button>`;
+      }
+      const f = r.a.ozellik.ham;
+      return `<div class="yz-satir"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1;min-width:0"><b>${esc(pp.full)}</b>
+        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}</div>
+        <div class="tiny muted">${f.yol_suresi ? `${Math.round(f.yol_suresi)} dk yol · ` : ""}hızlı yanıt ${yuzde(f.gecmis_hizli_yanit_orani)}${f.ziyarette ? " · şu an ziyarette" : ""}</div></div>${sag}</div>`;
+    };
+    return `<div class="card stack yz-teklif" style="gap:10px">
+      <div class="row between"><b>Yapay zekâ talebini ${pl.secilen.length} kişiye gönderdi</b><span class="pill">model isabeti (AUC) ${pl.model.auc.toFixed(2).replace(".", ",")}</span></div>
+      <div class="small">Önerilen fiyat <b>${tl(o.fiyat)} TL</b> (liste ${tl(o.taban)} TL) · teklifler ${tl(o.alt)}–${tl(o.ust)} TL arasında olur · en az bir teklif olasılığı ${yuzde(o.basari)}</div>
+      ${d.satirlar.filter((r) => r.tur === 1).map(satir).join("")}
+      ${d.ikinci ? `<div class="tiny muted">İlk 5 dakikada teklif gelmedi; sıradaki ${pl.tur2.secilen.length} kişiye gönderildi.</div>${d.satirlar.filter((r) => r.tur === 2).map(satir).join("")}` : ""}
+      ${d.bitti && !d.satirlar.some((r) => r.verir) ? `<div class="note small">Şu an teklif gelmedi. Aşağıdaki listeden doğrudan birini seçebilir ya da "Ne zaman?" seçimini değiştirebilirsin.</div>` : ""}
+      <div class="tiny muted">Kime bildirim gideceğini Enes'in modeli seçti: her aday için "5 dk içinde uygun teklif verir mi" olasılığı, yol ve iş yükü cezası (v5). Simülasyonda bu yöntem hastaların %${String(pl.model.v5).replace(".", ",")}'üne 5 dk içinde uygun teklif buldu; en yakına gönderme kuralı %${String(pl.model.klasik).replace(".", ",")}. Prototip: yanıtlar modelin olasılığıyla canlandırılır (1 sn ≈ 1 dk).</div>
+    </div>`;
+  }
+  setInterval(() => {
+    if (P.screen !== "options" || !P.yz || P.sheet !== null) return;
+    const d = teklifDurumu(P.yz), imza = d.satirlar.map((r) => r.pid + (r.geldi ? 1 : 0)).join(",") + (d.bitti ? "|bitti" : "");
+    if (imza !== P.yz.imza) { P.yz.imza = imza; const sc = $("#pScreen"), y = sc.scrollTop; renderP(); sc.scrollTop = y; }
+  }, 500);
   function optCard(c, i) {
     const pp = person(c.provider_id), pv = repo.providers[c.provider_id];
     const shared = c.insertion && c.insertion.shared;
@@ -662,12 +736,16 @@
     const c = P.cands[P.sheet];
     const id = "T" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const r = {
-      id, created_at: new Date().toISOString(), status: "bekliyor", provider_id: c.provider_id, service: c.service, level: P.triage.level,
+      id, created_at: new Date().toISOString(), status: c.teklif ? "kabul" : "bekliyor", accepted_at: c.teklif ? Date.now() : undefined, teklif: c.teklif || null, provider_id: c.provider_id, service: c.service, level: P.triage.level,
       arrival_min: c.arrival_min, price: c.price, ins: c.insertion, patient: { district: P.info.district, lat: P.pt.lat, lon: P.pt.lon, bedridden: P.info.bed, plan: P.info.plan },
       report: P.report, photos: P.photos.slice(0, 3).map((p) => p.url), red_flags_checked: true, from_app: true, author: CAP.uid || null,
     };
     P.request = r; P.sheet = null; P.screen = "done";
     H.pid = c.provider_id; H.tab = "talepler"; H.open = id;
+    if (c.teklif) { // çalışan teklif verdi, hasta kabul etti → randevu kesin, çalışanın rotasına girer
+      (H.accepted[c.provider_id] ||= []).push({ reqId: id, lat: P.pt.lat, lon: P.pt.lon, start_min: c.arrival_min, duration_min: svc(c.service).duration_min, service_code: c.service, earn: c.price.provider_gets });
+      H.tab = "rota"; H.open = null;
+    }
     await putRequest(r);
     renderP(); renderH();
     if (window.matchMedia("(max-width: 860px)").matches) P.toast = "Sağlık çalışanı ekranını görmek için üstten geçiş yap.";
