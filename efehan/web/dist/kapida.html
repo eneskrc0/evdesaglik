@@ -253,6 +253,7 @@ svg.map text { fill: var(--muted); font-size: 11px; font-family: var(--font); }
 .v-banner .btn { background: var(--phone); }
 .lockmsg { font-size: 14px; color: var(--muted); }
 .democtl { width: 390px; max-width: 100%; border: 1px dashed var(--muted); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; background: var(--phone); }
+.skipdoc { display: flex; justify-content: center; padding: 0 16px 4px; } .skipdoc .btn { font-size: 13px; min-height: 34px; color: var(--brand); }
 .understood { align-self: flex-end; max-width: 85%; font-size: 12.5px; color: var(--muted); margin: -4px 4px 2px; text-align: right; }
 select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 10px 12px; }
 </style>
@@ -635,29 +636,34 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
   const SOHBET_KURALLARI = `Sen "Kapıda" adlı evde sağlık uygulamasının Türkçe konuşan karşılama asistanısın. Hasta ya da yakınıyla sıcak, sabırlı, sade ve kısa konuşursun; yaşlı kullanıcıları düşünerek kısa cümle kurarsın.
 GÖREVİN: Durumu anlamak, kullanıcıya ne olacağını açıklamak ve sağlık çalışanına iletilecek bilgileri toplamak. Teşhis KOYMAZSIN; ilaç, doz ya da tedavi ÖNERMEZSİN; "acil değil" GÜVENCESİ VERMEZSİN. Hangi hizmetin uygun olabileceğini düşünebilirsin ama son kararın hekimde/sağlık çalışanında olduğunu bilirsin.
 ANLAMA: Kullanıcı yöresel ağız, şive, konuşma dili ya da hatalı yazımla yazabilir; mesaj sesten yazıya çevrilmiş ve bazı kelimeler yanlış çözülmüş olabilir (ör. "sancı", "sızı", "fenalık geçirdi", "içim daralıyor", "başım dönüyo", "ayağı şişti gari"). Anlamı çıkar. Emin olmadığın önemli bir ifadeyi kendi cümlenle tekrar edip nazikçe teyit et ("... demek istediniz, doğru mu?"). Kullanıcıyı asla düzeltme ya da küçümseme.
-TOPLAMAN GEREKENLER (bilinenleri tekrar sorma; her mesajda YALNIZCA BİR soru; duruma göre sırayı sen seç): 1) kim için, yaklaşık yaş; 2) ne oldu, nerede, nasıl görünüyor; 3) ne zamandır, kötüleşiyor mu; 4) bu konuda hekim planı ya da reçete var mı; 5) yatağa bağımlı mı / evden çıkabiliyor mu; 6) bilinen kronik hastalık, kullandığı ilaçlar, alerji (kısaca). FOTOĞRAF İSTEME KURALI: Fotoğrafı YALNIZCA cildin dışında, telefonla kolayca ve güvenle çekilebilen görünür bir durum varsa ve yalnızca bir kez öner: yara, bası yarası, ameliyat/dikiş yeri, cilt kızarıklığı, döküntü, yanık, morluk, şişlik, sonda/kateter/ostomi ya da serum yeri çevresi. Boğaz, ağız içi, diş, kulak, burun içi, göz içi; ağrı, ateş, öksürük, baş dönmesi, mide/karın ağrısı, nefes, iç organlar, idrar/dışkı ve mahrem bölgeler için ASLA fotoğraf isteme; bunları sözlü sorularla öğren (yerini, süresini, şiddetini sor).
+KISA TUT: Kullanıcıyı soruya boğma. Toplam EN FAZLA 3 soru sor; her mesajda yalnızca BİR soru. Kullanıcının zaten söylediğini ya da ilk mesajından anlaşılanı ASLA tekrar sorma; bir mesajda birden fazla bilgi verdiyse hepsini kabul et. Öncelik sırası (yalnızca eksikse sor): 1) ne oldu / nerede; 2) ne zamandır, kötüleşiyor mu; 3) yalnızca hemşire, fizyoterapist gibi hekim planı gerektiren bir hizmet söz konusuysa: hekim planı ya da reçete var mı. Yaş, kronik hastalık, ilaç, yatağa bağımlılık gibi bilgileri ayrıca SORMA; kullanıcı söylerse not al, eksik kalanları sağlık çalışanı ziyarette sorar.
+DOKTORA YÖNLENDİR: Kullanıcı "direkt doktora yönlendir", "doktor istiyorum", "soru sorma", "uzatma", "bilmiyorum, doktor baksın" gibi bir şey derse soru sormayı HEMEN bırak, ready=true ve doktora_yonlendir=true yap, kısa bir cümleyle doktora yönlendirdiğini söyle.
+FOTOĞRAF İSTEME KURALI: Fotoğrafı YALNIZCA cildin dışında, telefonla kolayca ve güvenle çekilebilen görünür bir durum varsa ve yalnızca bir kez öner: yara, bası yarası, ameliyat/dikiş yeri, cilt kızarıklığı, döküntü, yanık, morluk, şişlik, sonda/kateter/ostomi ya da serum yeri çevresi. Boğaz, ağız içi, diş, kulak, burun içi, göz içi; ağrı, ateş, öksürük, baş dönmesi, mide/karın ağrısı, nefes, iç organlar, idrar/dışkı ve mahrem bölgeler için ASLA fotoğraf isteme; bunları sözlü sorularla öğren (yerini, süresini, şiddetini sor).
 AÇIKLAMA: Gerektiğinde bir sonraki adımı bir cümleyle açıkla (ör. "Bu bilgileri hemşireye ileteceğim, o da gelmeden önce okuyacak."). Hemşire, fizyoterapist gibi meslekler hekim planı olmadan hizmet veremez; plan yoksa önce hekim değerlendirmesi gerekeceğini sade biçimde söyle.
 ACİL: Acil belirti (göğüs ağrısı/baskısı, nefes alamama, bilinç kaybı, bayılma, inme belirtisi, nöbet, şiddetli kanama, zehirlenme, ani çok şiddetli baş ağrısı, kendine zarar düşüncesi, ateşle birlikte ense sertliği vb.) sezersen red_flag=true yap ve 112'yi aramasını söyle (zehirlenmede 114).
 FOTOĞRAF: Fotoğraf gelirse photo_notes alanına yalnızca NESNEL tarif yaz (vücut bölgesi, yaklaşık boyut, renk, akıntı ya da kabuk görünümü); evre ya da tanı söyleme.
-BİTİŞ: En fazla 7 soru sorduktan sonra ya da bilgiler yeterliyse ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz.
-YANITIN yalnızca şu JSON olsun: {"reply": "kısa yanıt + tek soru", "quick_replies": ["en fazla 4 kısa hazır cevap"], "red_flag": false, "red_flag_reason": "", "photo_notes": "", "anlasilan": "kullanıcının son mesajından anladığın, tek cümle", "ready": false}`;
+BİTİŞ: Ne olduğu ve ne zamandır sürdüğü belliyse (ya da 3 soru sorduysan) ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz.
+YANITIN yalnızca şu JSON olsun: {"reply": "kısa yanıt + tek soru", "quick_replies": ["en fazla 4 kısa hazır cevap"], "red_flag": false, "red_flag_reason": "", "photo_notes": "", "anlasilan": "kullanıcının son mesajından anladığın, tek cümle", "doktora_yonlendir": false, "ready": false}`;
 
-  function raporIstemi(transkript, fotoNotlari, hizmetListesi) {
-    return `Aşağıda evde sağlık uygulamasında hasta/yakını ile asistan arasındaki konuşma var. Sağlık çalışanı için yapılandırılmış bir ön bilgi raporu hazırla.
+  // Rapor istemi şablonu: {{HIZMETLER}}, {{FOTO}}, {{TRANSKRIPT}} doldurulur (sunucu da aynı şablonu kullanır).
+  const RAPOR_SABLONU = `Aşağıda evde sağlık uygulamasında hasta/yakını ile asistan arasındaki konuşma var. Sağlık çalışanı için yapılandırılmış bir ön bilgi raporu hazırla.
 KURALLAR: Yalnızca anlatılanı yaz; olmayanı uydurma, bilinmeyeni "belirtilmedi" yaz. Yöresel/konuşma dilindeki ifadeleri sade tıbbi olmayan Türkçeye çevir, gerekirse hastanın kendi sözünü tırnak içinde koru. Teşhis, evreleme, ilaç ya da tedavi önerisi YAZMA. Hasta beyanı olduğunu unutma. Türkçe yaz.
 Hizmet önerisi şu kodlardan biri olmalı (yalnızca bir öneridir; kararı hekim/sağlık çalışanı verir):
-${hizmetListesi}
-Fotoğraf notları: ${(fotoNotlari && fotoNotlari.length) ? fotoNotlari.join(" | ") : "fotoğraf yok"}
+{{HIZMETLER}}
+Fotoğraf notları: {{FOTO}}
 KONUŞMA:
-${transkript}
+{{TRANSKRIPT}}
 YANIT yalnızca şu JSON olsun:
 {"kim_icin": "", "yas_araligi": "", "sikayet": "", "hastanin_kendi_sozleri": "", "baslangic": "", "seyir": "", "siddet_beyani": "", "yataga_bagimli": true|false|null, "hekim_plani": "var|yok|bilinmiyor", "plan_detayi": "", "kronik_ilac_alerji": "", "ihtiyaclar": ["hastanın istediği hizmetler, kısa"], "malzeme": ["sağlık çalışanının getirmesi ya da evde hazır olması gerekebilecekler, kısa; emin değilsen boş bırak"], "foto_ozeti": "", "eksik_bilgiler": ["ziyarette netleştirilecek"], "hizmet_onerisi": "kod", "oneri_gerekcesi": "bu hizmeti neden önerdiğin, konuşmaya dayanarak 1-2 cümle", "dikkat_edilecekler": ["sağlık çalışanının gözden kaçırmaması gereken beyanlar, kısa"], "hasta_icin_ozet": "hastaya gösterilecek 1-2 sade cümle", "saglikci_icin_ozet": "sağlık çalışanı için 2-3 cümle, beyan olduğunu belirterek", "tek_satir": "talep listesinde görünecek en fazla 10 kelime"}`;
+  function raporIstemi(transkript, fotoNotlari, hizmetListesi, sablon) {
+    const foto = (fotoNotlari && fotoNotlari.length) ? fotoNotlari.join(" | ") : "fotoğraf yok";
+    return String(sablon || RAPOR_SABLONU).split("{{HIZMETLER}}").join(hizmetListesi).split("{{FOTO}}").join(foto).split("{{TRANSKRIPT}}").join(transkript);
   }
 
   // Ses tanımaya ipucu: Whisper'a verilen kısa bağlam (alan sözcükleri). Ağız/şive çeşitliliği için örnekler de içerir.
   const SES_IPUCU = "Evde sağlık görüşmesi. Pansuman, bası yarası, serum, sonda, tansiyon, şeker, sancı, sızı, fenalık, nefes darlığı, ateş, yatağa bağımlı, reçete, hemşire, doktor, fizyoterapi.";
 
-  const api = { SOHBET_KURALLARI, raporIstemi, SES_IPUCU };
+  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KAPIDA_ISTEMLER = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -1316,6 +1322,8 @@ YANIT yalnızca şu JSON olsun:
     // 1) Kural motoru: her mesajda kırmızı bayrak
     const t = C.triage(repo, P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". "), { bedridden: false, has_physician_plan: false });
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; renderP(); return; }
+    // 1b) "Direkt doktora yönlendir" / "soru sorma": soruları geç, hekime yönlendir
+    if (DOKTOR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
     // 2) YZ ya da demo
     if (P.mode === "ai") {
       P.turns.push({ role: "user", content: shown + (photos.length ? " [fotoğraf eklendi]" : "") });
@@ -1330,7 +1338,10 @@ YANIT yalnızca şu JSON olsun:
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
-        if (r && r.ready) { await buildReport(); return; }
+        if (r && r.doktora_yonlendir) { P.info.doktor = true; await buildReport(); return; }
+        // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
+        const userTurns = P.turns.filter((x) => x.role === "user").length;
+        if ((r && r.ready) || userTurns >= MAX_SORU + 1) { await buildReport(); return; }
         renderP();
       } catch (e) {
         P.busy = false;
@@ -1379,6 +1390,14 @@ YANIT yalnızca şu JSON olsun:
       tek_satir: (a[0] || svc(code).name_tr).split(/\s+/).slice(0, 10).join(" "),
     };
   }
+  const MAX_SORU = 3;
+  const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
+  async function doktoraYonlendir() {
+    P.info.doktor = true;
+    const t = "Tamam, soruları geçiyorum. Anlattıklarını doktora ileteceğim; doktor gerekirse kendisi sorar.";
+    P.msgs.push({ who: "ai", text: t }); speak(t);
+    await buildReport();
+  }
   async function buildReport() {
     P.screen = "building"; renderP();
     let rep = null;
@@ -1390,6 +1409,12 @@ YANIT yalnızca şu JSON olsun:
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
+    if (P.info.doktor) {
+      rep.hizmet_onerisi = "ev_muayene";
+      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
+      rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
+      rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
+    }
     ["ihtiyaclar", "malzeme", "eksik_bilgiler", "dikkat_edilecekler"].forEach((k) => { if (!Array.isArray(rep[k])) rep[k] = rep[k] ? [String(rep[k])] : []; });
     P.report = rep;
     P.info.bed = rep.yataga_bagimli === true;
@@ -1422,6 +1447,9 @@ YANIT yalnızca şu JSON olsun:
       else { level = "PLANLI"; services = [sug]; }
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
+    }
+    if (P.info.doktor && !t.is_emergency) {
+      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
     }
     return { t, pt };
   }
@@ -1476,6 +1504,7 @@ YANIT yalnızca şu JSON olsun:
       <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>${m.understood ? `<div class="understood">Anladığım: ${esc(m.understood)}</div>` : ""}`).join("")}
         ${P.busy ? `<div class="msg ai"><span class="typing"><i></i><i></i><i></i></span></div>` : ""}</div>
       ${quick.length ? `<div class="quick">${quick.map((q) => `<button class="chip" type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
+      ${!P.busy && P.msgs.some((m) => m.who === "me") ? `<div class="skipdoc"><button class="btn ghost" type="button" data-act="skipdoc">Soruları geç, doktora yönlendir →</button></div>` : ""}
       ${(P.pendingShow || []).length ? `<div class="thumbs">${P.pendingShow.map((p) => `<img src="${p.url}" alt="Gönderilecek fotoğraf">`).join("")}<span class="tiny muted">gönderince eklenir</span></div>` : ""}
       <form class="composer" id="pComposer">
         <label class="iconbtn" title="Fotoğraf ekle" style="cursor:pointer">${ICO.cam}<input type="file" accept="image/*" id="pPhoto" hidden></label>
@@ -1629,6 +1658,7 @@ YANIT yalnızca şu JSON olsun:
     if (a === "start") startChat();
     else if (a === "home") { P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
+    else if (a === "skipdoc") { if (!P.busy) { P.msgs.push({ who: "me", text: "Soruları geç, doktora yönlendir." }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
     else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
     else if (a === "voice") { P.voice = !P.voice; renderP(); }

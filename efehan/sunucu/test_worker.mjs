@@ -1,7 +1,7 @@
 // Sunucu (worker.js) birim testleri — Groq sahte. Çalıştır: node sunucu/test_worker.mjs
 import assert from "node:assert/strict";
 const worker = (await import(new URL("./worker.js", import.meta.url))).default;
-const ENV = { GROQ_API_KEY: "test-anahtar" };
+const ENV = { GROQ_API_KEY: "test-anahtar", AYAR_URL: "yok" };
 const KOKEN = "https://eneskrc0.github.io";
 let cagrilar = [], sahte = null;
 globalThis.fetch = async (url, init) => { cagrilar.push({ url, init }); return sahte(url, init); };
@@ -66,4 +66,32 @@ sahte = () => groqYanit('{"reply":"x"}'); let son;
 for (let i = 0; i < 62; i++) son = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }, { ip: "9.9.9.9" });
 assert.equal(son.status, 429); ok("aynı IP'den 10 dakikada 60'tan fazla istek sınırlanıyor");
 r = await iste("/yok", { a: 1 }); assert.equal(r.status, 404); ok("bilinmeyen adres 404");
+
+// ---- Canlı ayar (GitHub'daki ayar.json) ----
+const ayarSahte = { surum: "deneme1", sohbet_kurallari: "ÖZEL KURAL: en fazla iki soru sor. ".repeat(2), rapor_sablonu: "RAPOR {{HIZMETLER}} | {{FOTO}} | {{TRANSKRIPT}} şablon", ses_ipucu: "ipucu", hizmetler: "ozel_hizmet: Özel hizmet adı", modeller: { MODEL: "deneme/model" } };
+const w2 = (await import(new URL("./worker.js?taze=1", import.meta.url))).default;
+const ENV2 = { GROQ_API_KEY: "k", AYAR_URL: "https://raw.githubusercontent.com/x/ayar.json" };
+cagrilar = [];
+sahte = (u) => String(u).includes("raw.githubusercontent") ? new Response(JSON.stringify(ayarSahte)) : groqYanit('{"reply":"ok"}');
+const iste2 = (yol, govde, env = ENV2) => w2.fetch(new Request("https://k.workers.dev" + yol, { method: govde ? "POST" : "GET", headers: { Origin: KOKEN, "Content-Type": "application/json", "CF-Connecting-IP": "2.2.2." + Math.random() }, body: govde ? JSON.stringify(govde) : undefined }), env);
+r = await iste2("/"); v = await r.json();
+assert.equal(v.ayar, "deneme1"); assert.equal(v.ayar_kaynagi, "github"); assert.equal(v.model, "deneme/model"); ok("canlı ayar GitHub'dan okunuyor (sürüm ve model)");
+cagrilar = [];
+r = await iste2("/sohbet", { turlar: [{ role: "user", content: "a" }] });
+let gb = JSON.parse(cagrilar.find((c) => String(c.url).includes("groq")).init.body);
+assert.match(gb.messages[0].content, /ÖZEL KURAL/); assert.equal(gb.model, "deneme/model");
+assert.equal(cagrilar.filter((c) => String(c.url).includes("raw.githubusercontent")).length, 0, "bir dakika önbellek");
+ok("sohbet canlı talimatı ve modeli kullanıyor; ayar önbellekten");
+cagrilar = [];
+r = await iste2("/rapor", { transkript: "KONUSMA-XYZ" });
+gb = JSON.parse(cagrilar.find((c) => String(c.url).includes("groq")).init.body);
+assert.equal(gb.messages[0].content, "RAPOR ozel_hizmet: Özel hizmet adı | fotoğraf yok | KONUSMA-XYZ şablon"); ok("rapor canlı şablon ve hizmet listesiyle doluyor");
+const w3 = (await import(new URL("./worker.js?taze=2", import.meta.url))).default;
+sahte = (u) => String(u).includes("raw.githubusercontent") ? new Response(JSON.stringify({ ...ayarSahte, rapor_sablonu: "bozuk şablon, transkript yeri yok" })) : groqYanit('{"reply":"ok"}');
+r = await w3.fetch(new Request("https://k.workers.dev/", { headers: { Origin: KOKEN } }), ENV2); v = await r.json();
+assert.equal(v.ayar_kaynagi, "gomulu"); ok("bozuk ayar reddediliyor, gömülü talimat kullanılıyor");
+const w4 = (await import(new URL("./worker.js?taze=3", import.meta.url))).default;
+sahte = (u) => { if (String(u).includes("raw.githubusercontent")) throw new Error("ağ yok"); return groqYanit('{"reply":"ok"}'); };
+r = await w4.fetch(new Request("https://k.workers.dev/", { headers: { Origin: KOKEN } }), ENV2); v = await r.json();
+assert.equal(v.ayar_kaynagi, "gomulu"); assert.equal(v.ok, true); ok("GitHub'a ulaşılamazsa sunucu gömülü talimatla çalışmaya devam ediyor");
 console.log(`\nTamam: ${n} kontrol geçti.`);

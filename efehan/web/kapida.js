@@ -247,6 +247,8 @@
     // 1) Kural motoru: her mesajda kırmızı bayrak
     const t = C.triage(repo, P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". "), { bedridden: false, has_physician_plan: false });
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; renderP(); return; }
+    // 1b) "Direkt doktora yönlendir" / "soru sorma": soruları geç, hekime yönlendir
+    if (DOKTOR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
     // 2) YZ ya da demo
     if (P.mode === "ai") {
       P.turns.push({ role: "user", content: shown + (photos.length ? " [fotoğraf eklendi]" : "") });
@@ -261,7 +263,10 @@
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
-        if (r && r.ready) { await buildReport(); return; }
+        if (r && r.doktora_yonlendir) { P.info.doktor = true; await buildReport(); return; }
+        // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
+        const userTurns = P.turns.filter((x) => x.role === "user").length;
+        if ((r && r.ready) || userTurns >= MAX_SORU + 1) { await buildReport(); return; }
         renderP();
       } catch (e) {
         P.busy = false;
@@ -310,6 +315,14 @@
       tek_satir: (a[0] || svc(code).name_tr).split(/\s+/).slice(0, 10).join(" "),
     };
   }
+  const MAX_SORU = 3;
+  const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
+  async function doktoraYonlendir() {
+    P.info.doktor = true;
+    const t = "Tamam, soruları geçiyorum. Anlattıklarını doktora ileteceğim; doktor gerekirse kendisi sorar.";
+    P.msgs.push({ who: "ai", text: t }); speak(t);
+    await buildReport();
+  }
   async function buildReport() {
     P.screen = "building"; renderP();
     let rep = null;
@@ -321,6 +334,12 @@
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
+    if (P.info.doktor) {
+      rep.hizmet_onerisi = "ev_muayene";
+      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
+      rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
+      rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
+    }
     ["ihtiyaclar", "malzeme", "eksik_bilgiler", "dikkat_edilecekler"].forEach((k) => { if (!Array.isArray(rep[k])) rep[k] = rep[k] ? [String(rep[k])] : []; });
     P.report = rep;
     P.info.bed = rep.yataga_bagimli === true;
@@ -353,6 +372,9 @@
       else { level = "PLANLI"; services = [sug]; }
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
+    }
+    if (P.info.doktor && !t.is_emergency) {
+      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
     }
     return { t, pt };
   }
@@ -407,6 +429,7 @@
       <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>${m.understood ? `<div class="understood">Anladığım: ${esc(m.understood)}</div>` : ""}`).join("")}
         ${P.busy ? `<div class="msg ai"><span class="typing"><i></i><i></i><i></i></span></div>` : ""}</div>
       ${quick.length ? `<div class="quick">${quick.map((q) => `<button class="chip" type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
+      ${!P.busy && P.msgs.some((m) => m.who === "me") ? `<div class="skipdoc"><button class="btn ghost" type="button" data-act="skipdoc">Soruları geç, doktora yönlendir →</button></div>` : ""}
       ${(P.pendingShow || []).length ? `<div class="thumbs">${P.pendingShow.map((p) => `<img src="${p.url}" alt="Gönderilecek fotoğraf">`).join("")}<span class="tiny muted">gönderince eklenir</span></div>` : ""}
       <form class="composer" id="pComposer">
         <label class="iconbtn" title="Fotoğraf ekle" style="cursor:pointer">${ICO.cam}<input type="file" accept="image/*" id="pPhoto" hidden></label>
@@ -560,6 +583,7 @@
     if (a === "start") startChat();
     else if (a === "home") { P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
+    else if (a === "skipdoc") { if (!P.busy) { P.msgs.push({ who: "me", text: "Soruları geç, doktora yönlendir." }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
     else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
     else if (a === "voice") { P.voice = !P.voice; renderP(); }

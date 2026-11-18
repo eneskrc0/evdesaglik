@@ -27,7 +27,15 @@ Kullanılanlar: **Groq** (ses → yazı: Whisper large-v3; sohbet: `openai/gpt-o
 - Sunucu yalnızca `https://eneskrc0.github.io`, `https://raw.githack.com` ve `localhost:8000`'den gelen istekleri kabul eder.
   Başka bir adreste yayınlarsanız Cloudflare'de `IZINLI_KOKENLER` adlı (Text) değişkene virgülle ayrılmış adresleri yazın.
 
-## Güncelleme
+## Canlı ayar (Cloudflare'e dokunmadan güncelleme)
+Sunucu; sohbet talimatını, rapor şablonunu, ses ipucunu, hizmet listesini ve model adlarını her dakika
+GitHub'daki `efehan/sunucu/ayar.json`'dan okur (`main` dalı). `build_web.py` bu dosyayı `istemler.js`'ten üretir.
+Değişiklik main'e birleştirilince GitHub önbelleği yüzünden ~5 dakika içinde canlıya geçer. Sunucunun hangi
+sürümü kullandığı `https://kapida.<hesap>.workers.dev/` adresinde görünür (`"ayar"` ve `"ayar_kaynagi": "github"`).
+GitHub'a ulaşılamazsa ya da dosya bozuksa sunucu, `worker.js`'e gömülü talimatla çalışmaya devam eder.
+Kapatmak için Cloudflare'de `AYAR_URL` = `yok` (Text) ekleyin.
+
+## Güncelleme (yalnızca sunucu KODU değişince)
 `istemler.js` ya da `worker_sablon.js` değişince `python efehan/web/build_web.py` yeni `worker.js` üretir; Cloudflare'de
 **Edit code**'a yeniden yapıştırıp **Deploy** de. Anahtar ayarı korunur.
 

@@ -15,7 +15,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 
 - `web/istemler.js` — YZ istemlerinin TEK kaynağı (sohbet kuralları, rapor istemi, ses ipucu); Claude sürümü ve sunucu birlikte kullanır.
-- `web/sunucu.js` + `sunucu/` — Claude dışında gerçek YZ: Cloudflare Worker (`sunucu/worker.js`, build_web.py üretir; Groq Whisper + dil modeli), tarayıcıda ses kaydı ve telefonun Türkçe sesi. Kurulum: `sunucu/KURULUM.md`. Sunucu adresi `sunucu/adres.txt`'ten gömülür ya da `?sunucu=` ile verilir. Testler: `node sunucu/test_worker.mjs`, `python web/e2e_sunucu.py`.
+- `web/sunucu.js` + `sunucu/` — Claude dışında gerçek YZ: Cloudflare Worker (`sunucu/worker.js`, build_web.py üretir; Groq Whisper + dil modeli), tarayıcıda ses kaydı ve telefonun Türkçe sesi. Kurulum: `sunucu/KURULUM.md`. Sunucu adresi `sunucu/adres.txt`'ten gömülür ya da `?sunucu=` ile verilir. Canlı sunucu: https://kapida.efehanemir7.workers.dev (Efehan'ın Cloudflare hesabı). Talimat/model/hizmet listesi `sunucu/ayar.json`'dan (main) her dakika okunur → bunlar için Cloudflare'e yapıştırma gerekmez; yalnızca worker kodu değişirse yapıştırılır. Testler: `node sunucu/test_worker.mjs`, `python web/e2e_sunucu.py`.
 
 ## Kurallar
 - Model anlar, protokol karar verir: acil kararı her zaman kırmızı bayrak kurallarından gelir, YZ tanı koymaz.
@@ -26,6 +26,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 
 - YZ teşhis koymaz, tedavi önermez; görevi hastanın şikâyetini sağlık çalışanına en iyi biçimde raporlamaktır (ekip kararı 17.11). Hizmet önerisi yalnızca öneridir, kararı hekim/sağlık çalışanı verir.
 - API anahtarı hiçbir dosyaya yazılmaz; yalnızca Cloudflare'de Secret olarak durur.
+- Sohbet en fazla 3 soru sorar; kullanıcı "direkt doktora yönlendir" derse ya da sohbetteki düğmeye basarsa sorular atlanır, hekim ev muayenesine gidilir (acil kontrolü her zaman önce).
 - YZ fotoğrafı yalnızca dışarıdan görünen cilt durumları için ister (yara, kızarıklık, şişlik…); boğaz/ağız içi, ağrı, ateş vb. için istemez (istemler.js).
 - Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 
