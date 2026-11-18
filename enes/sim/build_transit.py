@@ -299,8 +299,23 @@ def build(gdir: Path, pool_path: Path, out: Path, web_out: Path | None):
         print(f"  {bname}: medyan {np.median(v):.0f} dk, %90 {np.percentile(v, 90):.0f} dk  ({time.time()-t0:.0f} sn)")
     np.savez_compressed(out, tt_d=tt, mode=mode, dilim=np.array([[a, b] for _, a, b in DILIMLER]))
     print("yazıldı:", out)
+    write_mat(tt, ROOT / "web" / "transit_mat_izmir.json")
     if web_out:
         write_web(web_out, net)
+
+
+def write_mat(tt_d, path):
+    """Demo için hazır süre matrisi (tam dakika; simülasyon da tam dakika kullanır: geo.TRANSIT).
+    base = gündüz dilimi uint8, delta = diğer dilimler − gündüz (int16); ikisi de zlib + base64. Tarayıcı DecompressionStream ile açar."""
+    import zlib
+    R = np.minimum(np.rint(tt_d / 10.0), 255).astype(np.int16)
+    base = R[1].astype(np.uint8)
+    delta = (R[[0, 2, 3]] - R[1]).astype("<i2")
+    obj = {"n": int(R.shape[1]), "sira": [0, 2, 3], "taban": 1,
+           "base": base64.b64encode(zlib.compress(base.tobytes(), 9)).decode(),
+           "delta": base64.b64encode(zlib.compress(delta.tobytes(), 9)).decode()}
+    Path(path).write_text(json.dumps(obj, separators=(",", ":")))
+    print("yazıldı:", path, f"{Path(path).stat().st_size / 1e6:.2f} MB")
 
 
 def _b64(a, dt):

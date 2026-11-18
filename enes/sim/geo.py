@@ -134,7 +134,7 @@ _TRANSIT_FILE = _POOL_FILE.parent / f"transit_{_POOL_TAG}.npz" if _POOL_TAG else
 TRANSIT = None
 if TRAFIK_TOMTOM and _TRANSIT_FILE is not None and _TRANSIT_FILE.exists():
     _tz = np.load(_TRANSIT_FILE)
-    TRANSIT = _tz["tt_d"].astype(np.float32) / 10.0  # [dilim, i, j] dakika (yürüme + bekleme + araç + aktarma + bina)
+    TRANSIT = np.minimum(np.rint(_tz["tt_d"] / 10.0), 255).astype(np.float32)  # [dilim, i, j] tam dakika (demo ile aynı) (yürüme + bekleme + araç + aktarma + bina)
     TRANSIT_SLOTS = [int(x[1]) for x in _tz["dilim"]]  # dilim bitişleri (dk): 600, 960, 1200, 1380
 
 

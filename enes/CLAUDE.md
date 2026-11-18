@@ -209,3 +209,15 @@ python -m pytest -q tests
   pedestrian yollar + mahalle sınırları/düğümleri, 16,8 bin yol) → `python -m sim.build_adres data/izmir/osm_sokaklar.json` →
   web/adres_izmir.json (452 mahalle, 10,4 bin sokak kaydı, 0,44 MB). Arama: sorgudaki mahalle adı yakındaki sokakları öne çıkarır
   ("Kazımdirik Mah. 372. Sok." → Bornova'daki 372. Sokak, "Kazımdirik yakını"); mahalle etiketi en yakın merkez olduğundan yaklaşık.
+
+## Demo hızlı açılış + tam dakika (2026-11-19)
+- Sorun: toplu taşıma eklenince demo açılışta ~3300 Dijkstra yapıyordu (yerelde 54 sn, laptopta dakikalar); tek dosya 8,6 MB'ı geçince
+  artifact görüntüleyicisi sayfayı hiç açmadı (boş ekran).
+- Çözüm 1: hazır matris web/transit_mat_izmir.json (build_transit.write_mat; gündüz uint8 + diğer dilimler int16 fark, zlib+base64,
+  3,6 MB). JS açılışta DecompressionStream ile açar (initDemo önce bekler); açılış 1,8 sn, JS = Python 499/499. Dijkstra yalnız
+  yolculuk planı (canlı takip) için kalır.
+- Simülasyon da tam dakika kullanır (geo.TRANSIT = rint(tt_d/10)) → demo ile birebir aynı sayılar.
+- Çözüm 2: web/build.py ayrıca web/dist/<dünya>_site/ üretir: index.html (0,16 MB) + veri/*.js (yol, rota ağı, toplu taşıma, matris,
+  adres). Artifact bu klasörden yayınlanır (publish_files, 6 dosya). Tek dosya izmir.html (12 MB) GitHub/çevrimdışı için duruyor.
+- Sonuçlar (tam dakika; geliştirme / ayrılmış), %40 toplu baz: kural 54,4 / 52,2 · v1 73,1 / 70,6 · seçilen 71,9 / 70,0;
+  ayrılmış seçilen − kural +17,8 ± 1,2. Kayıtlı model: AUC 0,816, sabit model %68,7.

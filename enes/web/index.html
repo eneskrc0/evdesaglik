@@ -315,7 +315,12 @@ function transitTo(b,q){const T=transitInit(),k=q*T.P+b;let row=T.cache.get(k);i
  const{dist}=tnDijkstra(T.bw,b,q,-1);row=new Uint16Array(T.P);const md=new Uint8Array(T.P);
  for(let a=0;a<T.P;a++){const tr=Math.floor(dist[a]+0.5),wk=T.wd(Math.hypot(T.px[a]-T.px[b],T.py[a]-T.py[b]));row[a]=Math.min(Math.min(tr,wk)+T.bina,2400);md[a]=tr<wk?1:0;}
  row.md=md;T.cache.set(k,row);return row;}
-function transitMin(a,b,m){if(a[2]===b[2])return 2.0;return transitTo(b[2],transitSlot(m))[a[2]]/10;}
+// Hazır matris (sim/build_transit.write_mat): 4 dilim × havuz², tam dakika — simülasyonla birebir aynı sayılar, açılışta Dijkstra yok.
+const TRANSIT_MAT=/*TRANSIT_MAT_JSON*/null;let TMAT=null;
+async function transitMatLoad(){if(TMAT||!TRANSIT_MAT)return;const un=async b=>{const s=new Blob([b64arr(b,Uint8Array)]).stream().pipeThrough(new DecompressionStream("deflate"));return new Uint8Array(await new Response(s).arrayBuffer());};
+ const n=TRANSIT_MAT.n,base=await un(TRANSIT_MAT.base),dl=new Int16Array((await un(TRANSIT_MAT.delta)).buffer);const M=[];M[TRANSIT_MAT.taban]=base;
+ TRANSIT_MAT.sira.forEach((q,k)=>{const a=new Uint8Array(n*n),o=k*n*n;for(let i=0;i<n*n;i++)a[i]=base[i]+dl[o+i];M[q]=a;});TMAT={n,M};}
+function transitMin(a,b,m){if(a[2]===b[2])return 2.0;if(TMAT)return TMAT.M[transitSlot(m)][a[2]*TMAT.n+b[2]];return transitTo(b[2],transitSlot(m))[a[2]]/10;}
 // Yolculuk planı (bacaklar) + haritada izlenecek rota: {pts,cum(sn),km,total,legs}
 function transitRoute(a,b,m){const T=transitInit(),q=transitSlot(m),row=transitTo(b[2],q);const tot=row[a[2]]-T.bina;
  const walkOnly=()=>({pts:[a.slice(0,2),b.slice(0,2)],cum:[0,tot*6],km:[0,haversine(a,b)*1.3],total:tot*6,legs:[{t:"yuru",min:tot/10,to:"adres"}],transit:true});
@@ -513,7 +518,7 @@ function unproj(x,y){if(ROADS){const v=ROADS.view,sx=ROADS.W/(v.maxLon-v.minLon)
 const NS="http://www.w3.org/2000/svg";
 function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 
-function initDemo(){
+function initDemo(){if(TRANSIT_MAT&&!TMAT&&!window.TRANSIT_MAT_OFF){if(!window.__tmw){window.__tmw=1;$("loadPill").textContent="toplu taşıma süreleri açılıyor…";transitMatLoad().then(initDemo,e=>{console.error(e);window.TRANSIT_MAT_OFF=1;initDemo();});}return;}
  const P=prepareSeed(SC_DEMO,DEMO_SEED);
  const r=rngFor(DEMO_SEED,DEMO_DAY,2);P.workers.forEach(w=>w.resetDay(r));
  D={P,workers:P.workers,clock:600,speed:1,loc:null,req:null,controlled:null,inbox:null,pending:[],offers:[],ranked:[],round:0,booked:null,reqCount:1000,notified:new Set(),wOffered:false};

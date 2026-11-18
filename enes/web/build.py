@@ -23,6 +23,27 @@ for world, res in [("bornova", d.parent / "results"), ("izmir", d.parent / "resu
     transit = tf.read_text() if (world == "izmir" and tf.exists()) else "null"
     af = d / "adres_izmir.json"  # OSM sokak/mahalle adları (sim/build_adres.py), yalnız İzmir
     adres = af.read_text() if (world == "izmir" and af.exists()) else "null"
+    mf = d / "transit_mat_izmir.json"  # hazır toplu taşıma süre matrisi (sim/build_transit.write_mat)
+    tmat = mf.read_text() if (world == "izmir" and mf.exists()) else "null"
+    parts = {"TRANSIT_MAT": tmat, "ROADS": rf.read_text(), "PROGRESS": prog, "HOSP": hosp, "GRAPH": graph, "CATALOG": cat, "TRANSIT": transit, "ADRES": adres}
     out = d / "dist" / f"{world}.html"
-    out.write_text(html.replace("/*ROADS_JSON*/null", rf.read_text()).replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp).replace("/*GRAPH_JSON*/null", graph).replace("/*CATALOG_JSON*/null", cat).replace("/*TRANSIT_JSON*/null", transit).replace("/*ADRES_JSON*/null", adres))
+    one = html
+    for k, v in parts.items():
+        one = one.replace(f"/*{k}_JSON*/null", v)
+    out.write_text(one)
     print(out, round(out.stat().st_size / 1e6, 2), "MB")
+    # Klasörlü sürüm (yayın için): büyük veriler ayrı .js dosyalarında, sayfa hafif kalır.
+    site = d / "dist" / f"{world}_site"
+    (site / "veri").mkdir(parents=True, exist_ok=True)
+    page, tags = html, []
+    for k, v in parts.items():
+        if v == "null" or len(v) < 50_000:
+            page = page.replace(f"/*{k}_JSON*/null", v)
+            continue
+        (site / "veri" / f"{k.lower()}.js").write_text(f"window.__VERI_{k}={v};")
+        tags.append(f'<script src="veri/{k.lower()}.js"></script>')
+        page = page.replace(f"/*{k}_JSON*/null", f"(window.__VERI_{k}||null)")
+    i = page.index("<script")
+    page = page[:i] + "\n".join(tags) + "\n" + page[i:]
+    (site / "index.html").write_text(page)
+    print(site, "index", round((site / "index.html").stat().st_size / 1e6, 2), "MB +", len(tags), "veri dosyası")

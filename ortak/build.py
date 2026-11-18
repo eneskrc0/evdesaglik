@@ -129,6 +129,8 @@ tf = w / "transit_izmir.json"  # toplu taşıma ağı (enes/sim/build_transit.py
 transit = tf.read_text() if tf.exists() else "null"
 af = w / "adres_izmir.json"  # OSM sokak/mahalle adları (enes/sim/build_adres.py)
 adres = af.read_text() if af.exists() else "null"
+mf = w / "transit_mat_izmir.json"  # hazır toplu taşıma süre matrisi
+tmat = mf.read_text() if mf.exists() else "null"
 for world, res in [("izmir", E / "results/izmir"), ("bornova", E / "results")]:
     prog = (res / "ilerleme.json").read_text().replace("NaN", "null")
     out = O / "dist" / f"{world}.html"
@@ -136,5 +138,6 @@ for world, res in [("izmir", E / "results/izmir"), ("bornova", E / "results")]:
                    .replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp)
                    .replace("/*GRAPH_JSON*/null", (w / f"graph_{world}.json").read_text())
                    .replace("/*TRANSIT_JSON*/null", transit if world == "izmir" else "null")
-                   .replace("/*ADRES_JSON*/null", adres if world == "izmir" else "null"))
+                   .replace("/*ADRES_JSON*/null", adres if world == "izmir" else "null")
+                   .replace("/*TRANSIT_MAT_JSON*/null", tmat if world == "izmir" else "null"))
     print(out.relative_to(R), round(out.stat().st_size / 1e6, 2), "MB")
