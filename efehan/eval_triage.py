@@ -26,7 +26,7 @@ def run(repo: Repo | None = None, verbose: bool = True) -> dict:
     over_triage = 0
     failures = []
     for r in rows:
-        pt = Patient("EVAL", "Çankaya", 39.9, 32.86, r["bedridden"] == "1", r["has_plan"] == "1")
+        pt = Patient("EVAL", "Bornova", 38.46, 27.22, r["bedridden"] == "1", r["has_plan"] == "1")
         t = triage(repo, r["text"], pt)
         expected_emerg = r["expected_level"] in ("ACIL_112", "ZEHIR_114")
         if expected_emerg:

@@ -67,7 +67,7 @@ python web/export_json.py && python web/build_web.py   # -> web/dist/index.html
 | `profession_services` | 28 | Hangi meslek hangi hizmeti verir |
 | `red_flags` | 15 | Acil belirtiler (MEB İlk Yardım, Sağlık Bakanlığı UZEM vb.) |
 | `complaint_routes` | 22 | Acil olmayan şikayet → seviye / hizmet |
-| `districts`, `providers`, `provider_services`, `availability`, `scheduled_visits`, `patients` | — | **Sentetik** Ankara demo verisi (seed=42) |
+| `districts`, `providers`, `provider_services`, `availability`, `scheduled_visits`, `patients` | — | **Sentetik** İzmir demo verisi (seed=42; konumlar Enes'in OSM yol noktaları, `izmir_yol.json`) |
 
 Anahtar kelime biçimi: `a;b|c` = "(a ve b) ya da c". Eşleşme kelime başından yapılır ve Türkçe karaktersiz yazımı da yakalar (`göğsüm` = `gogsum`).
 

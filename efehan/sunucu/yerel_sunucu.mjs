@@ -6,7 +6,7 @@
 import http from "node:http";
 const worker = (await import(new URL("./worker.js", import.meta.url))).default;
 const PORT = +(process.env.PORT || 8787);
-const env = { GROQ_API_KEY: process.env.GROQ_API_KEY || (process.env.SAHTE ? "sahte" : ""), IZINLI_KOKENLER: process.env.IZINLI_KOKENLER || "" };
+const env = { GROQ_API_KEY: process.env.GROQ_API_KEY || (process.env.SAHTE ? "sahte" : ""), IZINLI_KOKENLER: process.env.IZINLI_KOKENLER || "", AYAR_URL: process.env.AYAR_URL || (process.env.SAHTE ? "yok" : "") };
 
 if (process.env.SAHTE) {
   const gercek = globalThis.fetch;
