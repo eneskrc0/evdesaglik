@@ -21,6 +21,8 @@ for world, res in [("bornova", d.parent / "results"), ("izmir", d.parent / "resu
     cat = (d.parent / "data" / "hizmet_katalogu.json").read_text() if world == "izmir" else "null"
     tf = d / "transit_izmir.json"  # GTFS toplu taşıma ağı (sim/build_transit.py), yalnız İzmir
     transit = tf.read_text() if (world == "izmir" and tf.exists()) else "null"
+    af = d / "adres_izmir.json"  # OSM sokak/mahalle adları (sim/build_adres.py), yalnız İzmir
+    adres = af.read_text() if (world == "izmir" and af.exists()) else "null"
     out = d / "dist" / f"{world}.html"
-    out.write_text(html.replace("/*ROADS_JSON*/null", rf.read_text()).replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp).replace("/*GRAPH_JSON*/null", graph).replace("/*CATALOG_JSON*/null", cat).replace("/*TRANSIT_JSON*/null", transit))
+    out.write_text(html.replace("/*ROADS_JSON*/null", rf.read_text()).replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp).replace("/*GRAPH_JSON*/null", graph).replace("/*CATALOG_JSON*/null", cat).replace("/*TRANSIT_JSON*/null", transit).replace("/*ADRES_JSON*/null", adres))
     print(out, round(out.stat().st_size / 1e6, 2), "MB")

@@ -158,8 +158,9 @@ python -m pytest -q tests
   ve web/transit_izmir.json (demo ağı, ~2 MB). Ham GTFS repoda yok (ESHOT stop_times 86 MB).
 - Model: kapıdan kapıya = yürü (adres-durak ≤1 km, 4,5 km/s × 1,3) + bekle (sefer aralığı/2, en çok 12 dk) + 1,5 dk biniş cezası
   + araçta (o dilimdeki medyan süre; otobüs zirvede ×1,25–1,35 trafik payı) + aktarma (durak-durak ≤400 m yürüme + yeniden bekleme)
-  + 2 dk bina. Yakın adreste doğrudan yürüme daha kısaysa o seçilir. Sefer aralığı hat+yön bazında (aynı durağı paylaşan farklı
-  hatların ortak sıklığı hesaba katılmıyor → bekleme biraz kötümser; İZBAN'da belirgin).
+  + 2 dk bina. Yakın adreste doğrudan yürüme daha kısaysa o seçilir. Ortak sıklık (2026-11-18 gece, build_transit.ORTAK_SIKLIK):
+  aynı durak → aynı sonraki durak giden tüm hatların seferleri birlikte sayılır (yolcu ilk gelene biner); gündüz medyan 72 → 62 dk,
+  İZBAN beklemesi ~14 → ~6 dk. Ayrı sıklıklı sonuçlar: results/izmir_tam_ayri_siklik/.
 - Sonuç (gündüz, havuz çiftleri medyanı): toplu taşıma arabanın ~2 katı (2–4 km: araba 18 / toplu 42 dk; 7–12 km: 37 / 76 dk).
   Örnek: Bornova Metro → Konak 37 dk (araba 28), Buca Şirinyer → Karşıyaka 57 dk (İZBAN), Çiğli → Gaziemir 85 dk.
 - Simülasyon: Worker.mode ("araba" | "toplu"); geo.travel_minutes(a, b, t, mode). world.Scenario.transit_share = 0,4 (izmir_tam,
@@ -188,3 +189,12 @@ python -m pytest -q tests
 - models.py: `lr_sabit_demo`, `lr_sabit_trafik` dosyadaki sabit modeli kullanır (tohumda yeniden eğitim yok).
 - ortak/build.py: enes/ şablonunun kendisi yaptığı yamalar ('özellik', meslek adı/rengi) artık atlanıyor (patch(..., done=...));
   toplu taşıma ağı da gömülüyor. `python3 ortak/test_akis.py` hatasız.
+
+## Ortak sıklıkla yeni sonuçlar (2026-11-18 gece) — izmir_tam güncel
+- 5 dk uygun %, geliştirme / ayrılmış: herkes arabalı 73,2 / 71,1 (değişmedi) · %40 toplu (baz): kural 54,4 / 52,2 · v1 73,1 / 70,6 ·
+  seçilen 72,2 / 70,1; ayrılmış seçilen − kural +17,9 ± 1,0, − v1 −0,5 ± 0,3 · %80 toplu: seçilen 71,0 / 68,5 (− kural +16,7).
+  Ziyaret başına yol 27 / 33 / 40 dk. Kayıtlı model yeniden üretildi: AUC 0,818, sabit model ayrılmış %68,9 (klasik %52,2).
+- Adres arama (çevrimdışı): `python -m sim.build_adres <overpass json>` → web/adres_izmir.json (OSM sokak/cadde/mahalle + ilçe);
+  demo hasta formunda "Adres" kutusu (Türkçe kısaltmalar: sok/sk, cad/cd, mah/mh, blv); seçilen adres en yakın yol noktasına yapışır
+  (≤2 km). Dosya yoksa kutu gizlenir. ortak/build.py de gömer.
+- Vapur: build_transit FEEDS'te ship-izdeniz-gtfs (klasör varsa); servis adı bilinmiyorsa pazartesi çalışan servisler alınır.

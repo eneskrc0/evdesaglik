@@ -154,7 +154,7 @@ def main():
         "uygun5_ayrilmis_kural_trafik": round(100 * float(m["lr_sabit_trafik"]), 1),
         "uygun5_ayrilmis_klasik_kural": round(100 * float(k), 1),
         "aciklama": "Baz senaryo, ayrılmış tohumlar 1000–1009, 10'ar test günü; bu JSON'daki sabit model. Yüzde = 5 dk içinde "
-                    "uygun teklif alan hasta oranı. Karşılaştırma: aynı dünyada GBM v1 %70,2, seçilen v5_ukota_trafik %69,3.",
+                    "uygun teklif alan hasta oranı. Karşılaştırma: aynı dünyada GBM v1 %70,6, seçilen v5_ukota_trafik %70,1.",
     })
     OUT.write_text(json.dumps(obj, ensure_ascii=False, indent=1))
     print(json.dumps(obj["olcum"], ensure_ascii=False))

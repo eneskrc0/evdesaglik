@@ -7,7 +7,7 @@ Her saat dilimi için ayrı matris: sabah zirvesi, gündüz, akşam zirvesi, gec
 Model (sefer aralığı tabanlı, "frekans" yaklaşımı):
 - Düğümler: havuz noktaları + duraklar + (hat, yön, durak) "araçtayım" düğümleri.
 - Bin: durak → hat-durak, maliyet = min(aralık/2, BEKLE_MAX) + BINIS_CEZA.
-  Aralık = o dilimde o duraktan geçen sefer sayısından (hat+yön bazında).
+  Aralık = o dilimde, o duraktan aynı sonraki durağa giden TÜM hatların sefer sayısından (ortak sıklık; yolcu ilk gelene biner).
 - Araçta: ardışık iki durak arası, o dilimdeki seferlerin medyan süresi.
   Otobüs trafiğe takılır: tarifedeki süre zirvede ×OTOBUS_ZIRVE (raylı sistem etkilenmez).
 - İn: hat-durak → durak, 0.
@@ -45,6 +45,7 @@ FEEDS = {  # klasör: (kısa ad, mod)
     "rail-metro-gtfs": ("Metro", "metro"),
     "rail-tramizmir-gtfs": ("Tramvay", "tramvay"),
     "rail-izban-gtfs": ("İZBAN", "izban"),
+    "ship-izdeniz-gtfs": ("İZDENİZ", "vapur"),  # varsa (klasör yoksa atlanır)
 }
 HAFTAICI = {"3633", "WEEKDAY", "WEEKDAYS", "DAYSOFWEEK"}
 DILIMLER = [("sabah", 7 * 60, 10 * 60), ("gunduz", 10 * 60, 16 * 60), ("aksam", 16 * 60, 20 * 60), ("gece", 20 * 60, 23 * 60)]
@@ -56,6 +57,7 @@ BEKLE_MAX = 12.0  # seyrek hatta insan saate bakıp çıkar: bekleme tavanı
 BINIS_CEZA = 1.5  # her biniş (aktarma rahatsızlığı dahil)
 OTOBUS_ZIRVE = {"sabah": 1.25, "gunduz": 1.10, "aksam": 1.35, "gece": 1.0}  # tarifeye ek trafik payı
 BINA_DK = 2.0  # duraktan sonra bina girişi/kapı
+ORTAK_SIKLIK = True  # aynı durak→sonraki durak hatlarının sıklığı birleşik (bekleme = ortak aralık/2)
 
 
 def _rd(p):
@@ -84,6 +86,14 @@ def load_feeds(gdir: Path):
     patterns = defaultdict(lambda: defaultdict(int))  # hat_key -> {durak dizisi: sefer sayısı}
     for folder, (fname, mode) in FEEDS.items():
         d = gdir / folder
+        if not d.exists():
+            print(f"  {fname}: klasör yok, atlandı")
+            continue
+        servis = set(HAFTAICI)
+        tr_srv = {r["service_id"] for r in _rd(d / "trips.txt")}
+        if not (tr_srv & servis) and (d / "calendar.txt").exists():
+            # bilinen ad yoksa: pazartesi çalışan servisler (hafta içi)
+            servis = {r["service_id"] for r in _rd(d / "calendar.txt") if r.get("monday") == "1"} or tr_srv
         for r in _rd(d / "stops.txt"):
             if r.get("location_type") not in (None, "", "0"):
                 continue
@@ -94,7 +104,7 @@ def load_feeds(gdir: Path):
             rinfo[r["route_id"]] = (r.get("route_short_name") or "", r.get("route_long_name") or "", r.get("route_color") or "")
         trips = {}
         for r in _rd(d / "trips.txt"):
-            if r["service_id"] not in HAFTAICI:
+            if r["service_id"] not in servis:
                 continue
             key = (fname, r["route_id"], r.get("direction_id") or "0")
             trips[r["trip_id"]] = key
@@ -177,6 +187,21 @@ def build_net(gdir: Path):
         if (key, s_) in rs:
             continue
     nb = len(DILIMLER)
+    # Ortak hat sıklığı: aynı duraktan aynı sonraki durağa giden tüm hatlar birlikte sayılır (yolcu ilk gelene biner).
+    # Her hat-durak için en sık sonraki durak; grup = (durak, sonraki durak); grup sefer sayısı = üyelerin toplamı.
+    succ_n = defaultdict(lambda: defaultdict(int))
+    for (key, s1, s2), d in seg.items():
+        succ_n[(key, s1)][s2] += sum(len(l) for l in d.values())
+    grp = {}
+    for (key, s_) in rs:
+        nx = succ_n.get((key, s_))
+        grp[(key, s_)] = (s_, max(nx, key=nx.get)) if nx else None
+    gpass = defaultdict(lambda: [0] * nb)
+    for k, g in grp.items():
+        if g is None:
+            continue
+        for bi in range(nb):
+            gpass[g][bi] += passes.get(k, {}).get(bi, 0)
     rs_stop = np.zeros(len(rs), np.int32)
     rs_line = np.zeros(len(rs), np.int32)
     board = np.zeros((len(rs), nb), np.int32)  # 0 = bu dilimde biniş yok
@@ -186,7 +211,9 @@ def build_net(gdir: Path):
         for bi, (_, a, b) in enumerate(DILIMLER):
             c = passes.get((key, s_), {}).get(bi, 0)
             if c > 0:
-                h = (b - a) / c
+                g = grp.get((key, s_))
+                cg = max(c, gpass[g][bi]) if (ORTAK_SIKLIK and g is not None) else c
+                h = (b - a) / cg
                 board[n, bi] = int(math.floor((min(h / 2, BEKLE_MAX) + BINIS_CEZA) * 10 + 0.5))
     ride = []
     for (key, s1, s2), d in seg.items():

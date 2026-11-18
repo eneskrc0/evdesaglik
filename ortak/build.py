@@ -58,6 +58,7 @@ patch("demo-ölçek", "const SC_DEMO={...BASE_SC};",
 # 6) Hasta formu: önce anlat → triyaj → hizmet, saat, bütçe
 old_form = html[html.index('<div id="patientForm">'):html.index('<div id="patientLive"')]
 new_form = '''<div id="patientForm">
+     <div id="adrBox" style="margin-bottom:8px"><label>Adres</label><input id="adrQ" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." style="width:100%"><div id="adrList"></div><div class="tiny" style="margin-top:2px">ya da haritaya dokunun · adresler © OpenStreetMap katkıcıları</div></div>
      <label>Ne oldu? Kendi cümlenizle yazın ya da 🎤 ile anlatın</label>
      <div style="display:flex;gap:6px;align-items:flex-start"><textarea id="fComplaint" rows="2" style="flex:1" placeholder="ör. Annemin sırtında bası yarası var, pansuman lazım"></textarea><button class="btn sec" id="btnMic" title="Sesle anlat">🎤</button></div>
      <div class="chips" id="exChips"></div>
@@ -126,11 +127,14 @@ w = E / "web"
 hosp = (w / "hospitals.json").read_text()
 tf = w / "transit_izmir.json"  # toplu taşıma ağı (enes/sim/build_transit.py)
 transit = tf.read_text() if tf.exists() else "null"
+af = w / "adres_izmir.json"  # OSM sokak/mahalle adları (enes/sim/build_adres.py)
+adres = af.read_text() if af.exists() else "null"
 for world, res in [("izmir", E / "results/izmir"), ("bornova", E / "results")]:
     prog = (res / "ilerleme.json").read_text().replace("NaN", "null")
     out = O / "dist" / f"{world}.html"
     out.write_text(html.replace("/*ROADS_JSON*/null", (w / f"roads_{world}.json").read_text())
                    .replace("/*PROGRESS_JSON*/null", prog).replace("/*HOSP_JSON*/null", hosp)
                    .replace("/*GRAPH_JSON*/null", (w / f"graph_{world}.json").read_text())
-                   .replace("/*TRANSIT_JSON*/null", transit if world == "izmir" else "null"))
+                   .replace("/*TRANSIT_JSON*/null", transit if world == "izmir" else "null")
+                   .replace("/*ADRES_JSON*/null", adres if world == "izmir" else "null"))
     print(out.relative_to(R), round(out.stat().st_size / 1e6, 2), "MB")
