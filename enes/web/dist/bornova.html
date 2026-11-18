@@ -271,7 +271,68 @@ function speedKmh(m){const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))retur
 const TRAFIK_TOMTOM=WORLD==="izmir",TT10=[16,16,16,16,16,16,17,20,25.6,24,21.5,21.5,22.5,23,23,24.5,27,31.5,34.7,29,23,19.5,18,17],PARK=TRAFIK_TOMTOM?6:3;
 function congestion(m){if(TRAFIK_TOMTOM){const x=((m/60-0.5)%24+24)%24,i=Math.floor(x),f=x-i;return(TT10[i]*(1-f)+TT10[(i+1)%24]*f)/9.3;}
  const h=(m/60)%24;if((h>=7.5&&h<9.5)||(h>=17&&h<19.5))return 1.8;if(h>=9.5&&h<17)return 1.35;return 1.15;}
-function travelMin(a,b,m){if(TT&&a.length>2&&b.length>2)return PARK+TT[a[2]*POOL.length+b[2]]/60*congestion(m);return PARK+60*haversine(a,b)*DETOUR/speedKmh(m);}
+function travelMin(a,b,m,mode){if(mode==="toplu"&&TRANSIT&&a.length>2&&b.length>2)return transitMin(a,b,m);
+ if(TT&&a.length>2&&b.length>2)return PARK+TT[a[2]*POOL.length+b[2]]/60*congestion(m);return PARK+60*haversine(a,b)*DETOUR/speedKmh(m);}
+const parkOf=w=>(w&&w.mode==="toplu"&&TRANSIT)?TRANSIT.param.bina_dk:PARK; // araba: park+bina; toplu: duraktan bina
+// ---------- Toplu taşıma (izmir_tam): ESHOT + Metro + Tramvay + İZBAN (GTFS) ----------
+// sim/build_transit.py ile birebir aynı grafik: [havuz][durak][hat-durak] düğümleri, desidakika ağırlıklar,
+// yürüme (adres-durak ≤1000 m, aktarma ≤400 m), biniş = sefer aralığı/2 (en çok 12 dk) + 1,5 dk, araçta medyan süre.
+const TRANSIT=null;
+let TN=null;
+function b64arr(s,T){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new T(u.buffer);}
+function transitInit(){if(TN||!TRANSIT||!POOL)return TN;const pr=TRANSIT.param,KX=111320*Math.cos(pr.lat0*Math.PI/180),KY=110540;
+ const sx=b64arr(TRANSIT.sx,Int32Array),sy=b64arr(TRANSIT.sy,Int32Array),S=sx.length,names=TRANSIT.sn.split("|");
+ const rsStop=b64arr(TRANSIT.rs_stop,Int32Array),rsLine=b64arr(TRANSIT.rs_line,Int16Array),R=rsStop.length;
+ const board=b64arr(TRANSIT.board,Uint16Array),ride=b64arr(TRANSIT.ride,Int32Array),NB=TRANSIT.dilim.length,NR=TRANSIT.nride;
+ const P=POOL.length,px=new Float64Array(P),py=new Float64Array(P);POOL.forEach((q,i)=>{px[i]=Math.round(q[1]*KX);py[i]=Math.round(q[0]*KY);});
+ const wd=d=>Math.floor(d*pr.dolambac/1000/pr.yurume_kmh*60*10+0.5);
+ const E=[];// [from,to,w0,w1,w2,w3] (w<0: bu dilimde yok)
+ const cell=1000,grid=new Map(),key=(x,y)=>Math.floor(x/cell)+","+Math.floor(y/cell);
+ for(let j=0;j<S;j++){const k=key(sx[j],sy[j]);(grid.get(k)||grid.set(k,[]).get(k)).push(j);}
+ const near=(x,y,r,f)=>{const cx=Math.floor(x/cell),cy=Math.floor(y/cell);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const L=grid.get((cx+a)+","+(cy+b));if(L)for(const j of L){const d=Math.hypot(sx[j]-x,sy[j]-y);if(d<=r)f(j,d);}}};
+ for(let i=0;i<P;i++)near(px[i],py[i],pr.erisim_m,(j,d)=>{const w=wd(d);E.push([i,P+j,w,w,w,w],[P+j,i,w,w,w,w]);});
+ for(let j=0;j<S;j++)near(sx[j],sy[j],pr.aktarma_m,(k,d)=>{if(k>j){const w=wd(d);E.push([P+j,P+k,w,w,w,w],[P+k,P+j,w,w,w,w]);}});
+ for(let n=0;n<R;n++){const b=[0,1,2,3].map(q=>board[n*NB+q]||-1);E.push([P+rsStop[n],P+S+n,...b],[P+S+n,P+rsStop[n],0,0,0,0]);}
+ for(let e=0;e<NR;e++){const o=e*(2+NB);E.push([P+S+ride[o],P+S+ride[o+1],ride[o+2],ride[o+3],ride[o+4],ride[o+5]]);}
+ const N=P+S+R;const csr=(rev)=>{const off=new Uint32Array(N+1);for(const e of E)off[(rev?e[1]:e[0])+1]++;for(let i=0;i<N;i++)off[i+1]+=off[i];
+  const pos=off.slice(0,N),tg=new Int32Array(E.length),w=new Float32Array(E.length*NB);
+  for(const e of E){const u=rev?e[1]:e[0],k=pos[u]++;tg[k]=rev?e[0]:e[1];for(let q=0;q<NB;q++)w[q*E.length+k]=e[2+q];}return{off,tg,w};};
+ const lat=new Float64Array(N),lon=new Float64Array(N);for(let i=0;i<P;i++){lat[i]=POOL[i][0];lon[i]=POOL[i][1];}
+ for(let j=0;j<S;j++){lat[P+j]=sy[j]/KY;lon[P+j]=sx[j]/KX;}for(let n=0;n<R;n++){lat[P+S+n]=lat[P+rsStop[n]];lon[P+S+n]=lon[P+rsStop[n]];}
+ TN={P,S,R,N,NE:E.length,NB,fw:csr(false),bw:csr(true),px,py,wd,rsStop,rsLine,names,lat,lon,bina:Math.round(pr.bina_dk*10),cache:new Map()};return TN;}
+function transitSlot(m){m=((m%1440)+1440)%1440;const D_=TRANSIT.dilim;for(let i=0;i<D_.length-1;i++)if(m<D_[i][2])return i;return D_.length-1;}
+function tnDijkstra(G,src,q,stopAt){const T=TN,dist=new Float64Array(T.N).fill(Infinity),prev=new Int32Array(T.N).fill(-1),H=[];
+ const push=(d,v)=>{H.push([d,v]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p;}};
+ const pop=()=>{const top=H[0],last=H.pop();if(H.length){H[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<H.length&&H[l][0]<H[m][0])m=l;if(r<H.length&&H[r][0]<H[m][0])m=r;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m;}}return top;};
+ dist[src]=0;push(0,src);const base=q*T.NE;
+ while(H.length){const[d,v]=pop();if(d>dist[v])continue;if(v===stopAt)break;
+  for(let e=G.off[v];e<G.off[v+1];e++){const w=G.w[base+e];if(w<0)continue;const u=G.tg[e],nd=d+w;if(nd<dist[u]){dist[u]=nd;prev[u]=v;push(nd,u);}}}
+ return{dist,prev};}
+// b noktasına tüm havuz noktalarından süre (desidakika), dilim başına önbellekli (ters Dijkstra)
+function transitTo(b,q){const T=transitInit(),k=q*T.P+b;let row=T.cache.get(k);if(row)return row;
+ const{dist}=tnDijkstra(T.bw,b,q,-1);row=new Uint16Array(T.P);const md=new Uint8Array(T.P);
+ for(let a=0;a<T.P;a++){const tr=Math.floor(dist[a]+0.5),wk=T.wd(Math.hypot(T.px[a]-T.px[b],T.py[a]-T.py[b]));row[a]=Math.min(Math.min(tr,wk)+T.bina,2400);md[a]=tr<wk?1:0;}
+ row.md=md;T.cache.set(k,row);return row;}
+function transitMin(a,b,m){if(a[2]===b[2])return 2.0;return transitTo(b[2],transitSlot(m))[a[2]]/10;}
+// Yolculuk planı (bacaklar) + haritada izlenecek rota: {pts,cum(sn),km,total,legs}
+function transitRoute(a,b,m){const T=transitInit(),q=transitSlot(m),row=transitTo(b[2],q);const tot=row[a[2]]-T.bina;
+ const walkOnly=()=>({pts:[a.slice(0,2),b.slice(0,2)],cum:[0,tot*6],km:[0,haversine(a,b)*1.3],total:tot*6,legs:[{t:"yuru",min:tot/10,to:"adres"}],transit:true});
+ if(a[2]===b[2]||!row.md[a[2]])return walkOnly();
+ const{dist,prev}=tnDijkstra(T.fw,a[2],q,b[2]);if(!isFinite(dist[b[2]]))return walkOnly();
+ const path=[];for(let v=b[2];v>=0;v=prev[v])path.push(v);path.reverse();
+ const pts=path.map(v=>[T.lat[v],T.lon[v]]),cum=path.map(v=>dist[v]*6),km=[0];for(let i=1;i<pts.length;i++)km.push(km[i-1]+haversine(pts[i-1],pts[i]));
+ const kind=v=>v<T.P?"p":v<T.P+T.S?"s":"r",nm=v=>v<T.P?"adres":T.names[(v<T.P+T.S?v-T.P:T.rsStop[v-T.P-T.S])];
+ const legs=[];for(let i=1;i<path.length;i++){const u=path[i-1],v=path[i],ku=kind(u),kv=kind(v),dt=(dist[v]-dist[u])/10;
+  if(kv==="r"&&ku==="s"){legs.push({t:"bin",line:T.rsLine[v-T.P-T.S],from:nm(v),wait:dt,min:0,n:0,c0:cum[i-1]});}
+  else if(ku==="r"&&kv==="r"){const L=legs[legs.length-1];L.min+=dt;L.n++;L.to=nm(v);}
+  else if(ku==="r"&&kv==="s"){}
+  else{const L=legs[legs.length-1];if(L&&L.t==="yuru")L.min+=dt;else legs.push({t:"yuru",min:dt,c0:cum[i-1]});legs[legs.length-1].to=nm(v);}}
+ return{pts,cum,km,total:dist[b[2]]*6,legs,transit:true};}
+const MODE_IC={otobus:"🚌",metro:"🚇",tramvay:"🚊",izban:"🚆"};
+function legsText(r,curSec){if(!r||!r.legs)return"";return r.legs.map((L,i)=>{const nx=r.legs[i+1],on=curSec!=null&&curSec>=L.c0&&(!nx||curSec<nx.c0);
+ let t;if(L.t==="yuru")t=`🚶 ${Math.max(1,Math.round(L.min))} dk${L.to&&L.to!=="adres"?" → "+L.to:""}`;
+ else{const l=TRANSIT.lines[L.line],nm=l.f==="ESHOT"?"ESHOT "+l.k:(l.k||l.a);t=`${MODE_IC[l.m]||"🚌"} <b>${nm}</b> ${L.from} → ${L.to||"?"} · ${L.n} durak · ${Math.round(L.min)} dk (bekleme ~${Math.max(1,Math.round(L.wait-(TRANSIT.param.binis_ceza||0)))} dk)`;}
+ return on?`<span style="background:var(--aqua);color:#fff;border-radius:6px;padding:0 4px">${t}</span>`:t;}).join(" → ");}
 const cellCache=new Map();
 function cellOf(p){const k=p[0]+","+p[1];let c=cellCache.get(k);if(c)return c;
  c=HAS_H3?h3.latLngToCell(p[0],p[1],H3_RES):(Math.round(p[0]/0.006)+":"+Math.round(p[1]/0.0075));cellCache.set(k,c);return c;}
@@ -290,7 +351,7 @@ function catalogMix(staff){const tot=Object.values(staff).reduce((a,b)=>a+b,0),b
 const DAY_START=480,DAY_END=1200;
 const BASE_SC={name:"baz",nNurses:40,nDoctors:15,reqPerDay:70,budgetShare:0.6,respA:4,respB:3,peakSensShare:0.4,peakFactor:0.45,
  longDelayShare:0.4,shortDelay:[0.3,3],longDelay:[3,12],priceSd:0.12,homogeneous:false,travelNoiseSd:0.15,overrunSd:6,lateShare:0.25,notifyK:3,fairness:0};
-if(WORLD==="izmir"&&CATALOG){Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:195,extraStaff:EXTRA_STAFF,expand:true,travelNoiseSd:0.25});
+if(WORLD==="izmir"&&CATALOG){Object.assign(BASE_SC,{nNurses:80,nDoctors:25,nPhysio:20,reqPerDay:195,extraStaff:EXTRA_STAFF,expand:true,travelNoiseSd:0.25,transitShare:TRANSIT?0.4:0});
  BASE_SC.serviceMix=catalogMix({hemsire:80,doktor:25,fizyoterapist:20,...Object.fromEntries(EXTRA_STAFF)});} // izmir_tam (Python: OLCEK=tam)
 const SCENARIOS={baz:{},homojen:{homogeneous:true},yuksek_degiskenlik:{respA:2,respB:2,peakSensShare:0.6,longDelayShare:0.55,priceSd:0.2},belirsiz_yol:{travelNoiseSd:0.35,overrunSd:12}};
 if(WORLD==="izmir"&&CATALOG)SCENARIOS.belirsiz_yol.travelNoiseSd=0.45; // izmir_tam: daha geniş yol belirsizliği
@@ -302,11 +363,12 @@ class Worker{
  resetDay(r){this.blocks=[];const n=r.int(0,4);for(let i=0;i<n;i++){const s=r.uniform(DAY_START,DAY_END-90),d=r.uniform(30,75);
    if(this.blocks.every(b=>s+d<=b.s||s>=b.e))this.blocks.push({s,e:s+d,p:samplePoint(r),plat:false});}
    this.blocks.sort((a,b)=>a.s-b.s);}
+ tm(a,b,m){return travelMin(a,b,m,this.mode);}
  posFree(t){let loc=this.home;for(const b of this.blocks){if(b.e<=t)loc=b.p;else if(b.s<=t&&t<b.e)return{loc:b.p,free:b.e,inVisit:true};}return{loc,free:t,inVisit:false};}
  earliest(t,dest,dur,ws){const pf=this.posFree(t);let curT=Math.max(t,pf.free),curLoc=pf.loc;
    const fut=this.blocks.filter(b=>b.s>=curT);fut.push(null);
-   for(const b of fut){const arr=Math.max(curT+travelMin(curLoc,dest,curT),ws),end=arr+dur;
-     const ok=b===null||end+travelMin(dest,b.p,end)<=b.s;
+   for(const b of fut){const arr=Math.max(curT+this.tm(curLoc,dest,curT),ws),end=arr+dur;
+     const ok=b===null||end+this.tm(dest,b.p,end)<=b.s;
      if(ok&&end<=DAY_END)return{arr,depart:curT,from:curLoc};
      if(b===null)return null;curT=b.e;curLoc=b.p;}
    return null;}
@@ -314,7 +376,9 @@ class Worker{
 function makeWorkers(sc,r){const ws=[];const roles=[...Array(sc.nNurses).fill("hemsire"),...Array(sc.nDoctors).fill("doktor"),...Array(sc.nPhysio||0).fill("fizyoterapist"),...(sc.extraStaff||[]).flatMap(([r,k])=>Array(k).fill(r))];
  roles.forEach((role,i)=>{if(sc.homogeneous){ws.push(new Worker({id:i,role,home:samplePoint(r),respP:sc.respA/(sc.respA+sc.respB),peakSens:false,longDelay:false,priceMult:1,oftenLate:false}));return;}
   ws.push(new Worker({id:i,role,home:samplePoint(r),respP:r.beta(sc.respA,sc.respB),peakSens:r.random()<sc.peakSensShare,longDelay:r.random()<sc.longDelayShare,
-   priceMult:clip(r.normal(1,sc.priceSd),0.7,1.5),oftenLate:r.random()<sc.lateShare}));});return ws;}
+   priceMult:clip(r.normal(1,sc.priceSd),0.7,1.5),oftenLate:r.random()<sc.lateShare}));});
+ for(const w of ws)w.mode=(sc.transitShare>0&&r.random()<sc.transitShare)?"toplu":"araba"; // arabası olmayan → toplu taşıma
+ return ws;}
 function makeRequests(sc,r){const out=[];for(let i=0;i<sc.reqPerDay;i++){const t=r.uniform(DAY_START-30,17*60);const u=r.random();let service;if(sc.serviceMix){const tot=sc.serviceMix.reduce((a,x)=>a+x[1],0);let acc=0;service=sc.serviceMix[sc.serviceMix.length-1][0];for(const[k,w]of sc.serviceMix){acc+=w/tot;if(u<acc){service=k;break;}}}
  else service=sc.nPhysio?(u<0.6?"pansuman":u<0.85?"doktor":"fizyoterapi"):(u<0.7?"pansuman":"doktor");
  const ws=t+r.uniform(30,180);const base=SERVICES[service].base;const budget=r.random()<sc.budgetShare?Math.round(base*r.uniform(0.85,1.15)/10)*10:null;
@@ -340,10 +404,10 @@ function candidates(workers,req,t,exclude){let out=candIn(workers,req,t,exclude,
 function candIn(workers,req,t,exclude,near){const S=SERVICES[req.service];const out=[];
  for(const w of workers){if(w.role!==S.role||exclude.has(w.id))continue;const pf=w.posFree(t);if(near&&!near.has(cellOf(pf.loc)))continue;
   const ea=w.earliest(t,req.loc,S.dur,req.ws);if(!ea||ea.arr>req.we)continue;const f0=Math.max(t,pf.free);
-  out.push({w,loc:pf.loc,free:pf.free,inVisit:pf.inVisit,expArr:ea.arr,dist:haversine(pf.loc,req.loc),rawArr:f0+travelMin(pf.loc,req.loc,f0)});}
+  out.push({w,loc:pf.loc,free:pf.free,inVisit:pf.inVisit,expArr:ea.arr,dist:haversine(pf.loc,req.loc),rawArr:f0+w.tm(pf.loc,req.loc,f0)});}
  return out;}
 function features(c,req,t,hist){const h=hist[c.w.id]||{};const base=SERVICES[req.service].base;const ep=base*(h.priceMult??1);const hb=req.budget!=null;
- return[travelMin(c.loc,req.loc,t),Math.max(0,c.free-t),req.we-c.expArr,t/60,+isPeak(t),+c.inVisit,h.resp??0.5,h.fast??0.5,h.peak??(h.resp??0.5),hb?(req.budget-ep)/base:0,+hb,+(SERVICES[req.service].role==="doktor")];}
+ return[travelMin(c.loc,req.loc,t,c.w.mode),Math.max(0,c.free-t),req.we-c.expArr,t/60,+isPeak(t),+c.inVisit,h.resp??0.5,h.fast??0.5,h.peak??(h.resp??0.5),hb?(req.budget-ep)/base:0,+hb,+(SERVICES[req.service].role==="doktor")];}
 const FEAT_NAMES=["yol süresi","boşalmaya kalan","aralık payı","saat","yoğun saat","ziyarette","geçmiş yanıt","hızlı yanıt","yoğun saat yanıtı","bütçe farkı","bütçe var","doktor"];
 function scoreModel(model,cands,req,t,hist){return cands.map(c=>model.predict(features(c,req,t,hist)));}
 function rankC(policy,cands,req,t,hist,model,r,load,fair){
@@ -352,7 +416,7 @@ function rankC(policy,cands,req,t,hist,model,r,load,fair){
  if(policy==="rastgele"){const p=r.perm(cands.length);return p.map(i=>cands[i]);}
  if(policy==="model"||policy==="model5"){const s=scoreModel(model,cands,req,t,hist);
   const cfg=policy==="model5"?V5_CFG:{a:0,b:(fair||0)*0.01,c:0,alpha:0};
-  cands.forEach((c,i)=>{c.p=s[i];const tt=travelMin(c.loc,req.loc,t);const vis=c.w.blocks.filter(b=>b.plat).length;
+  cands.forEach((c,i)=>{c.p=s[i];const tt=travelMin(c.loc,req.loc,t,c.w.mode);const vis=c.w.blocks.filter(b=>b.plat).length;
    c.adj=s[i]-cfg.a*tt/30-cfg.b*((load&&load[c.w.id])||0)-cfg.c*vis;});
   let order=[...cands].sort((a,b)=>b.adj-a.adj);
   if(cfg.alpha&&order.length){const K=Math.min(3,order.length);const byP=[...cands].sort((a,b)=>b.p-a.p);
@@ -386,9 +450,9 @@ function decide(sc,req,t,s,wmap,res,seed,day){const S=SERVICES[req.service];cons
  const fitting=offers.filter(o=>o.fits).sort((a,b)=>(a.arrival+a.price/20)-(b.arrival+b.price/20));const pr=rngFor(seed,day,req.id,20000);let over=[];
  if(!fitting.length){over=offers.filter(o=>o.arrival<=req.we).sort((a,b)=>a.price-b.price);if(!(over.length&&pr.random()<OVER_BUDGET_P))return;}
  for(const o of(fitting.length?fitting:over)){const w=wmap.get(o.worker);const ea=w.earliest(t,req.loc,S.dur,req.ws);if(!ea||ea.arr>o.arrival+5)continue;
-  const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-travelMin(ea.from,req.loc,ea.depart),e:planned+S.dur,p:req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
+  const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-w.tm(ea.from,req.loc,ea.depart),e:planned+S.dur,p:req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
   res.accepted++;if(!o.fits)res.overB++;
-  const r=rngFor(seed,day,req.id,10000+w.id);const tr=travelMin(ea.from,req.loc,ea.depart);const noise=r.normal(0,sc.travelNoiseSd*tr);
+  const r=rngFor(seed,day,req.id,10000+w.id);const tr=w.tm(ea.from,req.loc,ea.depart);const noise=r.normal(0,sc.travelNoiseSd*tr);
   const prev=w.blocks.filter(b=>b.e<=ea.depart+1e-6).map(b=>b.e);let overrun=0;
   if(prev.length){const ov=Math.abs(r.normal(0,sc.overrunSd))*(w.oftenLate?2:1);overrun=Math.max(0,ov-(ea.depart-Math.max(...prev)));}
   if(planned+noise+overrun<=req.we)res.onTime++;return;}}
@@ -537,9 +601,9 @@ function renderPatient(){if(!D.req)return;const req=D.req;const el_=$("offerList
  el_.querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>accept(D.offers[+b.dataset.i]));}
 function accept(o){const S=SERVICES[D.req.service];const w=D.workers[o.worker];const ea=w.earliest(D.clock,D.req.loc,S.dur,D.req.ws);
  if(!ea||ea.arr>o.arrival+5){$("patientBanner").innerHTML='<div class="banner warn">Bu teklif artık geçerli değil: çalışanın takvimi değişmiş (atomik kontrol). Başka bir teklif seçin.</div>';return;}
- const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-travelMin(ea.from,D.req.loc,ea.depart),e:planned+S.dur,p:D.req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
+ const planned=Math.max(ea.arr,o.arrival);w.blocks.push({s:planned-w.tm(ea.from,D.req.loc,ea.depart),e:planned+S.dur,p:D.req.loc,plat:true});w.blocks.sort((a,b)=>a.s-b.s);
  D.booked=o;D.pending=[];if(D.inbox&&D.inbox.c.w.id!==o.worker)D.inbox.closed=true;
- $("patientBanner").innerHTML=`<div class="banner"><b>Ziyaret kesinleşti.</b> ${roleNameV(w.role)} #${w.id}, saat ${fmtT(planned)} itibarıyla gelecek · ${fmtTL(o.price)}. Açık adresiniz yalnızca bu çalışanla paylaşıldı. Çalışanın takvimine ${fmtT(planned-travelMin(ea.from,D.req.loc,ea.depart))}–${fmtT(planned+S.dur)} arası işlendi.</div>`;
+ $("patientBanner").innerHTML=`<div class="banner"><b>Ziyaret kesinleşti.</b> ${roleNameV(w.role)} #${w.id}, saat ${fmtT(planned)} itibarıyla gelecek · ${fmtTL(o.price)}. Açık adresiniz yalnızca bu çalışanla paylaşıldı. Çalışanın takvimine ${fmtT(planned-w.tm(ea.from,D.req.loc,ea.depart))}–${fmtT(planned+S.dur)} arası işlendi.</div>`;
  startTracking(w,ea,planned,S);highlightCells(false);renderPatient();renderWorker();drawWorkers();}
 
 // ---------- Canlı takip: gerçek yol ağında rota + konum + tahmini varış ----------
@@ -558,13 +622,14 @@ function routeNodes(s,t){const G=graphDecode();const n=G.n,dist=new Float64Array
  if(!isFinite(dist[t]))return null;const path=[];for(let v=t;v>=0;v=prev[v])path.push(v);path.reverse();
  const pts=path.map(v=>[G.lat[v],G.lon[v]]),cum=path.map(v=>dist[v]),km=[0];for(let i=1;i<pts.length;i++)km.push(km[i-1]+haversine(pts[i-1],pts[i]));
  return{pts,cum,km,total:dist[t]};}
-function makeRoute(a,b){if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();const r=routeNodes(G.pool[a[2]],G.pool[b[2]]);if(r)return r;}
+function makeRoute(a,b,m,mode){if(mode==="toplu"&&TRANSIT&&a.length>2&&b.length>2)return transitRoute(a,b,m??(D?D.clock:600));
+ if(GRAPH&&a.length>2&&b.length>2){const G=graphDecode();const r=routeNodes(G.pool[a[2]],G.pool[b[2]]);if(r)return r;}
  const sec=(TT&&a.length>2&&b.length>2)?TT[a[2]*POOL.length+b[2]]:60*60*haversine(a,b)*DETOUR/speedKmh(D.clock);
  return{pts:[a.slice(0,2),b.slice(0,2)],cum:[0,sec],km:[0,haversine(a,b)*DETOUR],total:sec};}
 function setSpeed(v){D.speed=v;[...$("speedSeg").children].forEach(x=>x.classList.toggle("on",Math.abs(+x.dataset.s-v)<1e-6));}
-function startTracking(w,ea,planned,S){D.slowed=D.speed>0.25;/* otomatik izleme hızı: yola çıkana kadar hızlı, yolda yavaş, varınca normal */const r=makeRoute(ea.from,D.req.loc);const drive=Math.max(1,travelMin(ea.from,D.req.loc,ea.depart)-PARK);// dk
- const depart=planned-travelMin(ea.from,D.req.loc,ea.depart);
- D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,label:(roleNameV(w.role))+" #"+w.id,lastStep:-1};
+function startTracking(w,ea,planned,S){D.slowed=D.speed>0.25;/* otomatik izleme hızı: yola çıkana kadar hızlı, yolda yavaş, varınca normal */const r=makeRoute(ea.from,D.req.loc,ea.depart,w.mode);const pk=parkOf(w);const drive=Math.max(1,w.tm(ea.from,D.req.loc,ea.depart)-pk);// dk
+ const depart=planned-w.tm(ea.from,D.req.loc,ea.depart);
+ D.track={wid:w.id,r,depart,driveEnd:depart+drive,arrive:planned,end:planned+S.dur,drive,park:pk,toplu:w.mode==="toplu"&&!!TRANSIT,label:(roleNameV(w.role))+" #"+w.id,lastStep:-1};
  if(!D.gTrack){D.gTrack=el("g",{},$("map"));$("map").insertBefore(D.gTrack,D.gPatient);}
  updateTracking(true);}
 function trackState(){const T=D.track,t=D.clock,r=T.r;
@@ -588,17 +653,18 @@ function updateTracking(force){const T=D.track;if(!T)return;const s=trackState()
  const rem=s.step<=2?Math.max(0,T.arrive-D.clock):0;
  const band=s.step<=2?Math.max(1,1.645*SC_DEMO.travelNoiseSd*(s.step===0?T.drive:(1-s.f)*T.drive)):0; // ~%90 aralık
  const steps=["Kabul edildi","Yolda","Yaklaşıyor","Kapıda","Ziyaret"],cur=Math.min(s.step,4);
- const head=[`${T.label} önceki işini bitiriyor, ${fmtT(T.depart)} civarı yola çıkacak`,`${T.label} yolda`,`${T.label} yaklaşıyor (1 km'den az kaldı)`,`${T.label} geldi, park edip binaya giriyor`,`Ziyaret sürüyor (bitiş ${fmtT(T.end)})`,"Ziyaret tamamlandı ✓"][s.step];
+ const head=[`${T.label} önceki işini bitiriyor, ${fmtT(T.depart)} civarı yola çıkacak`,`${T.label} yolda`,`${T.label} yaklaşıyor (1 km'den az kaldı)`,(T.toplu?(r.legs&&r.legs.some(L=>L.t==="bin")?`${T.label} durakta indi, binaya giriyor`:`${T.label} yürüyerek geldi, binaya giriyor`):`${T.label} geldi, park edip binaya giriyor`),`Ziyaret sürüyor (bitiş ${fmtT(T.end)})`,"Ziyaret tamamlandı ✓"][s.step];
  const kmTxt=s.step<=2?((s.kmLeft??r.km[r.km.length-1]).toFixed(1).replace(".",",")+" km"):"—";
  $("trackCard").innerHTML=`<div class="track"><div class="trackTop"><div><div class="tiny">CANLI TAKİP</div><div class="trackHead">${head}</div></div>
   ${s.step<=2?`<div class="eta"><div class="etaBig">${Math.ceil(rem)} dk</div><div class="tiny">tahmini varış ${fmtT(T.arrive)}</div></div>`:""}</div>
   <div class="steps">${steps.map((n,i)=>`<div class="st ${i<cur?"ok":i===cur?"now":""}"><span></span>${n}</div>`).join("")}</div>
   <div class="bar"><div style="width:${(s.step===0?0:s.step>=3?100:100*s.f).toFixed(1)}%"></div></div>
-  <div class="tiny" style="margin-top:6px">${s.step<=2?`${D.slowed?`<span style="color:var(--blue)">${s.step===0?"Çalışan yola çıkana kadar saat hızlı akıyor (1 sn = 4 dk).":"Yolculuğu izleyebilmeniz için saat yavaşlatıldı (1 sn = 15 sn)."}</span> `:""}Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (trafik belirsizliği, ~%90)`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park ${PARK} dk`}</div></div>`;
+  <div class="tiny" style="margin-top:6px">${s.step<=2?`${D.slowed?`<span style="color:var(--blue)">${s.step===0?"Çalışan yola çıkana kadar saat hızlı akıyor (1 sn = 4 dk).":"Yolculuğu izleyebilmeniz için saat yavaşlatıldı (1 sn = 15 sn)."}</span> `:""}Kalan yol: <b>${kmTxt}</b> · Muhtemel varış aralığı <b>${fmtT(T.arrive-band)}–${fmtT(T.arrive+band)}</b> (${T.toplu?"aktarma/bekleme":"trafik"} belirsizliği, ~%90)`:(T.toplu?`${r.legs&&r.legs.some(L=>L.t==="bin")?"Toplu taşıma":"Yürüyüş"} ${Math.round(T.drive)} dk + bina ${T.park} dk`:`Toplam rota ${r.km[r.km.length-1].toFixed(1).replace(".",",")} km · yolculuk ${Math.round(T.drive)} dk + park ${PARK} dk`)}</div>
+  ${T.toplu&&r.legs?`<div class="tiny" style="margin-top:6px;line-height:1.7"><b>Yolculuk planı:</b> ${legsText(r,s.step>=1&&s.step<=2?s.f*r.total:null)}</div>`:""}</div>`;
  if(s.step!==T.lastStep){T.lastStep=s.step;drawWorkers();renderWorker();}}
 function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.posFree(D.clock);
  const trk=(D.track&&D.track.wid===w.id)?trackState():null;const trTxt=trk?["Yola çıkmaya hazırlanıyor","Hastaya gidiyor","Hastaya yaklaşıyor","Hastanın kapısında","Ziyarette","Ziyaret bitti"][trk.step]+(trk.step<=2?` · varış ${fmtT(D.track.arrive)}`:""):null;
- $("wStatus").innerHTML=`<b>${roleNameV(w.role)} #${w.id}</b> · ${trTxt?trTxt:pf.inVisit?`Ziyarette (bitiş ${fmtT(pf.free)})`:"Müsait"} · <span class="tiny">Haritada kesikli halkayla gösterilir</span>`;
+ $("wStatus").innerHTML=`<b>${roleNameV(w.role)} #${w.id}</b> ${w.mode==="toplu"&&TRANSIT?"🚌 toplu taşıma":"🚗 araba"} · ${trTxt?trTxt:pf.inVisit?`Ziyarette (bitiş ${fmtT(pf.free)})`:"Müsait"} · <span class="tiny">Haritada kesikli halkayla gösterilir</span>`;
  $("wCal").innerHTML=w.blocks.map(b=>`<div class="item"><span>${fmtT(b.s)}–${fmtT(b.e)}</span><span class="tiny">${b.plat?"Platform ziyareti (yol dahil)":"Mevcut ziyaret"}</span></div>`).join("")||'<div class="tiny">Kayıt yok</div>';
  const box=$("wInbox");const ib=D.inbox;
  if(!ib||ib.c.w.id!==w.id){box.innerHTML='<div class="tiny" style="margin-top:8px">Yeni talep yok. Hasta ekranından talep açtığınızda bu çalışan ilk sıralarda seçilirse bildirim burada görünür. Haritadaki bir noktaya dokunarak çalışan değiştirebilirsiniz.</div>';return;}
@@ -608,7 +674,7 @@ function renderWorker(){if(!D)return;const w=D.workers[D.controlled];const pf=w.
  if(D.declined){box.innerHTML='<div class="tiny" style="margin-top:8px">Talebi reddettiniz.</div>';return;}
  const ea=w.earliest(D.clock,req.loc,S.dur,req.ws);const defP=req.budget??Math.round(S.base*w.priceMult/10)*10;
  box.innerHTML=`<div class="banner warn" style="margin-top:8px"><b>Yeni talep:</b> ${S.label} · ${fmtT(req.ws)}–${fmtT(req.we)} · ${req.budget?"Hasta bütçesi "+fmtTL(req.budget):"Bütçe belirtilmedi"}<br>
-  <span class="small">Yaklaşık konum: ${haversine(pf.loc,req.loc).toFixed(1).replace(".",",")} km · tahmini yol ${Math.round(travelMin(pf.loc,req.loc,D.clock))} dk · en erken varışınız ${ea?fmtT(ea.arr):"—"}</span></div>
+  <span class="small">Yaklaşık konum: ${haversine(pf.loc,req.loc).toFixed(1).replace(".",",")} km · tahmini yol ${Math.round(w.tm(pf.loc,req.loc,D.clock))} dk${w.mode==="toplu"&&TRANSIT?" (toplu taşıma)":""} · en erken varışınız ${ea?fmtT(ea.arr):"—"}</span></div>
   <div class="row"><div><label>Ücret (TL)</label><input id="wPrice" type="number" value="${defP}"></div><div><label>Varış saati</label><select id="wArr"></select></div></div>
   <div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="wSend">${req.budget?"Teklif ver / bütçeyi kabul et":"Teklif ver"}</button><button class="btn sec" id="wDecline">Reddet</button></div>`;
  const sa=$("wArr");const st=ea?Math.ceil(ea.arr/5)*5:req.ws;for(let t=st;t<=req.we+30;t+=5){const o=document.createElement("option");o.value=t;o.textContent=fmtT(t)+(t>req.we?" (aralık dışı)":"");sa.appendChild(o);}
@@ -631,7 +697,7 @@ function setViewBox(pts,minKm){if(D.manual)return;const m=$("map");const H=baseH
  const vx=Math.min(Math.max(cx-w/2,0),600-w),vy=Math.min(Math.max(cy-h/2,0),H-h);
  applyVB(vx,vy,w,h,false);}
 function jitter(loc,id){const h=(id*2654435761)>>>0,a=(h%360)*Math.PI/180,r=0.0012+((h>>>9)%100)/100*0.0014;return[loc[0]+r*Math.sin(a),loc[1]+r*Math.cos(a)/0.78];}
-function cachedRoute(a,b){D.rc=D.rc||{};const k=(a[2]??a.join())+"-"+(b[2]??b.join());return D.rc[k]||(D.rc[k]=makeRoute(a,b));}
+function cachedRoute(a,b,m,mode){D.rc=D.rc||{};const tp=mode==="toplu"&&TRANSIT;const k=(a[2]??a.join())+"-"+(b[2]??b.join())+(tp?"-t"+transitSlot(m??D.clock):"");return D.rc[k]||(D.rc[k]=makeRoute(a,b,m,mode));}
 function setView(v){hideTip();D.manual=false;D.view=v;$("viewCard").classList.toggle("hide",v!=="calisan");[...$("viewSeg").children].forEach(x=>x.classList.toggle("on",x.dataset.v===v));$("viewNote").textContent=VIEW_NOTE[v];
  D.gHex.style.display=v==="genel"?"":"none";D.gLines.style.display=v==="genel"?"":"none";
  if(D.gHosp)D.gHosp.style.display=(v==="calisan"||!$("hospToggle").checked)?"none":"";
@@ -655,7 +721,7 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
  const startOf=b=>b===tb?D.track.arrive:b.s;
  // rota: şu anki konum → sıradaki iş (düz mavi) → sonrakiler (kesikli)
  let prev=pf.moving?pf.from:pf.loc,leg=0;
- for(const b of future){if(b.s<=now||b===tb){prev=b.p;continue;}const r=cachedRoute(prev,b.p);
+ for(const b of future){if(b.s<=now||b===tb){prev=b.p;continue;}const r=cachedRoute(prev,b.p,b.s,w.mode);
   el("polyline",{points:r.pts.map(p=>proj(p).join(",")).join(" "),fill:"none",stroke:"var(--blue)","stroke-width":leg===0?3.5:2,"stroke-dasharray":leg===0?"":"6 5",opacity:leg===0?.9:.55,"stroke-linecap":"round"},g);
   prev=b.p;pts.push(b.p);leg++;}
  future.forEach((b,i)=>{const[x,y]=proj(b.p),cur=b.s<=now;
@@ -663,7 +729,7 @@ function drawViewLayer(){const g=D.gWorkers;g.innerHTML="";const z=zz();
   const t=el("text",{x,y:y+3.3*z,"text-anchor":"middle","font-size":10*z,"font-weight":700,fill:"var(--ink)"},g);t.textContent=i+1;
   const lb=el("text",{x:x+12*z,y:y+3.5*z,"font-size":9.5*z,"font-weight":600,fill:"var(--ink2)"},g);lb.textContent=`${fmtT(startOf(b))} · ${b.plat?"platform ziyareti":"kendi randevunuz"}`;});
  const req=(D.inbox&&!D.booked&&D.req)?D.req:null;let tmReq=null;
- if(req){const loc=req.loc,ku=kmUnit(loc),[x,y]=proj(loc),[sx,sy]=proj(pf.loc);tmReq=Math.round(travelMin(pf.loc,loc,now));
+ if(req){const loc=req.loc,ku=kmUnit(loc),[x,y]=proj(loc),[sx,sy]=proj(pf.loc);tmReq=Math.round(w.tm(pf.loc,loc,now));
   el("line",{x1:sx,y1:sy,x2:x,y2:y,stroke:"var(--orange)","stroke-width":2,"stroke-dasharray":"5 4",opacity:.8},g);
   el("circle",{cx:x,cy:y,r:ku*0.6,fill:"color-mix(in srgb,var(--orange) 20%,transparent)",stroke:"var(--orange)","stroke-width":2},g);
   const t=el("text",{x,y:y-ku*0.6-5*z,"text-anchor":"middle","font-size":11*z,"font-weight":700,fill:"var(--orange)"},g);t.textContent=`Yeni talep · ~${tmReq} dk`;
@@ -727,10 +793,10 @@ function applyVB(x,y,w,h,manual){const m=$("map"),H=baseH();w=Math.min(600,Math.
 function routePoint(r,frac){const target=frac*r.total;let i=1;while(i<r.cum.length-1&&r.cum[i]<target)i++;
  const seg=r.cum[i]-r.cum[i-1],g=seg>0?(target-r.cum[i-1])/seg:1,a=r.pts[i-1],b=r.pts[i];return[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g];}
 function posDraw(w,t){let prev=w.home;const bl=[...w.blocks].sort((a,b)=>a.s-b.s);
- for(const b of bl){const tr=travelMin(prev,b.p,b.s)-PARK;let dep,arr;
-  if(b.plat){dep=b.s;arr=b.s+tr+PARK;}else{arr=b.s;dep=b.s-tr;}
+ const pk=parkOf(w);for(const b of bl){const tr=w.tm(prev,b.p,b.s)-pk;let dep,arr;
+  if(b.plat){dep=b.s;arr=b.s+tr+pk;}else{arr=b.s;dep=b.s-tr;}
   if(t<dep)return{loc:prev,inVisit:false,moving:false,free:t};
-  if(t<arr){const r=cachedRoute(prev,b.p),f=Math.min(1,Math.max(0,(t-dep)/Math.max(0.1,tr)));return{loc:f>=1?b.p:routePoint(r,f),inVisit:false,moving:true,arr,free:b.e,plat:!!b.plat,from:prev};}
+  if(t<arr){const r=cachedRoute(prev,b.p,b.s,w.mode),f=Math.min(1,Math.max(0,(t-dep)/Math.max(0.1,tr)));return{loc:f>=1?b.p:routePoint(r,f),inVisit:false,moving:true,arr,free:b.e,plat:!!b.plat,from:prev};}
   if(t<b.e)return{loc:b.p,inVisit:true,moving:false,free:b.e};prev=b.p;}
  return{loc:prev,inVisit:false,moving:false,free:t};}
 // ---------- Zaman çubuğu: günün istenen dakikasına ileri / geri git ----------
@@ -825,7 +891,7 @@ function drawHospitals(map){const L=hospList();if(!L.length)return;const g=el("g
 function nearestHospital(loc,filter){const L=hospList().filter(filter);if(!L.length||!TT||loc.length<3)return null;let best=null,bt=1e9;
  for(const h of L){const t=travelMin(loc,POOL[h.idx],D?D.clock:600);if(t<bt){bt=t;best=h;}}return best?{h:best,t:bt}:null;}
 function showNearEta(ll){const box=$("etaNear");if(!box)return;const out={};
- for(const role of Object.keys(ROLE_TR)){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+travelMin(pf.loc,ll,st)-D.clock);}
+ for(const role of Object.keys(ROLE_TR)){const arr=[];for(const w of D.workers){if(w.role!==role)continue;const pf=w.posFree(D.clock);const st=Math.max(D.clock,pf.free);arr.push(st+w.tm(pf.loc,ll,st)-D.clock);}
   arr.sort((a,b)=>a-b);out[role]=arr.length?{best:arr[0],avg3:arr.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,arr.length)}:null;}
  const f=o=>o?`en erken <b>~${Math.round(o.best)} dk</b> (en yakın 3 kişi ortalaması ~${Math.round(o.avg3)} dk)`:"—";
  const sel=$("fService")?SERVICES[$("fService").value]:null,rs=sel?[sel.role]:["hemsire","doktor"];
