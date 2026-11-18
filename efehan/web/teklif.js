@@ -29,8 +29,11 @@
     if (!M || !M.w) return null;
     const K = M.v5.kural, N = M.v5.bildirim_sayisi || 3;
     // Sentetik çalışan geçmişi: Enes'in meslek dağılımından, çalışan kimliğine bağlı sabit yüzdelik
-    function gecmis(pid, meslekKodu) {
-      const g = M.gecmis, d = (g.meslek && g.meslek[MESLEK[meslekKodu] || meslekKodu]) || g.tum;
+    function gecmis(pid, meslekKodu, yeni) {
+      const g = M.gecmis;
+      // Geçmişi olmayan (yeni) çalışan: modelin önerdiği nötr değerler (gecmis.yeni_calisan: 0,5 / 0,5 / 0,5)
+      if (yeni && g.yeni_calisan) return { resp: g.yeni_calisan.resp, fast: g.yeni_calisan.fast, peak: g.yeni_calisan.peak, yeni: true };
+      const d = (g.meslek && g.meslek[MESLEK[meslekKodu] || meslekKodu]) || g.tum;
       const ozet = (k) => yuzdelik(d[k] || g.tum[k], u01(pid + "#" + k));
       return { resp: ozet("resp"), fast: ozet("fast"), peak: ozet("peak") };
     }
@@ -42,7 +45,7 @@
     }
     /* o = { pid, meslek, yolDk, bosalmayaKalan, ziyarette, enErkenVaris, pencereSonu, simdi, doktor, butce, taban, carpan } */
     function ozellikler(o) {
-      const h = gecmis(o.pid, o.meslek), saat = o.simdi / 60;
+      const h = gecmis(o.pid, o.meslek, o.yeni), saat = o.simdi / 60;
       const yogun = (o.simdi >= 480 && o.simdi < 600) || (o.simdi >= 1020 && o.simdi < 1140) ? 1 : 0;
       const butceVar = o.butce != null ? 1 : 0;
       const butceFarki = butceVar ? (o.butce - o.taban * o.carpan) / o.taban : 0;

@@ -516,7 +516,7 @@
       const pv = repo.providers[c.provider_id], d = calisanDurumu(c.provider_id), uzak = !c.insertion;
       return { pid: c.provider_id, idx: i, meslek: pv.profession_code, carpan: pv.fee_multiplier, doktor: /hekim/.test(pv.profession_code),
         yolDk: uzak ? 0 : Math.max(1, C.travel(d.yer, [pt.lat, pt.lon], SIMDI)), bosalmayaKalan: d.bosalmayaKalan, ziyarette: d.ziyarette,
-        enErkenVaris: c.arrival_min, ziyaretBugun: d.ziyaretBugun, bildirim: 0 };
+        enErkenVaris: c.arrival_min, ziyaretBugun: d.ziyaretBugun, bildirim: 0, yeni: !c.visits };
     });
     const plan = TK.planla({ adaylar, taban, simdi: SIMDI, pencereSonu: P.info.when + 120, tohum: key });
     P.yz = { key, plan, t0: Date.now(), teklifler: {} };
@@ -549,7 +549,7 @@
       }
       const f = r.a.ozellik.ham;
       return `<div class="yz-satir"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1;min-width:0"><b>${esc(pp.full)}</b>
-        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}</div>
+        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}${r.a.ozellik.gecmis.yeni ? " · yeni çalışan" : ""}</div>
         <div class="tiny muted">${f.yol_suresi ? `${Math.round(f.yol_suresi)} dk yol · ` : ""}hızlı yanıt ${yuzde(f.gecmis_hizli_yanit_orani)}${f.ziyarette ? " · şu an ziyarette" : ""}</div></div>${sag}</div>`;
     };
     return `<div class="card stack yz-teklif" style="gap:10px">

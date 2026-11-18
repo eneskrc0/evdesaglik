@@ -1380,8 +1380,11 @@ YANIT yalnızca şu JSON olsun:
     if (!M || !M.w) return null;
     const K = M.v5.kural, N = M.v5.bildirim_sayisi || 3;
     // Sentetik çalışan geçmişi: Enes'in meslek dağılımından, çalışan kimliğine bağlı sabit yüzdelik
-    function gecmis(pid, meslekKodu) {
-      const g = M.gecmis, d = (g.meslek && g.meslek[MESLEK[meslekKodu] || meslekKodu]) || g.tum;
+    function gecmis(pid, meslekKodu, yeni) {
+      const g = M.gecmis;
+      // Geçmişi olmayan (yeni) çalışan: modelin önerdiği nötr değerler (gecmis.yeni_calisan: 0,5 / 0,5 / 0,5)
+      if (yeni && g.yeni_calisan) return { resp: g.yeni_calisan.resp, fast: g.yeni_calisan.fast, peak: g.yeni_calisan.peak, yeni: true };
+      const d = (g.meslek && g.meslek[MESLEK[meslekKodu] || meslekKodu]) || g.tum;
       const ozet = (k) => yuzdelik(d[k] || g.tum[k], u01(pid + "#" + k));
       return { resp: ozet("resp"), fast: ozet("fast"), peak: ozet("peak") };
     }
@@ -1393,7 +1396,7 @@ YANIT yalnızca şu JSON olsun:
     }
     /* o = { pid, meslek, yolDk, bosalmayaKalan, ziyarette, enErkenVaris, pencereSonu, simdi, doktor, butce, taban, carpan } */
     function ozellikler(o) {
-      const h = gecmis(o.pid, o.meslek), saat = o.simdi / 60;
+      const h = gecmis(o.pid, o.meslek, o.yeni), saat = o.simdi / 60;
       const yogun = (o.simdi >= 480 && o.simdi < 600) || (o.simdi >= 1020 && o.simdi < 1140) ? 1 : 0;
       const butceVar = o.butce != null ? 1 : 0;
       const butceFarki = butceVar ? (o.butce - o.taban * o.carpan) / o.taban : 0;
@@ -2259,7 +2262,7 @@ YANIT yalnızca şu JSON olsun:
       const pv = repo.providers[c.provider_id], d = calisanDurumu(c.provider_id), uzak = !c.insertion;
       return { pid: c.provider_id, idx: i, meslek: pv.profession_code, carpan: pv.fee_multiplier, doktor: /hekim/.test(pv.profession_code),
         yolDk: uzak ? 0 : Math.max(1, C.travel(d.yer, [pt.lat, pt.lon], SIMDI)), bosalmayaKalan: d.bosalmayaKalan, ziyarette: d.ziyarette,
-        enErkenVaris: c.arrival_min, ziyaretBugun: d.ziyaretBugun, bildirim: 0 };
+        enErkenVaris: c.arrival_min, ziyaretBugun: d.ziyaretBugun, bildirim: 0, yeni: !c.visits };
     });
     const plan = TK.planla({ adaylar, taban, simdi: SIMDI, pencereSonu: P.info.when + 120, tohum: key });
     P.yz = { key, plan, t0: Date.now(), teklifler: {} };
@@ -2292,7 +2295,7 @@ YANIT yalnızca şu JSON olsun:
       }
       const f = r.a.ozellik.ham;
       return `<div class="yz-satir"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1;min-width:0"><b>${esc(pp.full)}</b>
-        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}</div>
+        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}${r.a.ozellik.gecmis.yeni ? " · yeni çalışan" : ""}</div>
         <div class="tiny muted">${f.yol_suresi ? `${Math.round(f.yol_suresi)} dk yol · ` : ""}hızlı yanıt ${yuzde(f.gecmis_hizli_yanit_orani)}${f.ziyarette ? " · şu an ziyarette" : ""}</div></div>${sag}</div>`;
     };
     return `<div class="card stack yz-teklif" style="gap:10px">
