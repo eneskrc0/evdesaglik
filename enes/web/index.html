@@ -779,12 +779,18 @@ function adrInit(){if(ADR_IDX||!ADRES)return ADR_IDX;const M=ADRES.m,I=ADRES.i;
   .concat(M.map(([n,la,lo,ii])=>({n,ll:[la,lo],sub:ii>=0?I[ii]:"",t:adrTok(n),c:adrTok(ii>=0?I[ii]:""),mah:true})));return ADR_IDX;}
 function adrSearch(q){const X=adrInit();if(!X)return[];const qt=adrTok(q);if(!qt.length)return[];const out=[];
  const KIND=new Set(["sokak","cadde","mahalle","bulvar","meydan","yol","çıkmaz"]);
+ // sorguda bir mahalle adı geçiyorsa (ör. "Kazımdirik"), o mahalleye yakın sokaklar öne çıkar
+ const qw=qt.filter(w=>!KIND.has(w)&&!/^\d+$/.test(w));
+ const anchors=X.filter(e=>e.mah&&e.t.some(x=>!KIND.has(x)&&qw.includes(x)));
  for(const e of X){let sc=0,core=0;const all=e.t.concat(e.c);
   for(const w of qt){if(e.t.includes(w)){sc+=KIND.has(w)?1:4;if(!KIND.has(w))core++;}
    else if(e.c.includes(w))sc+=2;
    else if(w.length>=3&&!/^\d+$/.test(w)&&all.some(x=>x.startsWith(w))){sc+=1.5;if(e.t.some(x=>x.startsWith(w)))core++;}
    else if(/^\d+$/.test(w)){sc-=3;}}
-  if(core>0&&sc>0)out.push({e,sc:sc-(e.mah?0.5:0)-e.t.length*0.05});}
+  let near=null;if(anchors.length&&!e.mah){let dk=1e9;for(const a of anchors){const d=haversine(a.ll,e.ll);if(d<dk){dk=d;near=a;}}sc+=4*Math.exp(-dk/0.8);if(dk>1.5)near=null;}
+  for(const x of e.t)if(/^\d+$/.test(x)&&!qt.includes(x))sc-=2.5;          // 372/6 gibi fazladan numara
+  if(e.mah&&qw.length&&qw.every(w=>e.t.includes(w)||e.c.includes(w)))sc+=3; // sorgu yalnızca mahalle adıysa
+  if(core>0&&sc>0)out.push({e:near?{...e,sub:near.n.replace(" Mahallesi","")+" yakını, "+(near.sub||"")}:e,sc:sc-(e.mah?0.5:0)-e.t.length*0.05});}
  out.sort((a,b)=>b.sc-a.sc);return out.slice(0,6).map(o=>o.e);}
 function adrSetup(){const box=$("adrBox");if(!box)return;if(!ADRES){box.classList.add("hide");return;}
  const inp=$("adrQ"),list=$("adrList");

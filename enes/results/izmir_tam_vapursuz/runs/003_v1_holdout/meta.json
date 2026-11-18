@@ -1,0 +1,43 @@
+{
+  "id": "003_v1_holdout",
+  "world": "izmir_tam",
+  "versiyon": "v1",
+  "name": "v1",
+  "model": "gbm_v1",
+  "note": "ayrılmış, toplu taşıma %40 (GTFS)",
+  "set": "holdout",
+  "date": "2026-11-18T23:14",
+  "protocol": {
+    "hist_days": 12,
+    "train_days": 12,
+    "test_days": 10,
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007,
+      1008,
+      1009
+    ],
+    "scenarios": [
+      "baz",
+      "homojen",
+      "yuksek_degiskenlik",
+      "belirsiz_yol",
+      "arabali",
+      "toplu_cok"
+    ]
+  },
+  "heuristic_hash": "a96011499931",
+  "files": {
+    "data/izmir/pool.npz": "3de31e84dbf5",
+    "sim/engine.py": "b577c11bf0ac",
+    "sim/world.py": "8466aa424ea8",
+    "sim/geo.py": "1aa80f3c45de",
+    "sim/models.py": "545987f83f3c"
+  }
+}

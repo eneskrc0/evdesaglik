@@ -4,9 +4,9 @@
   "versiyon": "v1",
   "name": "v1",
   "model": "gbm_v1",
-  "note": "ayrılmış, toplu taşıma %40 (GTFS)",
+  "note": "ayrılmış, toplu taşıma %40 (GTFS + vapur, ortak sıklık)",
   "set": "holdout",
-  "date": "2026-11-18T23:14",
+  "date": "2026-11-18T23:44",
   "protocol": {
     "hist_days": 12,
     "train_days": 12,
@@ -32,7 +32,7 @@
       "toplu_cok"
     ]
   },
-  "heuristic_hash": "a96011499931",
+  "heuristic_hash": "3947eda28d09",
   "files": {
     "data/izmir/pool.npz": "3de31e84dbf5",
     "sim/engine.py": "b577c11bf0ac",

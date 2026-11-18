@@ -4,9 +4,9 @@
   "versiyon": "v5+kota+trafik",
   "name": "v5_ukota_trafik",
   "model": "v5_ukota_trafik",
-  "note": "toplu taşıma %40 (GTFS)",
+  "note": "toplu taşıma %40 (GTFS + vapur, ortak sıklık)",
   "set": "dev",
-  "date": "2026-11-18T23:10",
+  "date": "2026-11-18T23:40",
   "protocol": {
     "hist_days": 12,
     "train_days": 12,

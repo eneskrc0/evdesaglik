@@ -4,9 +4,9 @@
   "versiyon": "v1",
   "name": "v1",
   "model": "gbm_v1",
-  "note": "toplu taşıma %40 (GTFS)",
+  "note": "toplu taşıma %40 (GTFS + vapur, ortak sıklık)",
   "set": "dev",
-  "date": "2026-11-18T23:06",
+  "date": "2026-11-18T23:36",
   "protocol": {
     "hist_days": 12,
     "train_days": 12,

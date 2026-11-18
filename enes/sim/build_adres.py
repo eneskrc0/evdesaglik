@@ -78,6 +78,10 @@ def main(src):
     # aynı ad 1,5 km içinde tekrar etmesin (sınır + düğüm)
     seen, M = [], []
     for nm, la, lo in mah:
+        nm = nm.strip()
+        for suf in (" Mah.", " Mah", " Mh.", " Mh"):
+            if nm.endswith(suf):
+                nm = nm[: -len(suf)]
         key = nm.replace(" Mahallesi", "").strip()
         if any(k == key and abs(a - la) < 0.014 and abs(b - lo) < 0.018 for k, a, b in seen):
             continue

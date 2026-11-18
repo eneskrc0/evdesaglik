@@ -198,3 +198,14 @@ python -m pytest -q tests
   demo hasta formunda "Adres" kutusu (Türkçe kısaltmalar: sok/sk, cad/cd, mah/mh, blv); seçilen adres en yakın yol noktasına yapışır
   (≤2 km). Dosya yoksa kutu gizlenir. ortak/build.py de gömer.
 - Vapur: build_transit FEEDS'te ship-izdeniz-gtfs (klasör varsa); servis adı bilinmiyorsa pazartesi çalışan servisler alınır.
+
+## Vapur + adres arama (2026-11-18 gece) — izmir_tam güncel
+- Vapur: resmî İZDENİZ GTFS'i (izdeniz.com.tr/gtfs/ship-izdeniz-gtfs.zip) yayında değil. `python -m sim.build_izdeniz <gtfs>/ship-izdeniz-gtfs`
+  küçük bir GTFS üretir: 5 iskele (Karşıyaka, Bostanlı, Konak, Pasaport, Alsancak), 4 hat × 2 yön, yoğun saat 15 dk (İzmir BB duyurusu,
+  13.01.2025'ten beri), diğer saatler 30 dk (varsayım). Üçkuyular/Göztepe/arabalı vapur yok. Etkisi küçük (Karşıyaka→Konak 45→44 dk).
+- Sonuçlar (vapurlu, ortak sıklık; geliştirme / ayrılmış), %40 toplu baz: kural 54,4 / 52,2 · v1 73,0 / 70,6 · seçilen 72,2 / 70,1;
+  ayrılmış seçilen − kural +17,9 ± 1,1. Vapursuz sonuçlar results/izmir_tam_vapursuz/. Kayıtlı model: AUC 0,818, %68,9.
+- Adres verisi: data/izmir/osm_sokaklar.json (Overpass, kullanıcının tarayıcısından alındı; adlı primary…residential/living_street/
+  pedestrian yollar + mahalle sınırları/düğümleri, 16,8 bin yol) → `python -m sim.build_adres data/izmir/osm_sokaklar.json` →
+  web/adres_izmir.json (452 mahalle, 10,4 bin sokak kaydı, 0,44 MB). Arama: sorgudaki mahalle adı yakındaki sokakları öne çıkarır
+  ("Kazımdirik Mah. 372. Sok." → Bornova'daki 372. Sokak, "Kazımdirik yakını"); mahalle etiketi en yakın merkez olduğundan yaklaşık.
