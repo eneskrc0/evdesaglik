@@ -29,6 +29,9 @@ def main() -> None:
             order = " ORDER BY start_min"
         data[t] = [dict(r) for r in conn.execute(f"SELECT * FROM {t}{order}")]
     data["triage_cases"] = list(csv.DictReader(CASES.open(encoding="utf-8")))
+    yol = Path(__file__).resolve().parents[1] / "data" / "seed" / "izmir_yol.json"
+    if yol.exists():  # İzmir yol paketi: routing.py ile aynı süre matrisi ve trafik eğrisi (core.js setYol)
+        data["yol"] = json.loads(yol.read_text(encoding="utf-8"))
     OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT} ({OUT.stat().st_size // 1024} KB)")
 

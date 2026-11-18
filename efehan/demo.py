@@ -41,7 +41,7 @@ def show(title: str, res: dict) -> None:
 def main() -> None:
     repo = Repo()
     p = repo.patients
-    yatalak_planli = replace(p["P16"], bedridden=True, has_physician_plan=True)  # Sincan
+    yatalak_planli = replace(p["P16"], bedridden=True, has_physician_plan=True)
     yatalak_plansiz = replace(p["P01"], bedridden=True, has_physician_plan=False)
     ayakta_plansiz = replace(p["P02"], bedridden=False, has_physician_plan=False)
     ayakta_planli = replace(p["P02"], bedridden=False, has_physician_plan=True)

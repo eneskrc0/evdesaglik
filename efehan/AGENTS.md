@@ -4,9 +4,9 @@ Talebin başı: hastanın anlattığını (yazı/ses/foto) güvenli bir hizmet s
 Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birleştirme ayrıca yapılacak.
 
 ## Yapı
-- `data/` — SQLite şema + kaynaklı tohum CSV'leri (meslekler, hizmetler, 15 kırmızı bayrak, 22 şikâyet rotası; her tıbbi satırın `sources.csv`'de kaynağı var) ve sentetik Ankara verisi. `python data/build_db.py`.
+- `data/` — SQLite şema + kaynaklı tohum CSV'leri (meslekler, hizmetler, 15 kırmızı bayrak, 22 şikâyet rotası; her tıbbi satırın `sources.csv`'de kaynağı var) ve sentetik İzmir verisi: konumlar Enes'in temiz havuzundan gerçek yol noktaları (`data/seed/izmir_yol.json`, `python data/build_izmir.py` ile enes/ verisinden üretilir, numpy ister). `python data/build_db.py`.
 - `app/triage.py` — hibrit triyaj: kural tabanlı kırmızı bayrak (112/114) → seviye (TELE, TELE_HEMSIRE, HEKIM_EV, PLANLI).
-- `app/routing.py` — ziyaret paylaşımı (en ucuz ekleme), tasarruf %50 hasta / %30 çalışan / %20 platform.
+- `app/routing.py` — ziyaret paylaşımı (en ucuz ekleme), tasarruf %50 hasta / %30 çalışan / %20 platform. Varış süresi `travel()`: İzmir yol paketindeki OSM rota süresi × TomTom 2025 saatlik trafik + 6 dk park (Enes'in `enes/sim/geo.py` izmir_tam modeli); yol maliyeti hâlâ kuş uçuşu × 1,3 km.
 - `app/matching.py` — yetkinlik/fiyat/hız ağırlıklı, açıklanabilir sıralama.
 - `web/core.js` — Python mantığının JS kopyası; `web/parity_test.py` eşitliği dener. `web/kapida.html` hasta+çalışan arayüzü (YZ sohbeti, foto, çalışana rapor). `python web/build_web.py` → `web/dist/`.
 
@@ -26,7 +26,8 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 
 - YZ teşhis koymaz, tedavi önermez; görevi hastanın şikâyetini sağlık çalışanına en iyi biçimde raporlamaktır (ekip kararı 17.11). Hizmet önerisi yalnızca öneridir, kararı hekim/sağlık çalışanı verir.
 - API anahtarı hiçbir dosyaya yazılmaz; yalnızca Cloudflare'de Secret olarak durur.
+- YZ fotoğrafı yalnızca dışarıdan görünen cilt durumları için ister (yara, kızarıklık, şişlik…); boğaz/ağız içi, ağrı, ateş vb. için istemez (istemler.js).
 - Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 
 ## Açık birleştirme kararları
-Uygulama adı (Kapıda / Vizit) ve ücret varsayımları açık. Ekip kararı (16.11): şehir İzmir; fiyat karma (YZ önerir, çalışan ±%10 içinde teklif verir, paylaşım indirimi hastaya). Kapıda hâlâ Ankara verisiyle — İzmir'e taşıma planı HARITA_VERISI.md'de.
+Uygulama adı (Kapıda / Vizit) ve ücret varsayımları açık. Ekip kararı (16.11): şehir İzmir; fiyat karma (YZ önerir, çalışan ±%10 içinde teklif verir, paylaşım indirimi hastaya). Kapıda 18.11'den beri İzmir verisiyle (konum + yol süresi + trafik + en yakın acil servis); harita çizimi ve canlı takip henüz yok (plan HARITA_VERISI.md'de).

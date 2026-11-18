@@ -13,17 +13,16 @@ Mesaj  : Önerilen: Planlı ev hizmeti (hekim planına göre). Bu bir teşhis de
   • Şikayet kalıbı 'Bası yarası / yatak yarası' (eşleşen: basi yarasi)
   • Hekim planı/reçetesi var: sağlık meslek mensubu atanabilir (S07, S08)
 Hizmet : Bası yarası bakımı ve evre takibi
-  ! 6 aday elendi: mesafe
-  1. Hemşire HEM-05 (Hemşire) — 14:36, 1347 TL  [ziyaret paylaşımı]
-     neden: bu hizmette 310 ziyaret, 20 yıl deneyim, puan 4.9; tahmini varış 14:36; ziyaretiniz o günkü rotasına eklenir: ek yol 0.04 km (tek başına 2.85 km), size 17 TL indirim; ödeyeceğiniz 1347 TL
-     puan: {'yetkinlik': 0.987, 'fiyat': 0.447, 'hiz': 0.425} -> 0.8294
-     kazan-kazan-kazan: hasta öder 1347, sağlıkçı alır 1208, platform 140
-  2. Hemşire HEM-07 (Hemşire) — 10:15, 1229 TL
-     neden: bu hizmette 48 ziyaret, 15 yıl deneyim, puan 4.8; tahmini varış 10:15; ödeyeceğiniz 1229 TL
-     puan: {'yetkinlik': 0.765, 'fiyat': 0.76, 'hiz': 0.969} -> 0.7936
-  3. Hemşire HEM-04 (Hemşire) — 13:15, 1381 TL
-     neden: bu hizmette 173 ziyaret, 19 yıl deneyim, puan 4.3; tahmini varış 13:15; ödeyeceğiniz 1381 TL
-     puan: {'yetkinlik': 0.878, 'fiyat': 0.359, 'hiz': 0.594} -> 0.7634
+  ! 1 aday elendi: ruhsat
+  1. Hemşire HEM-03 (Hemşire) — 10:00, 1744 TL
+     neden: bu hizmette 66 ziyaret, 21 yıl deneyim, puan 4.4; tahmini varış 10:00; ödeyeceğiniz 1744 TL
+     puan: {'yetkinlik': 0.816, 'fiyat': 0.0, 'hiz': 1.0} -> 0.726
+  2. Hemşire HEM-10 (Hemşire) — 13:24, 1299 TL
+     neden: bu hizmette 38 ziyaret, 16 yıl deneyim, puan 4.8; tahmini varış 13:24; ödeyeceğiniz 1299 TL
+     puan: {'yetkinlik': 0.759, 'fiyat': 0.353, 'hiz': 0.575} -> 0.6746
+  3. Hemşire HEM-14 (Hemşire) — 10:00, 1503 TL
+     neden: bu hizmette 116 ziyaret, 11 yıl deneyim, puan 4.4; tahmini varış 10:00; ödeyeceğiniz 1503 TL
+     puan: {'yetkinlik': 0.734, 'fiyat': 0.0, 'hiz': 1.0} -> 0.6671
 
 ==============================================================================
 3) Aynı talep — fiyat öncelikli
@@ -33,17 +32,16 @@ Mesaj  : Önerilen: Planlı ev hizmeti (hekim planına göre). Bu bir teşhis de
   • Şikayet kalıbı 'Bası yarası / yatak yarası' (eşleşen: basi yarasi)
   • Hekim planı/reçetesi var: sağlık meslek mensubu atanabilir (S07, S08)
 Hizmet : Bası yarası bakımı ve evre takibi
-  ! 6 aday elendi: mesafe
-  1. Hemşire HEM-13 (Hemşire) — 11:52, 1138 TL  [ziyaret paylaşımı]
-     neden: bu hizmette 69 ziyaret, 11 yıl deneyim, puan 4.6; tahmini varış 11:52; ziyaretiniz o günkü rotasına eklenir: ek yol 2.8 km (tek başına 6.83 km), size 24 TL indirim; ödeyeceğiniz 1138 TL
-     puan: {'yetkinlik': 0.712, 'fiyat': 1.0, 'hiz': 0.767} -> 0.9256
-     kazan-kazan-kazan: hasta öder 1138, sağlıkçı alır 1020, platform 118
-  2. Hemşire HEM-06 (Hemşire) — 13:20, 1153 TL
-     neden: bu hizmette 22 ziyaret, 10 yıl deneyim, puan 4.5; tahmini varış 13:20; ödeyeceğiniz 1153 TL
-     puan: {'yetkinlik': 0.579, 'fiyat': 0.96, 'hiz': 0.583} -> 0.8518
-  3. Hemşire HEM-07 (Hemşire) — 10:15, 1229 TL
-     neden: bu hizmette 48 ziyaret, 15 yıl deneyim, puan 4.8; tahmini varış 10:15; ödeyeceğiniz 1229 TL
-     puan: {'yetkinlik': 0.765, 'fiyat': 0.76, 'hiz': 0.969} -> 0.7909
+  ! 1 aday elendi: ruhsat
+  1. Hemşire HEM-08 (Hemşire) — 11:11, 1069 TL
+     neden: bu hizmette 9 ziyaret, 4 yıl deneyim, puan 5.0; tahmini varış 11:11; ödeyeceğiniz 1069 TL
+     puan: {'yetkinlik': 0.477, 'fiyat': 1.0, 'hiz': 0.852} -> 0.9042
+  2. Hemşire HEM-06 (Hemşire) — 13:23, 1133 TL
+     neden: bu hizmette 22 ziyaret, 10 yıl deneyim, puan 4.5; tahmini varış 13:23; ödeyeceğiniz 1133 TL
+     puan: {'yetkinlik': 0.579, 'fiyat': 0.822, 'hiz': 0.577} -> 0.7521
+  3. Hemşire HEM-10 (Hemşire) — 13:24, 1299 TL
+     neden: bu hizmette 38 ziyaret, 16 yıl deneyim, puan 4.8; tahmini varış 13:24; ödeyeceğiniz 1299 TL
+     puan: {'yetkinlik': 0.759, 'fiyat': 0.353, 'hiz': 0.575} -> 0.4429
 
 ==============================================================================
 4) Yatağa bağımlı hasta, ateş ve öksürük, planı yok
@@ -53,18 +51,18 @@ Mesaj  : Önerilen: Hemşire evde + hekim videoda. Bu bir teşhis değildir; yö
   • Şikayet kalıbı 'Hafif akut şikayet (ateş / öksürük / ishal vb.)' (eşleşen: ates)
   • Yatağa bağımlı hasta: hemşire evde ölçüm yapar, hekim videoda
 Hizmet : Hemşire evde + hekim videoda
-  ! 6 aday elendi: mesafe
-  ! 1 aday elendi: rota
+  ! 1 aday elendi: ruhsat
   ! Hekim video görüşmesi o saatte müsait bir hekime ayrıca atanır.
-  1. Hemşire HEM-03 (Hemşire) — 10:00, 1682 TL
-     neden: bu hizmette 81 ziyaret, 15 yıl deneyim, puan 4.3; tahmini varış 10:00; ödeyeceğiniz 1682 TL
-     puan: {'yetkinlik': 0.747, 'fiyat': 1.0, 'hiz': 1.0} -> 0.9157
-  2. Hemşire HEM-14 (Hemşire) — 10:00, 1734 TL
-     neden: bu hizmette 49 ziyaret, 12 yıl deneyim, puan 4.2; tahmini varış 10:00; ödeyeceğiniz 1734 TL
-     puan: {'yetkinlik': 0.642, 'fiyat': 0.906, 'hiz': 1.0} -> 0.8494
-  3. Hemşire HEM-11 (Hemşire) — 10:27, 2051 TL
-     neden: bu hizmette 50 ziyaret, 21 yıl deneyim, puan 4.1; tahmini varış 10:27; ödeyeceğiniz 2051 TL
-     puan: {'yetkinlik': 0.751, 'fiyat': 0.342, 'hiz': 0.944} -> 0.6788
+  1. Hemşire HEM-08 (Hemşire) — 10:50, 1235 TL  [ziyaret paylaşımı]
+     neden: bu hizmette 9 ziyaret, 4 yıl deneyim, puan 5.0; tahmini varış 10:50; ziyaretiniz o günkü rotasına eklenir: ek yol 0.36 km (tek başına 4.88 km), size 27 TL indirim; ödeyeceğiniz 1235 TL
+     puan: {'yetkinlik': 0.477, 'fiyat': 1.0, 'hiz': 0.896} -> 0.791
+     kazan-kazan-kazan: hasta öder 1235, sağlıkçı alır 1104, platform 131
+  2. Hemşire HEM-05 (Hemşire) — 10:00, 1828 TL
+     neden: bu hizmette 148 ziyaret, 14 yıl deneyim, puan 4.5; tahmini varış 10:00; ödeyeceğiniz 1828 TL
+     puan: {'yetkinlik': 0.815, 'fiyat': 0.0, 'hiz': 1.0} -> 0.605
+  3. Hemşire HEM-03 (Hemşire) — 10:00, 2066 TL
+     neden: bu hizmette 46 ziyaret, 21 yıl deneyim, puan 4.4; tahmini varış 10:00; ödeyeceğiniz 2066 TL
+     puan: {'yetkinlik': 0.783, 'fiyat': 0.0, 'hiz': 1.0} -> 0.5943
 
 ==============================================================================
 5) Diz protezi sonrası fizik tedavi — hekim planı YOK
@@ -74,15 +72,15 @@ Mesaj  : Önerilen: Hekimle video görüşme. Bu bir teşhis değildir; yönlend
   • Şikayet kalıbı 'Fizik tedavi / rehabilitasyon' (eşleşen: fizik tedavi)
   • Hekim planı yok: önce hekim değerlendirmesi gerekir (S08)
 Hizmet : Hekimle video görüşme (ön değerlendirme)
-  1. Dr. HEK-05 (Hekim (pratisyen / aile hekimi)) — 10:00, 720 TL
-     neden: bu hizmette 115 ziyaret, 17 yıl deneyim, puan 3.9; en erken görüşme 10:00; ödeyeceğiniz 720 TL
-     puan: {'yetkinlik': 0.757, 'fiyat': 0.471, 'hiz': 1.0} -> 0.7424
-  2. Dr. HEK-02 (Hekim (pratisyen / aile hekimi)) — 13:00, 612 TL
-     neden: bu hizmette 29 ziyaret, 10 yıl deneyim, puan 4.3; en erken görüşme 13:00; ödeyeceğiniz 612 TL
-     puan: {'yetkinlik': 0.577, 'fiyat': 1.0, 'hiz': 0.625} -> 0.7341
-  3. Dr. HEK-01 (Hekim (pratisyen / aile hekimi)) — 13:00, 636 TL
-     neden: bu hizmette 50 ziyaret, 10 yıl deneyim, puan 4.4; en erken görüşme 13:00; ödeyeceğiniz 636 TL
-     puan: {'yetkinlik': 0.641, 'fiyat': 0.882, 'hiz': 0.625} -> 0.716
+  1. Dr. HEK-02 (Hekim (pratisyen / aile hekimi)) — 13:00, 564 TL
+     neden: bu hizmette 32 ziyaret, 7 yıl deneyim, puan 4.3; en erken görüşme 13:00; ödeyeceğiniz 564 TL
+     puan: {'yetkinlik': 0.541, 'fiyat': 1.0, 'hiz': 0.625} -> 0.7221
+  2. Dr. HEK-01 (Hekim (pratisyen / aile hekimi)) — 10:00, 684 TL
+     neden: bu hizmette 27 ziyaret, 12 yıl deneyim, puan 4.3; en erken görüşme 10:00; ödeyeceğiniz 684 TL
+     puan: {'yetkinlik': 0.601, 'fiyat': 0.362, 'hiz': 1.0} -> 0.6542
+  3. Dr. HEK-05 (Hekim (pratisyen / aile hekimi)) — 10:00, 846 TL
+     neden: bu hizmette 101 ziyaret, 25 yıl deneyim, puan 4.8; en erken görüşme 10:00; ödeyeceğiniz 846 TL
+     puan: {'yetkinlik': 0.909, 'fiyat': 0.0, 'hiz': 1.0} -> 0.6365
 
 ==============================================================================
 6) Aynı talep — hekim planı VAR, hız öncelikli
@@ -92,16 +90,18 @@ Mesaj  : Önerilen: Planlı ev hizmeti (hekim planına göre). Bu bir teşhis de
   • Şikayet kalıbı 'Fizik tedavi / rehabilitasyon' (eşleşen: fizik tedavi)
   • Hekim planı/reçetesi var: sağlık meslek mensubu atanabilir (S07, S08)
 Hizmet : Evde fizyoterapi seansı
-  ! 1 aday elendi: ruhsat
-  ! 2 aday elendi: mesafe
-  1. Fzt. FIZ-01 (Fizyoterapist) — 13:44, 1649 TL  [ziyaret paylaşımı]
-     neden: bu hizmette 16 ziyaret, 4 yıl deneyim, puan 4.6; tahmini varış 13:44; ziyaretiniz o günkü rotasına eklenir: ek yol 28.58 km (tek başına 33.83 km), size 32 TL indirim; ödeyeceğiniz 1649 TL
-     puan: {'yetkinlik': 0.474, 'fiyat': 0.835, 'hiz': 0.533} -> 0.568
-     kazan-kazan-kazan: hasta öder 1649, sağlıkçı alır 1509, platform 140
-  2. Fzt. FIZ-04 (Fizyoterapist) — 15:10, 1564 TL  [ziyaret paylaşımı]
-     neden: bu hizmette 33 ziyaret, 8 yıl deneyim, puan 4.5; tahmini varış 15:10; ziyaretiniz o günkü rotasına eklenir: ek yol 5.15 km (tek başına 10.46 km), size 32 TL indirim; ödeyeceğiniz 1564 TL
-     puan: {'yetkinlik': 0.586, 'fiyat': 1.0, 'hiz': 0.354} -> 0.4795
-     kazan-kazan-kazan: hasta öder 1564, sağlıkçı alır 1404, platform 160
+  ! 1 aday elendi: mesafe
+  ! 1 aday elendi: rota
+  1. Fzt. FIZ-05 (Fizyoterapist) — 10:36, 2092 TL
+     neden: bu hizmette 61 ziyaret, 21 yıl deneyim, puan 4.4; tahmini varış 10:36; ödeyeceğiniz 2092 TL
+     puan: {'yetkinlik': 0.809, 'fiyat': 0.482, 'hiz': 0.925} -> 0.8452
+  2. Fzt. FIZ-02 (Fizyoterapist) — 10:00, 2277 TL
+     neden: bu hizmette 46 ziyaret, 19 yıl deneyim, puan 3.9; tahmini varış 10:00; ödeyeceğiniz 2277 TL
+     puan: {'yetkinlik': 0.701, 'fiyat': 0.172, 'hiz': 1.0} -> 0.839
+  3. Fzt. FIZ-01 (Fizyoterapist) — 14:06, 1784 TL  [ziyaret paylaşımı]
+     neden: bu hizmette 18 ziyaret, 9 yıl deneyim, puan 4.5; tahmini varış 14:06; ziyaretiniz o günkü rotasına eklenir: ek yol 24.21 km (tek başına 25.63 km), size 9 TL indirim; ödeyeceğiniz 1784 TL
+     puan: {'yetkinlik': 0.546, 'fiyat': 1.0, 'hiz': 0.488} -> 0.5691
+     kazan-kazan-kazan: hasta öder 1784, sağlıkçı alır 1632, platform 152
 
 ==============================================================================
 7) Çocuk yanlışlıkla çamaşır suyu içti

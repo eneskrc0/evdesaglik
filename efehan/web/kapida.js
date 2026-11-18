@@ -60,7 +60,7 @@
   // ---------- durum ----------
   const P = {
     screen: "home", msgs: [], turns: [], photos: [], photoNotes: [], pendingPhotos: [], report: null,
-    info: { bed: false, plan: "bilinmiyor", district: "Çankaya", when: 570, forWhom: "" },
+    info: { bed: false, plan: "bilinmiyor", district: "Bornova", when: 570, forWhom: "" },
     triage: null, sort: "onerilen", sheet: null, request: null, emergency: null, busy: false,
     voice: false, listening: false, mode: "loading", demoStep: 0, demoAnswers: [], toast: "",
   };
@@ -183,7 +183,7 @@
   const CHAT_RULES = window.KAPIDA_ISTEMLER.SOHBET_KURALLARI;
   const reportPrompt = (transcript) => window.KAPIDA_ISTEMLER.raporIstemi(transcript, P.photoNotes, SERVICE_LIST);
   const DEMO_Q = [
-    ["Ne oldu? Kendi cümlelerinle anlat. Görünür bir durumsa fotoğraf da ekleyebilirsin.", []],
+    ["Ne oldu? Kendi cümlelerinle anlat. Yara, kızarıklık gibi dışarıdan görünen bir durumsa fotoğraf da ekleyebilirsin.", []],
     ["Bu yardım kimin için? Yaklaşık kaç yaşında?", ["Annem, 70 üstü", "Babam, 70 üstü", "Kendim için", "Eşim için"]],
     ["Ne zamandır böyle? Kötüleşiyor mu?", ["Bugün başladı", "Birkaç gündür", "Bir haftadan fazla", "Gittikçe kötüleşiyor"]],
     ["Bu konuda bir doktorun planı ya da reçetesi var mı?", ["Evet, reçete / plan var", "Hayır, yok", "Emin değilim"]],
@@ -521,6 +521,16 @@
       ${!CAP.db ? `<div class="tiny muted" style="text-align:center">Bu görünümde talep yalnızca bu sayfadaki sağlık çalışanı ekranına gider.</div>` : `<div class="tiny muted" style="text-align:center">Talep ortak kayda yazıldı; başka cihazdaki sağlık çalışanı ekranı da görür.</div>`}
     </div>`;
   }
+  // En yakın acil servisler: Enes'in yol süresi matrisi + şu anki saatin trafiği (C.yakinAcil)
+  function acilKarti() {
+    const pt = patientPoint(), d = new Date();
+    const list = C.yakinAcil(pt.lat, pt.lon, d.getHours() * 60 + d.getMinutes());
+    if (!list.length) return "";
+    return `<div class="card small stack" style="gap:6px"><b>En yakın acil servisler (${esc(P.info.district)})</b>
+      <div class="tiny muted">Önce 112'yi ara. Göğüs ağrısı, bilinç kaybı gibi durumlarda kendin araç kullanma; 112 yönlendirirse:</div>
+      ${list.map((h) => `<div class="row between"><span>${esc(h.ad)}<span class="tiny muted"> · ${esc(h.turAd)}, ${esc(h.ilce)}</span></span><b>~${h.dk} dk</b></div>`).join("")}
+      <div class="tiny muted">Araçla tahmini süre, şu anki trafik. Hastane listesi OpenStreetMap'ten; eksik olabilir.</div></div>`;
+  }
   function pEmergency() {
     const e = P.emergency || {};
     return `<div class="pad stack">
@@ -530,6 +540,7 @@
         <a class="btn block" href="tel:112" style="background:#fff;color:var(--coral);text-align:center;text-decoration:none">112'yi ara</a>
         <div class="tiny" style="opacity:.9">Bağlantı açılmazsa telefonundan 112'yi tuşla. Bu uygulama acil durumda randevu vermez.</div></div>
       <div class="card small"><b>Neden?</b> ${esc(e.why || "")}<div class="tiny muted">Algılayan: ${esc(e.src || "")}</div></div>
+      ${acilKarti()}
       <button class="btn block" type="button" data-act="chat">Yanlış anlaşıldı, sohbete dön</button>
     </div>`;
   }

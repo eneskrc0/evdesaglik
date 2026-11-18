@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import json
 import random
 import sqlite3
 from pathlib import Path
@@ -83,9 +84,26 @@ def jitter(rng: random.Random, lat: float, lon: float, km: float) -> tuple[float
     return round(lat + dlat, 5), round(lon + dlon, 5)
 
 
+YOL_FILE = Path(__file__).resolve().parent / "seed" / "izmir_yol.json"
+
+
+def izmir_noktalari() -> tuple[list[str], list[int], dict[str, list[tuple[float, float]]]]:
+    """İzmir yol paketi (build_izmir.py): ilçe adları, nüfus ağırlıkları, ilçe -> gerçek yol noktaları."""
+    paket = json.loads(YOL_FILE.read_text(encoding="utf-8"))
+    by_d: dict[str, list[tuple[float, float]]] = {}
+    for lat, lon, d in paket["noktalar"]:
+        by_d.setdefault(d, []).append((lat, lon))
+    names = sorted(by_d)
+    return names, [paket["ilceler"][d]["nufus"] for d in names], by_d
+
+
 def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
+    """Sentetik İzmir verisi: konumlar Enes'in temiz havuzundan gerçek yol noktaları (OSM),
+    ilçe seçimi TÜİK nüfusuna orantılı. Yol süresi app/routing.py'de bu noktalar arası matristen gelir."""
     rng = random.Random(seed)
-    districts = conn.execute("SELECT name, lat, lon FROM districts").fetchall()
+    d_names, d_weights, d_points = izmir_noktalari()
+    pick_district = lambda: rng.choices(d_names, weights=d_weights)[0]
+    pick_point = lambda d: rng.choice(d_points[d])
     prof_services: dict[str, list[str]] = {}
     for p, s in conn.execute("SELECT profession_code, service_code FROM profession_services"):
         prof_services.setdefault(p, []).append(s)
@@ -94,8 +112,8 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
     for prof, count in PROVIDER_COUNTS.items():
         for i in range(1, count + 1):
             pid = f"{prof[:3].upper()}-{i:02d}"
-            d_name, d_lat, d_lon = rng.choice(districts)
-            lat, lon = jitter(rng, d_lat, d_lon, 3.0)
+            d_name = pick_district()
+            lat, lon = pick_point(d_name)
             years = rng.randint(1, 25)
             rating = round(min(5.0, max(3.5, rng.gauss(4.5, 0.3))), 1)
             # Kıdem arttıkça ücret çarpanı artar (ekonomik / kıdemli seçenekler)
@@ -130,7 +148,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
                     ).fetchone()[0]
                     if t + dur > end - 30:
                         break
-                    vlat, vlon = jitter(rng, d_lat, d_lon, 4.0)
+                    vlat, vlon = pick_point(d_name)
                     visit_no += 1
                     conn.execute(
                         "INSERT INTO scheduled_visits VALUES (?,?,?,?,?,?,?,?)",
@@ -138,9 +156,9 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
                     )
                     t += dur + rng.randint(40, 120)
 
-    for i in range(1, 61):  # ilk 20 hasta önceki sürümle aynı kalır (aynı rastgele dizi)
-        d_name, d_lat, d_lon = rng.choice(districts)
-        lat, lon = jitter(rng, d_lat, d_lon, 3.0)
+    for i in range(1, 61):
+        d_name = pick_district()
+        lat, lon = pick_point(d_name)
         conn.execute(
             "INSERT INTO patients VALUES (?,?,?,?,?,?)",
             (f"P{i:02d}", d_name, lat, lon, int(rng.random() < 0.35), int(rng.random() < 0.5)),

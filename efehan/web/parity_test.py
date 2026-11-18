@@ -33,7 +33,7 @@ def python_side() -> dict:
     texts = [(c["text"], c["bedridden"] == "1", c["has_plan"] == "1") for c in cases]
     texts += [(t, b, p) for t in EXTRA_TEXTS for b in (False, True) for p in (False, True)]
     for text, bed, plan in texts:
-        t = triage(repo, text, Patient("X", "Çankaya", 39.9, 32.86, bed, plan))
+        t = triage(repo, text, Patient("X", "Bornova", 38.46, 27.22, bed, plan))
         out["triage"].append([text, bed, plan, t.level, t.route, t.red_flags, t.services, t.sources])
     for pid, p in repo.patients.items():
         pp = replace(p, has_physician_plan=True)

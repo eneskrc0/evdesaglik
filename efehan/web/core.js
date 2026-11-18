@@ -30,6 +30,7 @@
   // ---------- db.py ----------
   function Repo(data) {
     this.raw = data;
+    setYol(data.yol || null);
     this.services = {};
     for (const s of data.services) {
       this.services[s.code] = {
@@ -160,6 +161,39 @@
   }
   const roadKm = (a, b) => haversineKm(a[0], a[1], b[0], b[1]) * CFG.ROAD_FACTOR;
   const travelMin = (km) => (km === 0 ? 0 : Math.ceil((km / CFG.CITY_SPEED_KMH) * 60) + CFG.PARKING_MIN);
+  // İzmir yol paketi (routing.py YOL ile aynı): Enes'in OSM süre matrisi + TomTom 2025 trafik eğrisi
+  let YOL = null;
+  const noktaAnahtari = (lat, lon) => lat.toFixed(6) + "," + lon.toFixed(6);
+  function setYol(p) {
+    if (!p) { YOL = null; return; }
+    const bin = atob(p.tt_sn_b64), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const tt = new Uint16Array(u8.length / 2), dv = new DataView(u8.buffer);
+    for (let i = 0; i < tt.length; i++) tt[i] = dv.getUint16(2 * i, true);
+    const idx = new Map(p.noktalar.map(([a, b], i) => [noktaAnahtari(a, b), i]));
+    YOL = { n: p.noktalar.length, tt, tt10: p.trafik.tt10_dk, ff10: p.trafik.ff10_dk, park: p.trafik.park_dk, idx, paket: p };
+  }
+  function trafikKatsayisi(m) {
+    const x = (((m / 60 - 0.5) % 24) + 24) % 24, i = Math.floor(x), f = x - i, t = YOL.tt10;
+    return (t[i] * (1 - f) + t[(i + 1) % 24] * f) / YOL.ff10;
+  }
+  function travel(a, b, depart) {
+    if (YOL) {
+      const ia = YOL.idx.get(noktaAnahtari(a[0], a[1])), ib = YOL.idx.get(noktaAnahtari(b[0], b[1]));
+      if (ia !== undefined && ib !== undefined) {
+        if (ia === ib) return 0;
+        return Math.ceil(YOL.park + (YOL.tt[ia * YOL.n + ib] / 60) * trafikKatsayisi(depart));
+      }
+    }
+    return travelMin(roadKm(a, b));
+  }
+  // En yakın acil servisler (yol süresi, verilen saatte; park payı yok)
+  function yakinAcil(lat, lon, depart) {
+    if (!YOL) return [];
+    const i = YOL.idx.get(noktaAnahtari(lat, lon));
+    if (i === undefined) return [];
+    return YOL.paket.en_yakin_acil[i].map(([h, sn]) => ({ ...YOL.paket.hastaneler[h], dk: Math.max(1, Math.round((sn / 60) * trafikKatsayisi(depart))) }));
+  }
   const round2 = (x) => Math.round(x * 100) / 100;
 
   function bestInsertion(home, window, stops, target, duration, earliest) {
@@ -174,9 +208,9 @@
       const nxtLoc = nxt ? nxt.loc : home;
       const deadline = nxt ? nxt.start : end;
       const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
-      const arrival = Math.max(prev.ready + travelMin(d1), earliest);
+      const arrival = Math.max(prev.ready + travel(prev.loc, target, prev.ready), earliest);
       const finish = arrival + duration;
-      if (finish + travelMin(d2) > deadline) continue;
+      if (finish + travel(target, nxtLoc, finish) > deadline) continue;
       const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
       const cand = {
         arrival_min: arrival, added_km: round2(added), standalone_km: round2(standalone), position: i,
@@ -301,7 +335,7 @@
 
   const api = {
     normalize, parseKeywords, match, Repo, triage, bestInsertion, priceVisit, findCandidates,
-    handleRequest, competenceScore, roadKm, travelMin, hhmm, LEVEL_TEXT, CFG,
+    handleRequest, competenceScore, roadKm, travelMin, travel, trafikKatsayisi, yakinAcil, setYol, hhmm, LEVEL_TEXT, CFG,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.EvdeCore = api;

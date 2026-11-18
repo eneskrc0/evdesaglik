@@ -11,8 +11,12 @@ hasta, sağlık çalışanı ve platform arasında paylaştırılır. Oranlar ta
 """
 from __future__ import annotations
 
+import base64
+import json
 import math
+from array import array
 from dataclasses import dataclass
+from pathlib import Path
 
 CITY_SPEED_KMH = 25.0      # şehir içi ortalama hız (varsayım)
 PARKING_MIN = 5            # park + kapıya ulaşma (varsayım)
@@ -38,9 +42,53 @@ def road_km(a: tuple[float, float], b: tuple[float, float]) -> float:
 
 
 def travel_min(km: float) -> int:
+    """Yedek model (nokta yol paketinde yoksa): ortalama hız + park."""
     if km == 0:
         return 0
     return math.ceil(km / CITY_SPEED_KMH * 60) + PARKING_MIN
+
+
+# ---- İzmir yol paketi (data/seed/izmir_yol.json, build_izmir.py): Enes'in OSM süre matrisi + TomTom trafik ----
+def _yol_yukle(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    p = json.loads(path.read_text(encoding="utf-8"))
+    tt = array("H")
+    tt.frombytes(base64.b64decode(p["tt_sn_b64"]))
+    if tt.itemsize != 2:
+        raise RuntimeError("uint16 beklenir")
+    import sys
+    if sys.byteorder == "big":
+        tt.byteswap()
+    return {"n": len(p["noktalar"]), "tt": tt, "tt10": p["trafik"]["tt10_dk"], "ff10": p["trafik"]["ff10_dk"],
+            "park": p["trafik"]["park_dk"], "idx": {nokta_anahtari(a, b): i for i, (a, b, _) in enumerate(p["noktalar"])}}
+
+
+def nokta_anahtari(lat: float, lon: float) -> str:
+    return f"{lat:.6f},{lon:.6f}"
+
+
+YOL = _yol_yukle(Path(__file__).resolve().parents[1] / "data" / "seed" / "izmir_yol.json")
+
+
+def trafik_katsayisi(minute_of_day: float) -> float:
+    """TomTom 2025 İzmir saatlik eğrisi / serbest akış (enes/sim/geo.py congestion, izmir_tam)."""
+    x = (minute_of_day / 60.0 - 0.5) % 24
+    i = int(x)
+    f = x - i
+    t = YOL["tt10"]
+    return (t[i] * (1 - f) + t[(i + 1) % 24] * f) / YOL["ff10"]
+
+
+def travel(a: tuple[float, float], b: tuple[float, float], depart_min: float) -> int:
+    """a'dan b'ye yol süresi (dk). İki nokta da yol paketindeyse gerçek rota süresi × saatlik trafik + park."""
+    if YOL is not None:
+        ia, ib = YOL["idx"].get(nokta_anahtari(*a)), YOL["idx"].get(nokta_anahtari(*b))
+        if ia is not None and ib is not None:
+            if ia == ib:
+                return 0
+            return math.ceil(YOL["park"] + YOL["tt"][ia * YOL["n"] + ib] / 60.0 * trafik_katsayisi(depart_min))
+    return travel_min(road_km(a, b))
 
 
 @dataclass
@@ -77,9 +125,9 @@ def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: li
 
         d1 = road_km(prev["loc"], target)
         d2 = road_km(target, nxt_loc)
-        arrival = max(prev["ready"] + travel_min(d1), earliest)
+        arrival = max(prev["ready"] + travel(prev["loc"], target, prev["ready"]), earliest)
         finish = arrival + duration
-        if finish + travel_min(d2) > nxt_deadline:
+        if finish + travel(target, nxt_loc, finish) > nxt_deadline:
             continue
         added = d1 + d2 - road_km(prev["loc"], nxt_loc)
         cand = Insertion(arrival, round(added, 2), round(standalone, 2), i,
