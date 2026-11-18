@@ -65,6 +65,8 @@
     voice: false, listening: false, mode: "loading", demoStep: 0, demoAnswers: [], toast: "",
   };
   const H = { pid: "HEM-12", tab: "talepler", open: null, accepted: {}, rejected: {}, toast: "" };
+  // Gerçek İzmir haritası ve sokak rotası (harita.js; Enes'in yol grafiği, © OpenStreetMap katkıcıları)
+  const MAP = window.KapidaHarita && window.KAPIDA_HARITA && window.EVDE_DATA.yol ? window.KapidaHarita.create(window.KAPIDA_HARITA, window.EVDE_DATA.yol) : null;
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   const REQ = []; // tüm talepler (yerel + ortak)
@@ -537,6 +539,7 @@
         <span class="pill ${st === "kabul" ? "good" : st === "red" ? "coral" : "sun"}">${st === "kabul" ? "Onaylandı" : st === "red" ? "Uygun değil" : "Onay bekleniyor"}</span></div>
       <div class="card row" style="flex-wrap:nowrap"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1"><b>${esc(pp.full)}</b><div class="tiny muted">${esc(svc(r.service).name_tr)}</div></div>
         <div style="text-align:right"><div class="when">${C.hhmm(r.arrival_min)}</div><div class="small num">${tl(r.price.patient_pays)} TL</div></div></div>
+      ${st === "kabul" && MAP ? `<div id="takip">${takipHtml(r)}</div>` : ""}
       <div class="timeline-v">${steps.map(([a, b, done], i) => `<div class="tv ${done ? "done" : (i === steps.findIndex((s) => !s[2]) ? "now" : "")}"><span class="dot"></span><div><b class="small">${esc(a)}</b><div class="tiny muted">${esc(b)}</div></div></div>`).join("")}</div>
       ${r.report.malzeme && r.report.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Ziyaretten önce hazırla</b>${r.report.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
       ${st === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : `<button class="btn block" type="button" data-act="cancel">Talebi iptal et</button>`}
@@ -544,6 +547,49 @@
       ${!CAP.db ? `<div class="tiny muted" style="text-align:center">Bu görünümde talep yalnızca bu sayfadaki sağlık çalışanı ekranına gider.</div>` : `<div class="tiny muted" style="text-align:center">Talep ortak kayda yazıldı; başka cihazdaki sağlık çalışanı ekranı da görür.</div>`}
     </div>`;
   }
+  // ---- Canlı takip (Enes'in startTracking/trackState mantığı) ----
+  // Canlandırma: kabulden sonra 1 sn ≈ 1 dk. Gerçek uygulamada konum çalışanın telefonundan gelir.
+  function takipVerisi(r) {
+    if (r._takip) return r._takip;
+    const p = repo.providers[r.provider_id], target = [r.patient.lat, r.patient.lon];
+    const plan = (repo.scheduled[r.provider_id + "|" + DATE] || []).filter((v) => v.start_min + v.duration_min <= r.arrival_min - 10);
+    const once = plan.sort((a, b) => a.start_min - b.start_min).pop();
+    const from = once ? [once.lat, once.lon] : [p.home_lat, p.home_lon];
+    const park = (window.EVDE_DATA.yol && window.EVDE_DATA.yol.trafik.park_dk) || 6;
+    const yolDk = Math.max(2, C.travel(from, target, r.arrival_min - 30) - park);
+    const rt = MAP.rota(from, target);
+    r._takip = { from, target, rt, yolDk, park, t0: r.accepted_at || Date.now(), onceki: !!once };
+    return r._takip;
+  }
+  function takipDurumu(T) {
+    const e = (Date.now() - T.t0) / 1000, hazir = 3, yolSn = Math.min(40, Math.max(12, T.yolDk)), kapi = 5;
+    if (e < hazir) return { adim: 0, f: 0 };
+    if (e < hazir + yolSn) return { adim: 1, f: (e - hazir) / yolSn };
+    if (e < hazir + yolSn + kapi) return { adim: 3, f: 1 };
+    return { adim: 4, f: 1 };
+  }
+  function takipHtml(r) {
+    const T = takipVerisi(r), d = takipDurumu(T), np = MAP.rotaNoktasi(T.rt, d.f);
+    const adim = d.adim === 1 && np.kmLeft < 1 ? 2 : d.adim;
+    const kalanDk = adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0;
+    const bant = Math.max(1, Math.round(1.645 * 0.15 * (1 - d.f) * T.yolDk));
+    const pp = person(r.provider_id).first;
+    const bas = [`${pp} hazırlanıyor, birazdan yola çıkacak`, `${pp} yolda`, `${pp} yaklaşıyor (1 km'den az)`, `${pp} geldi, park edip kapına geliyor`, `Ziyaret sürüyor`][adim];
+    const gecilen = T.rt.pts.slice(0, np.i).concat([np.pos]), kalan = [np.pos].concat(T.rt.pts.slice(np.i));
+    const svgH = MAP.svg({ rotalar: [{ pts: adim < 3 ? kalan : T.rt.pts, gecilen: adim < 3 ? gecilen : null, renk: "var(--brand)" }],
+      isaretler: [{ lat: T.target[0], lon: T.target[1], tur: "hasta", etiket: "Sen" }, { lat: np.pos[0], lon: np.pos[1], tur: "hareketli" }], aciklama: "Canlı takip haritası" });
+    const adlar = ["Kabul", "Yolda", "Yaklaşıyor", "Kapında", "Ziyaret"];
+    return `<div class="card stack takip" style="gap:8px">
+      <div class="row between"><div><div class="tiny muted">CANLI TAKİP</div><b>${esc(bas)}</b></div>${adim <= 2 ? `<div style="text-align:right"><div class="when">${kalanDk} dk</div><div class="tiny muted">tahmini ${C.hhmm(r.arrival_min)}</div></div>` : ""}</div>
+      <div class="hr-kutu">${svgH}</div>
+      <div class="adimlar">${adlar.map((a, i) => `<span class="${i < adim ? "ok" : i === adim ? "now" : ""}">${a}</span>`).join("")}</div>
+      <div class="tiny muted">${adim <= 2 ? `Kalan yol ~${np.kmLeft.toFixed(1).replace(".", ",")} km · muhtemel varış ${C.hhmm(r.arrival_min - bant)}–${C.hhmm(r.arrival_min + bant)} (trafik belirsizliği)` : `Rota ${T.rt.km.slice(-1)[0].toFixed(1).replace(".", ",")} km · yolculuk ~${T.yolDk} dk + park ${T.park} dk`} · ${T.onceki ? "önceki ziyaretinden geliyor" : "evinden geliyor"}</div>
+      <div class="tiny muted">Prototip: hareket planlanan rotaya göre canlandırılıyor (1 sn ≈ 1 dk); gerçek uygulamada çalışanın telefon konumuyla beslenir.</div></div>`;
+  }
+  setInterval(() => {
+    const el = document.getElementById("takip");
+    if (el && P.screen === "done" && P.request && P.request.status === "kabul") el.innerHTML = takipHtml(P.request);
+  }, 700);
   // En yakın acil servisler: Enes'in yol süresi matrisi + şu anki saatin trafiği (C.yakinAcil)
   function acilKarti() {
     const pt = patientPoint(), d = new Date();
@@ -685,7 +731,9 @@
     }
     const pid = H.pid, p = repo.providers[pid], pp = person(pid);
     const stops = hStops(pid), home = [p.home_lat, p.home_lon];
-    let km = 0, prev = home; for (const s of stops) { km += C.roadKm(prev, [s.lat, s.lon]); prev = [s.lat, s.lon]; } if (stops.length) km += C.roadKm(prev, home);
+    // Toplam yol: harita varsa gerçek sokak mesafesi, yoksa kuş uçuşu × 1,3
+    const yk = (a, b) => (MAP ? MAP.rota(a, b).km.slice(-1)[0] : C.roadKm(a, b));
+    let km = 0, prev = home; for (const s of stops) { km += yk(prev, [s.lat, s.lon]); prev = [s.lat, s.lon]; } if (stops.length) km += yk(prev, home);
     const earn = stops.reduce((a, s) => a + (s.earn != null ? s.earn : svc(s.service_code).base_fee_tl * p.fee_multiplier * (1 - C.CFG.COMMISSION)), 0);
     const box = inbox(pid);
     let body;
@@ -752,8 +800,18 @@
   }
   function hRoute(p, stops) {
     const home = [p.home_lat, p.home_lon];
-    return `<div class="pad stack">${mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    return `<div class="pad stack">${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
+  }
+  // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
+  function gunHaritasi(home, stops) {
+    const sira = [home, ...stops.map((x) => [x.lat, x.lon]), home];
+    const rotalar = [];
+    for (let i = 0; i + 1 < sira.length; i++) rotalar.push({ pts: MAP.rota(sira[i], sira[i + 1]).pts, renk: stops[i] && stops[i].reqId ? "var(--saffron)" : i === sira.length - 2 ? "var(--muted)" : "var(--brand)", kesik: i === sira.length - 2 });
+    const isaret = [{ lat: home[0], lon: home[1], tur: "ev", etiket: "Ev" }, ...stops.map((x, i) => ({ lat: x.lat, lon: x.lon, tur: x.reqId ? "hasta" : "durak", etiket: C.hhmm(x.start_min) }))];
+    const topKm = rotalar.reduce((a, r, i) => a + MAP.rota(sira[i], sira[i + 1]).km.slice(-1)[0], 0);
+    return `<div class="hr-kutu">${MAP.svg({ rotalar, isaretler: isaret, aciklama: "Günlük rota haritası" })}</div>
+      <div class="tiny muted">Gerçek sokaklar üzerinde günlük rota · toplam ~${topKm.toFixed(1).replace(".", ",")} km${stops.some((x) => x.reqId) ? " · turuncu: yeni kabul ettiğin ziyaret" : ""}</div>`;
   }
   function hHours(p) {
     const w = hWindow(p.id);
@@ -788,7 +846,7 @@
         (H.accepted[pid] ||= []).push({ reqId: id, lat: r.patient.lat, lon: r.patient.lon, start_min: r.arrival_min, duration_min: svc(r.service).duration_min, service_code: r.service, earn: r.price.provider_gets });
         H.toast = `Kabul edildi. ${C.hhmm(r.arrival_min)} rotana eklendi.`;
       } else { H.rejected[id] = true; H.toast = "Talep reddedildi; hastaya başka seçenek gösterilir."; }
-      if (!r.synthetic) { const upd = { ...r, status: a === "haccept" ? "kabul" : "red" }; await putRequest(upd); if (P.request && P.request.id === id) P.request = upd; }
+      if (!r.synthetic) { const upd = { ...r, status: a === "haccept" ? "kabul" : "red", accepted_at: Date.now() }; await putRequest(upd); if (P.request && P.request.id === id) P.request = upd; }
       else if (a === "hreject") { /* örnek talep yalnızca listeden kalkar */ }
       H.open = null; H.tab = a === "haccept" ? "rota" : "talepler";
       renderH(); renderP();

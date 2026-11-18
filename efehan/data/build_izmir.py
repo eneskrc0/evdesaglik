@@ -23,6 +23,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 ENES = ROOT / "enes"
 OUT = Path(__file__).resolve().parent / "seed" / "izmir_yol.json"
+OUT_HARITA = Path(__file__).resolve().parent / "seed" / "harita_izmir.json"
 K = 240
 SEED = 42
 
@@ -78,6 +79,21 @@ def main() -> None:
     }
     OUT.write_text(json.dumps(paket, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT} — {n} nokta, {len(kullanilan)} acil servis, {OUT.stat().st_size // 1024} KB")
+
+    # Harita + sokak rotası (Kapıda arayüzü için): Enes'in roads_izmir.json çizimi ve graph_izmir.json yol grafiği
+    roads = json.loads((ENES / "web" / "roads_izmir.json").read_text(encoding="utf-8"))
+    graph = json.loads((ENES / "web" / "graph_izmir.json").read_text(encoding="utf-8"))
+    gpool = np.frombuffer(base64.b64decode(graph["pool"]), dtype="<u2")
+    assert len(gpool) == len(lat), "graph_izmir.json havuzu pool_orta ile aynı olmalı"
+    harita = {
+        "aciklama": "Harita ve yol grafiği: © OpenStreetMap katkıcıları (ODbL); enes/web/roads_izmir.json ve graph_izmir.json'dan.",
+        "view": roads["view"], "W": roads["W"], "H": roads["H"],
+        "major": roads["major"], "minor": roads["minor"], "border": roads["border"], "labels": roads["labels"],
+        "graph": {k: graph[k] for k in ("n", "lat0", "lon0", "q", "lat", "lon", "off", "tgt", "tt")},
+        "dugum": [int(gpool[p]) for p in secim],  # Kapıda noktası i -> yol grafiği düğümü
+    }
+    OUT_HARITA.write_text(json.dumps(harita, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"{OUT_HARITA} — {OUT_HARITA.stat().st_size // 1024} KB")
 
 
 if __name__ == "__main__":

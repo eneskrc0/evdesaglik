@@ -24,6 +24,10 @@ def build(template: str, app: str, out_name: str) -> Path:
     if "/*__SUNUCU__*/" in html:
         adres = (SUNUCU / "adres.txt").read_text(encoding="utf-8").strip() if (SUNUCU / "adres.txt").exists() else ""
         html = html.replace("/*__SUNUCU__*/", "window.KAPIDA_SUNUCU = " + json.dumps(adres) + ";\n" + (WEB / "sunucu.js").read_text(encoding="utf-8"))
+    if "/*__HARITA__*/" in html:
+        hp = WEB.parent / "data" / "seed" / "harita_izmir.json"
+        veri = hp.read_text(encoding="utf-8") if hp.exists() else "null"
+        html = html.replace("/*__HARITA__*/", "window.KAPIDA_HARITA = " + veri + ";\n" + (WEB / "harita.js").read_text(encoding="utf-8"))
     if "/*__DOGRULAMA__*/" in html:
         html = html.replace("/*__DOGRULAMA__*/", (WEB / "dogrulama.js").read_text(encoding="utf-8"))
     html = html.replace("/*__APP__*/", (WEB / app).read_text(encoding="utf-8"))

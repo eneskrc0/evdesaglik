@@ -52,9 +52,9 @@ Bilinen boşluk: Gaziemir'de hastane yok, Karşıyaka'da kamu hastanesi yok (OSM
 ## Kapıda'ya ekleme planı (sonraki aşamalar)
 1. ✅ (18.11) **Şehri İzmir'e taşı:** `efehan/data` sentetik Ankara ilçe/konumları yerine İzmir havuz noktaları; çalışan ve hasta konumları havuzdan.
 2. ✅ (18.11, süre; maliyet km'si hâlâ kuş uçuşu×1,3) **Yol süresi:** `core.js` içindeki `roadKm × 1,3 / 25 km/sa` tahmini yerine `travelMin` (matris + trafik katsayısı). Ziyaret paylaşımı (en ucuz ekleme) gerçek sürelerle çalışır; Python `routing.py` ve parity testi birlikte güncellenmeli.
-3. **Harita:** hasta seçenek kartları ve çalışanın "Rotam" sekmesi için `roads_izmir.json` çizimi + `routeNodes` ile gerçek sokak rotası.
+3. ✅ (18.11, harita.js) **Harita:** hasta seçenek kartları ve çalışanın "Rotam" sekmesi için `roads_izmir.json` çizimi + `routeNodes` ile gerçek sokak rotası.
 4. ✅ (18.11) **Acil ekranı:** 112 yönlendirmesinin yanına en yakın acil servisli hastane (`acil=true`) ve yol süresi.
-5. **Canlı takip:** kabulden sonra hasta ekranında Enes'in takip kartı.
+5. ✅ (18.11, canlandırma) **Canlı takip:** kabulden sonra hasta ekranında Enes'in takip kartı.
 6. **Boyut:** Kapıda şu an 185 KB; İzmir verisiyle ~6 MB olur. Telefon için `tt` matrisini yalnız gereken satırlarla ya da `graph` + istemci Dijkstra ile vermek, `anayollar` çizimini sadeleştirmek düşünülmeli.
 
 Not: `ortak/build.py` bu birleşimin bir kısmını (triyaj + katalog + paylaşım + takip) Enes'in şablonu üzerinde zaten yapıyor; `efehan/web/data.json` ve `core.js`'i oradan okur — bu iki dosyanın biçimi değişirse `python3 ortak/build.py` yeniden çalıştırılıp kontrol edilmeli.
