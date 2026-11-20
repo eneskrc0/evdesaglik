@@ -137,6 +137,18 @@ h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.01em; }
 .satir-kart .sk-ok { color: var(--muted); flex: none; margin-left: 8px; } .satir-kart .sk-ok .ico { width: 20px; height: 20px; }
 .bolum { display: flex; align-items: center; gap: 12px; } .bolum h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; } .bolum::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .durum-pil { align-self: flex-start; }
+/* Kayıtlı adresler */
+.adres-cubuk { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: var(--soft); border-radius: 14px; padding: 9px 12px; color: var(--ink); margin-top: 2px; }
+.adres-cubuk > .ico { color: var(--brand); width: 22px; height: 22px; }
+.ac-metin { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; } .ac-metin b { font-size: 15px; } .ac-metin > span { font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-ok { color: var(--brand); font-size: 12px; }
+.adres-secili { display: flex; gap: 10px; align-items: center; border: 1.5px solid var(--brand); background: var(--brand-soft); border-radius: 14px; padding: 10px 12px; }
+.adres-secili .as-ico { color: var(--brand); } .adres-secili > span:nth-child(2) { display: flex; flex-direction: column; gap: 1px; }
+.adres-satir { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 10px; }
+.adres-satir.secili { border-color: var(--brand); background: var(--brand-soft); }
+.as-sec { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; border: 0; background: none; text-align: left; padding: 6px 0; color: var(--ink); }
+.as-radyo { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); flex: none; margin-top: 2px; }
+.adres-satir.secili .as-radyo { border: 6px solid var(--brand); }
 .sos { display: flex; gap: 10px; align-items: center; background: var(--coral-soft); color: var(--coral); border-radius: 14px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
 
 /* Sohbet */
@@ -3254,6 +3266,42 @@ YANIT yalnızca şu JSON olsun:
   // Toplu taşıma yolculuk planı (toplu.js; Enes'in GTFS ağı) ve çevrimdışı adres arama (adres.js; OSM sokak adları)
   const TOPLU = window.KapidaToplu && window.KAPIDA_TOPLU && window.EVDE_DATA.yol ? window.KapidaToplu.create(window.KAPIDA_TOPLU, window.EVDE_DATA.yol.noktalar) : null;
   const ADR = window.KapidaAdres && window.KAPIDA_ADRES ? window.KapidaAdres.create(window.KAPIDA_ADRES) : null;
+
+  // ---------- Kayıtlı adresler (yemek uygulamalarındaki gibi: bir kez yaz, sonra seç) ----------
+  // Adresler bu tarayıcıda, hesaba göre saklanır (localStorage; prototip, sunucuya gitmez). Demo hasta hesabında iki sentetik adres hazır.
+  const AB = { hesap: "misafir", liste: [], secili: null };
+  const ABASLIK = ["Ev", "İş", "Annemin evi", "Babamın evi"];
+  const adresAnahtar = () => "anindasaglik_adresler_" + AB.hesap;
+  // Bir OSM adres sonucunu (ll) yol paketindeki en yakın noktaya yerleştir: süre matrisi bu noktalarla çalışır
+  function noktaBul(ll) {
+    const nok = window.EVDE_DATA.yol.noktalar; let en = 0, ed = 1e9;
+    nok.forEach((n, i) => { const d = ADR ? ADR.km(ll, [n[0], n[1]]) : 1e9; if (d < ed) { ed = d; en = i; } });
+    const n = nok[en];
+    return { lat: n[0], lon: n[1], km: ed, ilce: window.EVDE_DATA.districts.some((d) => d.name === n[2]) ? n[2] : null };
+  }
+  const tarifMetni = (a) => [a.bina && `Bina no ${a.bina}`, a.kat && `${a.kat}. kat`, a.daire && `daire ${a.daire}`, a.tarif].filter(Boolean).join(", ");
+  function adresDefteriYaz() { try { localStorage.setItem(adresAnahtar(), JSON.stringify({ liste: AB.liste, secili: AB.secili })); } catch (e) { /* gizli sekme ya da yer yok: bellekte kalır */ } }
+  function adresDefteriYukle(hesap, ornekle) {
+    AB.hesap = hesap; AB.liste = []; AB.secili = null; let kayit = null;
+    try { kayit = JSON.parse(localStorage.getItem(adresAnahtar()) || "null"); } catch (e) { kayit = null; }
+    if (kayit && Array.isArray(kayit.liste)) { AB.liste = kayit.liste; AB.secili = kayit.secili; }
+    else if (ornekle && ADR) { // demo hasta: sentetik iki adres
+      const ornek = (baslik, ara, ilce, ek) => { const x = ADR.ara(ara)[0]; if (!x) return null; const n = noktaBul(x.ll);
+        return { id: "A" + Math.random().toString(36).slice(2, 8), baslik, adres: x.ad + (x.alt ? ", " + x.alt : ""), ilce: n.ilce || ilce, nokta: { lat: n.lat, lon: n.lon, km: n.km }, ...ek }; };
+      AB.liste = [ornek("Ev", "Kazımdirik Mah. 372. Sok.", "Bornova", { bina: "12", kat: "3", daire: "7", tarif: "zil: Demir", varsayilan: true }),
+        ornek("Annemin evi", "Bostanlı", "Karşıyaka", { bina: "5", kat: "1", daire: "2", tarif: "yeşil bina, bahçe kapısından" })].filter(Boolean);
+      adresDefteriYaz();
+    }
+    if (!AB.liste.some((a) => a.id === AB.secili)) AB.secili = ((AB.liste.find((a) => a.varsayilan) || AB.liste[0]) || {}).id || null;
+    const a = AB.liste.find((x) => x.id === AB.secili); if (a) adresUygula(a);
+  }
+  function adresUygula(a) {
+    AB.secili = a.id;
+    if (a.ilce) P.info.district = a.ilce;
+    P.info.nokta = a.nokta ? { ...a.nokta, adres: a.adres } : null;
+    P.info.adresYazi = a.adres || ""; P.info.tarif = tarifMetni(a); P.saatler = null;
+  }
+  const seciliAdres = () => AB.liste.find((a) => a.id === AB.secili) || null;
   const ulasim = (pid) => (repo.providers[pid] && repo.providers[pid].transport) || "araba";
   const ulasimEtiket = (pid) => (ulasim(pid) === "toplu" ? "🚌 toplu taşıma" : "🚗 araba");
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
@@ -3847,8 +3895,8 @@ YANIT yalnızca şu JSON olsun:
   function renderP() {
     if (SV.acik && !["chat", "building", "summary", "emergency"].includes(P.screen)) SV.kapat();
     const el = $("#pScreen");
-    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency }[P.screen] || pHome;
-    el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
+    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency, adresForm: pAdresForm }[P.screen] || pHome;
+    el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.adresSec ? pAdresSec() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
     if (P.toast) { const t = P.toast; setTimeout(() => { if (P.toast === t) { P.toast = ""; const n = $("#pScreen .toast"); if (n) n.remove(); } }, 3800); }
     if (P.screen === "chat") { const m = $("#pMsgs"); if (m) m.scrollTop = m.scrollHeight; }
   }
@@ -3878,9 +3926,15 @@ YANIT yalnızca şu JSON olsun:
         <button class="btn primary block" type="button" data-act="takip" data-id="${aktif.id}">Takip et${aktif.status === "kabul" && !aktif.gun ? " · kapı kodu burada" : ""}</button></div>` : ""}
       ${liste.length ? `<details class="randevularim"${aktif ? "" : " open"}><summary><b>Randevularım</b> <span class="small muted">(${liste.length})</span></summary><div class="stack" style="gap:6px;margin-top:8px">${liste.map(satir).join("")}</div></details>` : ""}`;
   }
+  // Ana sayfa üstünde seçili adres (dokununca kayıtlı adresler)
+  function adresCubugu() {
+    const a = seciliAdres();
+    return `<button class="adres-cubuk" type="button" data-act="adresler" aria-label="Adres: ${esc(a ? a.baslik : "seçilmedi")} — değiştir">${ICO.pin}
+      <span class="ac-metin">${a ? `<b>${esc(a.baslik)} <span class="ac-ok">▾</span></b><span>${esc([a.adres, a.ilce && !String(a.adres).includes(a.ilce) ? a.ilce : ""].filter(Boolean).join(", "))}</span>` : `<b>Adres ekle <span class="ac-ok">▾</span></b><span>Bir kez kaydet, her seferinde yazma</span>`}</span></button>`;
+  }
   function pHome() {
     const ad = window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : "";
-    return `${appbar()}<div class="pad stack" style="gap:16px;padding-top:10px">
+    return `${appbar()}${ADR ? `<div style="padding:0 18px">${adresCubugu()}</div>` : ""}<div class="pad stack" style="gap:16px;padding-top:10px">
       <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
       ${randevuKartlari()}
       <div class="hero"><span class="deco"></span>
@@ -3894,6 +3948,36 @@ YANIT yalnızca şu JSON olsun:
       <div class="stack" style="gap:10px">${TILES.map(([code, name, pre, aciklama]) => `<button class="satir-kart" type="button" data-tile="${esc(pre)}">
           <span class="sk-ico">${svcIcon(code)}</span><span class="ayrac"></span><span class="sk-metin"><b>${esc(name)}</b><span>${esc(aciklama)} · <span class="num">${tl(fromPrice(code))} TL</span>'den</span></span><span class="sk-ok">${ICO.ileri}</span></button>`).join("")}</div>
       <div class="sos">${ICO.alert}<span>Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi acil durumlarda beklemeyin: <b>112</b></span></div>
+    </div>`;
+  }
+  function pAdresSec() {
+    return `<div class="sheet-bg" data-act="adresKapat"><div class="sheet" role="dialog" aria-label="Kayıtlı adreslerim">
+      <div class="row between"><h2 style="font-size:20px">Adreslerim</h2><button class="btn ghost" type="button" data-act="adresKapat">Kapat</button></div>
+      ${AB.liste.length ? "" : `<div class="muted small">Henüz kayıtlı adresin yok. Bir kez ekle; sonraki taleplerde sadece seçersin.</div>`}
+      <div class="stack" style="gap:8px">${AB.liste.map((a) => `<div class="adres-satir${a.id === AB.secili ? " secili" : ""}">
+        <button type="button" class="as-sec" data-adres-sec="${a.id}" aria-pressed="${a.id === AB.secili}"><span class="as-radyo"></span><span class="stack" style="gap:1px;min-width:0"><b>${esc(a.baslik)}${a.varsayilan ? ` <span class="pill plain">Varsayılan</span>` : ""}</b><span class="small muted">${esc(a.adres || a.ilce)}${a.ilce && a.adres && !a.adres.includes(a.ilce) ? ", " + esc(a.ilce) : ""}</span>${tarifMetni(a) ? `<span class="tiny muted">🚪 ${esc(tarifMetni(a))}</span>` : ""}</span></button>
+        <span class="row" style="gap:2px;flex-wrap:nowrap"><button class="btn ghost" type="button" data-adres-duzen="${a.id}">Düzenle</button>${P.adresSilOnay === a.id ? `<button class="btn ghost" type="button" data-adres-sil="${a.id}" style="color:var(--coral)">Evet, sil</button>` : `<button class="btn ghost" type="button" data-adres-silsor="${a.id}" style="color:var(--muted)">Sil</button>`}</span></div>`).join("")}</div>
+      <button class="btn primary block" type="button" data-act="adresYeni">+ Yeni adres ekle</button>
+      <div class="tiny muted">Adreslerin bu cihazda saklanır (prototip). Adresler © OpenStreetMap katkıcıları.</div></div></div>`;
+  }
+  function pAdresForm() {
+    const t = P.adresTaslak, districts = window.EVDE_DATA.districts.map((d) => d.name);
+    const ozel = !ABASLIK.includes(t.baslik);
+    return `${appbar()}<div class="pad stack" style="gap:14px">
+      <button class="back" type="button" data-act="adresIptal">${ICO.back} Geri</button>
+      <h2 style="font-size:24px">${t.id ? "Adresi düzenle" : "Yeni adres"}</h2>
+      <div class="stack small" style="gap:6px"><b>Adres başlığı</b><div class="seg">${[...ABASLIK, "Diğer"].map((b) => `<button class="chip" type="button" data-abaslik="${esc(b)}" aria-pressed="${b === "Diğer" ? ozel : t.baslik === b}">${esc(b)}</button>`).join("")}</div>
+        ${ozel ? `<input class="inp" id="fBaslik" maxlength="30" placeholder="ör. Dedemin evi" value="${esc(t.baslik)}">` : ""}</div>
+      <div class="stack small" style="gap:4px"><label for="fAdres"><b>Mahalle, cadde ya da sokak</b></label>
+        <input class="inp" id="fAdres" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." value="${esc(t.adres || "")}">
+        <div id="fAdresList" class="stack adres-liste" style="gap:4px"></div>
+        ${t.nokta ? `<div class="tiny muted">📍 Haritada yerleştirildi (~${String(t.nokta.km.toFixed(1)).replace(".", ",")} km)</div>` : `<div class="tiny muted">Listeden seç; adres haritadaki en yakın yola yerleşir.</div>`}</div>
+      <label class="stack small" style="gap:4px" for="fIlce"><b>İlçe</b><select class="inp" id="fIlce">${districts.map((d) => `<option${d === t.ilce ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+      <div class="row" style="gap:8px;flex-wrap:nowrap">${[["fBina", "Bina no", "bina"], ["fKat", "Kat", "kat"], ["fDaire", "Daire", "daire"]].map(([id, l, k]) => `<label class="stack small" style="gap:4px;flex:1" for="${id}"><b>${l}</b><input class="inp" id="${id}" inputmode="numeric" maxlength="6" value="${esc(t[k] || "")}"></label>`).join("")}</div>
+      <label class="stack small" style="gap:4px" for="fTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: zil adı, bina rengi)</span><input class="inp" id="fTarif" maxlength="120" placeholder="ör. zil: Demir, yeşil bina" value="${esc(t.tarif || "")}"></label>
+      <label class="row small" style="gap:10px"><input type="checkbox" id="fVarsayilan" ${t.varsayilan ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Varsayılan adresim olsun</label>
+      ${P.adresHata ? `<div class="small" style="color:var(--coral);font-weight:600" role="alert">${esc(P.adresHata)}</div>` : ""}
+      <button class="ana-btn" type="button" data-act="adresKaydet">Adresi kaydet</button>
     </div>`;
   }
   function pChat() {
@@ -3940,14 +4024,17 @@ YANIT yalnızca şu JSON olsun:
           <div class="seg">${opt("var", "Var")}${opt("yok", "Yok")}${opt("bilinmiyor", "Emin değilim")}</div>
           <div class="tiny muted">Hemşire, fizyoterapist gibi meslekler yalnızca doktor planıyla gelebilir.</div></div>
         <label class="row small" style="gap:10px"><input type="checkbox" id="pBed" ${P.info.bed ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Yatağa bağımlı / evden çıkamıyor</label>
-        ${ADR ? `<div class="stack small" style="gap:4px"><label for="pAdres"><b>Adres</b> <span class="muted">(sokak, cadde ya da mahalle)</span></label>
+        ${ADR && seciliAdres() ? (() => { const a = seciliAdres(); return `<div class="stack small" style="gap:6px"><b>Adres</b>
+          <div class="adres-secili"><span class="as-ico">${ICO.pin}</span><span style="flex:1;min-width:0"><b>${esc(a.baslik)}</b><span class="muted">${esc(a.adres || a.ilce)}${a.ilce && a.adres && !a.adres.includes(a.ilce) ? ", " + esc(a.ilce) : ""}</span>${tarifMetni(a) ? `<span class="muted">🚪 ${esc(tarifMetni(a))}</span>` : ""}</span>
+            <button class="btn ghost" type="button" data-act="adresler">Değiştir</button></div></div>`; })() : ADR ? `<div class="stack small" style="gap:4px"><label for="pAdres"><b>Adres</b> <span class="muted">(sokak, cadde ya da mahalle)</span></label>
           <input class="inp" id="pAdres" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." value="${esc(P.info.adresYazi || "")}">
-          <div id="pAdresList" class="stack" style="gap:4px"></div>
+          <div id="pAdresList" class="stack adres-liste" style="gap:4px"></div>
           ${P.info.nokta ? `<div class="tiny muted">📍 ${esc(P.info.nokta.adres)} · haritada en yakın yol noktasına yerleştirildi (~${String(P.info.nokta.km.toFixed(1)).replace(".", ",")} km)</div>` : `<div class="tiny muted">Adresler © OpenStreetMap katkıcıları. Yazmazsan ilçe merkezi kullanılır.</div>`}</div>` : ""}
-        <label class="stack small" style="gap:4px" for="pTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: kat, daire, zil adı, bina rengi)</span>
+        ${ADR && seciliAdres() ? "" : `<label class="stack small" style="gap:4px" for="pTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: kat, daire, zil adı, bina rengi)</span>
           <input class="inp" id="pTarif" type="text" autocomplete="off" maxlength="160" placeholder="ör. 3. kat, daire 7, zil: Demir" value="${esc(P.info.tarif || "")}"></label>
         <label class="stack small" style="gap:4px" for="pDist"><b>Hangi ilçe?${ADR ? "" : " (açık adres sonra)"}</b>
           <select class="inp" id="pDist">${districts.map((d) => `<option${d === P.info.district ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+        ${ADR ? `<label class="row small" style="gap:10px"><input type="checkbox" id="pAdresKaydet" ${P.adresKaydetme ? "" : "checked"} style="width:20px;height:20px;accent-color:var(--brand)"> Bu adresi kaydet, bir dahaki sefere yazma</label>` : ""}`}
         ${saatSecimi()}
       </div>
       ${r.malzeme && r.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Hazırlık</b>${r.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
@@ -4364,7 +4451,12 @@ YANIT yalnızca şu JSON olsun:
     else if (a === "skipdoc" && SV.acik) { const m = istenenMeslek(); SV.hizli(`Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.`); }
     else if (a === "skipdoc") { if (!P.busy) { const m = istenenMeslek(); P.msgs.push({ who: "me", text: `Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.` }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
-    else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
+    else if (a === "options") { satirIciAdresiKaydet(); P.screen = "options"; P.sheet = null; renderP(); }
+    else if (a === "adresler") { P.adresSec = true; P.adresSilOnay = null; renderP(); }
+    else if (a === "adresKapat") { if (e.target === t || t.tagName === "BUTTON") { P.adresSec = false; renderP(); } }
+    else if (a === "adresYeni") { adresFormAc(null); }
+    else if (a === "adresIptal") { P.screen = P.adresDonus || "home"; P.adresHata = ""; renderP(); }
+    else if (a === "adresKaydet") { adresFormKaydet(); }
     else if (a === "voice") { P.voice = !P.voice; renderP(); }
     else if (a === "closeSheet") { if (e.target === t || t.tagName === "BUTTON") { P.sheet = null; renderP(); } }
     else if (a === "confirm") { await confirmBooking(); }
@@ -4374,26 +4466,63 @@ YANIT yalnızca şu JSON olsun:
   });
   $("#pScreen").addEventListener("submit", (e) => { if (e.target.id === "pComposer") { e.preventDefault(); const ta = $("#pInput"); const v = ta.value; ta.value = ""; send(v); } });
   $("#pScreen").addEventListener("keydown", (e) => { if (e.target.id === "pInput" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pComposer").requestSubmit(); } });
+  // Kayıtlı adres eylemleri
+  function adresFormAc(id) {
+    const a = AB.liste.find((x) => x.id === id);
+    P.adresTaslak = a ? JSON.parse(JSON.stringify(a)) : { baslik: ABASLIK.find((b) => !AB.liste.some((x) => x.baslik === b)) || "Diğer adres", adres: "", ilce: P.info.district, nokta: null, bina: "", kat: "", daire: "", tarif: "", varsayilan: !AB.liste.length };
+    if (P.screen !== "adresForm") P.adresDonus = P.screen;
+    P.adresSec = false; P.adresHata = ""; P.screen = "adresForm"; renderP();
+  }
+  function adresFormKaydet() {
+    const t = P.adresTaslak;
+    t.baslik = (t.baslik || "").trim().slice(0, 30);
+    if (!t.baslik) { P.adresHata = "Adrese bir başlık ver (ör. Ev)."; renderP(); return; }
+    if (!t.adres.trim() && !t.ilce) { P.adresHata = "Mahalle ya da sokak yaz, listeden seç."; renderP(); return; }
+    if (t.adres.trim() && !t.nokta) { P.adresHata = "Yazdığın adresi listeden seç ki haritada doğru yere yerleşsin."; renderP(); return; }
+    if (!t.id) { t.id = "A" + Math.random().toString(36).slice(2, 8); AB.liste.push(t); } else AB.liste = AB.liste.map((x) => (x.id === t.id ? t : x));
+    if (t.varsayilan) AB.liste.forEach((x) => { x.varsayilan = x.id === t.id; });
+    adresUygula(t); adresDefteriYaz();
+    P.toast = `"${t.baslik}" adresi kaydedildi.`; P.adresHata = ""; P.screen = P.adresDonus || "home"; renderP();
+  }
+  // Özet ekranında elle yazılan adres: "Bu adresi kaydet" işaretliyse seçenekler açılırken deftere eklenir
+  function satirIciAdresiKaydet() {
+    if (!ADR || seciliAdres() || P.adresKaydetme || !P.info.nokta) return;
+    const tarif = (P.info.tarif || "").trim();
+    const a = { id: "A" + Math.random().toString(36).slice(2, 8), baslik: AB.liste.length ? "Diğer adres" : "Ev", adres: P.info.nokta.adres, ilce: P.info.district,
+      nokta: { lat: P.info.nokta.lat, lon: P.info.nokta.lon, km: P.info.nokta.km }, bina: "", kat: "", daire: "", tarif, varsayilan: !AB.liste.length };
+    AB.liste.push(a); AB.secili = a.id; adresDefteriYaz();
+    P.toast = `Adresin "${a.baslik}" olarak kaydedildi; bir dahaki sefere yalnızca seçeceksin.`;
+  }
+  $("#pScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-adres-sec],[data-adres-duzen],[data-adres-sil],[data-adres-silsor],[data-abaslik]"); if (!t) return;
+    if (t.dataset.adresSec) { const a = AB.liste.find((x) => x.id === t.dataset.adresSec); if (a) { adresUygula(a); adresDefteriYaz(); P.adresSec = false; P.toast = `Adres: ${a.baslik}`; renderP(); } }
+    else if (t.dataset.adresDuzen) adresFormAc(t.dataset.adresDuzen);
+    else if (t.dataset.adresSilsor) { P.adresSilOnay = t.dataset.adresSilsor; renderP(); }
+    else if (t.dataset.adresSil) {
+      AB.liste = AB.liste.filter((x) => x.id !== t.dataset.adresSil); P.adresSilOnay = null;
+      if (AB.secili === t.dataset.adresSil) { AB.secili = null; const y = AB.liste.find((x) => x.varsayilan) || AB.liste[0]; if (y) adresUygula(y); else { P.info.nokta = null; P.info.adresYazi = ""; P.info.tarif = ""; } }
+      adresDefteriYaz(); renderP();
+    } else if (t.dataset.abaslik) { P.adresTaslak.baslik = t.dataset.abaslik === "Diğer" ? "" : t.dataset.abaslik; renderP(); if (t.dataset.abaslik === "Diğer") { const f = $("#fBaslik"); if (f) f.focus(); } }
+  });
   // Kullanıcının açtığı klasik liste, teklifler gelip ekran yenilenince kapanmasın
   // Adres arama: yazdıkça öneri; seçilen adres en yakın yol noktasına (yol paketindeki 240 nokta) yerleşir
   $("#pScreen").addEventListener("input", (e) => {
     if (e.target.id === "puanYorum" && P.puanTaslak) { P.puanTaslak.yorum = e.target.value; return; }
     if (e.target.id === "pTarif") { P.info.tarif = e.target.value; return; }
-    if (e.target.id !== "pAdres" || !ADR) return;
-    P.info.adresYazi = e.target.value;
-    const r = ADR.ara(e.target.value), L = $("#pAdresList");
+    if (P.adresTaslak && ({ fBaslik: "baslik", fBina: "bina", fKat: "kat", fDaire: "daire", fTarif: "tarif" })[e.target.id]) { P.adresTaslak[{ fBaslik: "baslik", fBina: "bina", fKat: "kat", fDaire: "daire", fTarif: "tarif" }[e.target.id]] = e.target.value; return; }
+    if (!["pAdres", "fAdres"].includes(e.target.id) || !ADR) return;
+    if (e.target.id === "pAdres") P.info.adresYazi = e.target.value; else { P.adresTaslak.adres = e.target.value; P.adresTaslak.nokta = null; }
+    const r = ADR.ara(e.target.value), L = $(e.target.id === "pAdres" ? "#pAdresList" : "#fAdresList");
     L.innerHTML = r.map((x, i) => `<button class="chip adres-oneri" type="button" data-adres="${i}" style="text-align:left">${x.mahalle ? "🏘️" : "📍"} <b>${esc(x.ad)}</b> <span class="muted">${esc(x.alt)}</span></button>`).join("")
       || (e.target.value.trim().length >= 3 ? `<div class="tiny muted">Bulunamadı; farklı yaz ya da ilçeyi seç.</div>` : "");
     L._sonuc = r;
   });
   $("#pScreen").addEventListener("click", (e) => {
     const b = e.target.closest("[data-adres]"); if (!b) return;
-    const x = $("#pAdresList")._sonuc[+b.dataset.adres], nok = window.EVDE_DATA.yol.noktalar;
-    let en = 0, ed = 1e9;
-    nok.forEach((n, i) => { const d = ADR.km(x.ll, [n[0], n[1]]); if (d < ed) { ed = d; en = i; } });
-    const n = nok[en];
-    if (window.EVDE_DATA.districts.some((d) => d.name === n[2])) P.info.district = n[2];
-    P.info.nokta = { lat: n[0], lon: n[1], adres: x.ad + (x.alt ? ", " + x.alt : ""), km: ed };
+    const L = b.closest(".adres-liste"), x = L._sonuc[+b.dataset.adres], n = noktaBul(x.ll), ad = x.ad + (x.alt ? ", " + x.alt : "");
+    if (L.id === "fAdresList") { Object.assign(P.adresTaslak, { adres: ad, nokta: { lat: n.lat, lon: n.lon, km: n.km } }); if (n.ilce) P.adresTaslak.ilce = n.ilce; P.adresHata = ""; renderP(); return; }
+    if (n.ilce) P.info.district = n.ilce;
+    P.info.nokta = { lat: n.lat, lon: n.lon, adres: ad, km: n.km };
     P.info.adresYazi = P.info.nokta.adres;
     P.saatler = null; renderP();
   });
@@ -4410,6 +4539,9 @@ YANIT yalnızca şu JSON olsun:
     }
     if (e.target.id === "pBed") { P.info.bed = e.target.checked; }
     if (e.target.id === "pDist") { P.info.district = e.target.value; P.info.nokta = null; P.info.adresYazi = ""; }
+    if (e.target.id === "pAdresKaydet") P.adresKaydetme = !e.target.checked;
+    if (e.target.id === "fIlce" && P.adresTaslak) P.adresTaslak.ilce = e.target.value;
+    if (e.target.id === "fVarsayilan" && P.adresTaslak) P.adresTaslak.varsayilan = e.target.checked;
   });
   // Mikrofon: start() tıklamadan hemen çağrılmalı
   $("#pScreen").addEventListener("click", (e) => {
@@ -4786,7 +4918,7 @@ YANIT yalnızca şu JSON olsun:
     calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12", prof: "hemsire" },
     doktor: { kullanici: "doktor", sifre: "1234", ad: person("HEK-02").full, aciklama: "Pratisyen hekim · HEK-02 · Bayraklı · mesleki başvurusu onaylı (demo)", pid: "HEK-02", prof: "hekim", hekimType: "pratisyen" },
   };
-  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; }
+  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; adresDefteriYukle(HESAPLAR.hasta.kullanici, true); }
   function calisanGir(h) {
     H.pid = h.pid;
     DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
@@ -4837,7 +4969,9 @@ YANIT yalnızca şu JSON olsun:
 
   // Otomatik testler için salt okunur durum görüntüsü (uygulamayı değiştirmez)
   window.KapidaTest = { durum: () => JSON.parse(JSON.stringify({ ekran: P.screen, mesgul: P.busy, mod: P.mode, plan: P.info.plan, kim: P.info.forWhom,
-    mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })) };
+    mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })),
+    talep: () => (P.request ? JSON.parse(JSON.stringify(P.request.patient)) : null) };
+  if (AB.hesap === "misafir" && !AB.liste.length) adresDefteriYukle("misafir", false); // hesapla girildiyse hastaGir yükledi
   renderP(); renderH();
   initCaps();
 })();

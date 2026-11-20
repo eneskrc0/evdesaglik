@@ -137,6 +137,18 @@ h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.01em; }
 .satir-kart .sk-ok { color: var(--muted); flex: none; margin-left: 8px; } .satir-kart .sk-ok .ico { width: 20px; height: 20px; }
 .bolum { display: flex; align-items: center; gap: 12px; } .bolum h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; } .bolum::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .durum-pil { align-self: flex-start; }
+/* Kayıtlı adresler */
+.adres-cubuk { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: var(--soft); border-radius: 14px; padding: 9px 12px; color: var(--ink); margin-top: 2px; }
+.adres-cubuk > .ico { color: var(--brand); width: 22px; height: 22px; }
+.ac-metin { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; } .ac-metin b { font-size: 15px; } .ac-metin > span { font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-ok { color: var(--brand); font-size: 12px; }
+.adres-secili { display: flex; gap: 10px; align-items: center; border: 1.5px solid var(--brand); background: var(--brand-soft); border-radius: 14px; padding: 10px 12px; }
+.adres-secili .as-ico { color: var(--brand); } .adres-secili > span:nth-child(2) { display: flex; flex-direction: column; gap: 1px; }
+.adres-satir { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 10px; }
+.adres-satir.secili { border-color: var(--brand); background: var(--brand-soft); }
+.as-sec { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; border: 0; background: none; text-align: left; padding: 6px 0; color: var(--ink); }
+.as-radyo { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); flex: none; margin-top: 2px; }
+.adres-satir.secili .as-radyo { border: 6px solid var(--brand); }
 .sos { display: flex; gap: 10px; align-items: center; background: var(--coral-soft); color: var(--coral); border-radius: 14px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
 
 /* Sohbet */
