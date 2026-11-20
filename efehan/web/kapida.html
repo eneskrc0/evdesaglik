@@ -282,6 +282,27 @@ details.klasik > summary { cursor: pointer; color: var(--muted); padding: 6px 0;
 .skipdoc { display: flex; justify-content: center; padding: 0 16px 4px; } .skipdoc .btn { font-size: 13px; min-height: 34px; color: var(--brand); }
 .understood { align-self: flex-end; max-width: 85%; font-size: 12.5px; color: var(--muted); margin: -4px 4px 2px; text-align: right; }
 select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+/* Güvenli Ziyaret */
+.gz { border-left: 4px solid var(--brand); } .gz.alarm { border-left-color: var(--coral); background: var(--coral-soft); }
+.gz-foto { width: 56px; height: 56px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 20px; flex: none; }
+.gz-kod { font-size: 34px; font-weight: 800; letter-spacing: .18em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.gz-kodkutu { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+.gz-risk { border-radius: 12px; padding: 10px 12px; gap: 6px; background: var(--soft); border: 1px solid var(--line); }
+.gz-risk.sev2 { background: var(--saffron-soft); } .gz-risk.sev3 { background: var(--coral-soft); border-color: var(--coral); } .gz-risk.ok { color: var(--muted); }
+.gz-mini { font-size: 13px; min-height: 34px; padding: 6px 10px; text-align: left; }
+.gz-sos { background: var(--coral); color: #fff; border-color: var(--coral); }
+.gz-sure { font-size: 34px; font-weight: 800; background: none; border: 0; padding: 0; color: inherit; font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.gz-sure small { font-size: 14px; color: var(--muted); font-weight: 600; }
+.gz-ust { position: sticky; top: 0; z-index: 5; }
+.gz-uyari { margin: 8px 12px; padding: 12px; border-radius: 14px; background: var(--brand-soft); border: 2px solid var(--brand); gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+.gz-uyari.sev, .gz-uyari.arama { background: var(--saffron-soft); border-color: var(--saffron); } .gz-uyari.alarm { background: var(--coral-soft); border-color: var(--coral); }
+.gz-pin { width: 110px; flex: none; letter-spacing: .3em; font-size: 18px; }
+.gz a.btn, .gz-uyari a.btn, .gz-beyaz a.btn { color: inherit; font-weight: 700; }
+.gz-beyaz { background: var(--coral-soft); border-radius: 12px; padding: 10px 12px; gap: 6px; }
+.gz-masa h3 { font-size: 15px; margin: 0 0 6px; } .gz-masa { display: flex; flex-direction: column; gap: 6px; }
+.gz-zincir { margin: 2px 0; padding-left: 20px; font-size: 12.5px; } .gz-zincir li.gecti { color: var(--muted); text-decoration: line-through; } .gz-zincir li.simdi { font-weight: 800; color: var(--coral); }
+.gz-log { max-height: 170px; overflow: auto; display: flex; flex-direction: column; gap: 3px; background: var(--soft); border-radius: 10px; padding: 8px; }
+.gz-log .alarm { color: var(--coral); font-weight: 600; } .gz-log .uyari { color: #9a6a00; }
 </style>
 </head>
 <body>
@@ -304,6 +325,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
     <div class="cap">Sağlık çalışanı</div>
     <div class="phone"><div class="statusbar"><span>09:30</span><span>kapıda · sağlıkçı</span></div><div class="screen" id="hScreen"></div></div>
     <section class="democtl" id="demoCtl" aria-label="Demo kontrolleri"></section>
+    <section class="democtl gz-masa" id="gzMasa" aria-label="Güvenlik masası" aria-live="polite"></section>
   </div>
 </div>
 <p class="foot-note" id="footNote">Hastanın gönderdiği talep, seçtiği sağlık çalışanının ekranına raporuyla birlikte düşer. Teşhis koymaz; acil belirtide randevu yerine 112'ye yönlendirir. Sağlık çalışanı ilk girişte mesleki başvurusunu yapar; başvuru onaylanmadan görev kabul edemez (prototip: belgeler resmî sistemlerden doğrulanmaz).</p>
@@ -315,6 +337,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 <script>/*__HARITA__*/</script>
 <script>/*__TEKLIF__*/</script>
 <script>/*__DOGRULAMA__*/</script>
+<script>/*__GUVENLIK__*/</script>
 <script>/*__APP__*/</script>
 </body>
 </html>

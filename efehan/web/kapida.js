@@ -75,6 +75,10 @@
   const SIMDI = 570; // demo saati 09:30 (üst çubuktaki saat)
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
+  // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
+  const G = window.KapidaGuvenlik.create({ esc, hhmm: C.hhmm, kisi: person, hizmet: svc, tarih: "16.11.2026", konum: calisanKonumu,
+    metin: (r) => (P.request && r.id === P.request.id ? transcriptText() : ""), bildir: (taraf, m) => { if (taraf === "p") P.toast = m; else H.toast = m; } });
+  const gzR = () => (P.request && P.request.provider_id === H.pid ? P.request : null); // çalışan ekranındaki aktif ziyaret
   const REQ = []; // tüm talepler (yerel + ortak)
   const CAP = { sample: null, server: null, images: false, dictation: null, tts: null, db: null, uid: null };
 
@@ -646,8 +650,9 @@
     const r = P.request;
     const pp = person(r.provider_id);
     const st = r.status;
+    const gs = G.durum(r) || {};
     const steps = [["Talep gönderildi", "Raporun sağlık çalışanına iletildi.", true], [st === "red" ? "Sağlık çalışanı uygun değil" : "Sağlık çalışanı onayı", st === "kabul" ? `${pp.first} talebi kabul etti.` : st === "red" ? "Sana yeni seçenekler gösterelim." : "Genelde 10 dakika içinde yanıt gelir.", st !== "bekliyor"],
-      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, false], ["Kapında", `${C.hhmm(r.arrival_min)}`, false], ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, false]];
+      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, !!gs.checkin], ["Kapında", `${C.hhmm(r.arrival_min)} · kapı kodu ve fotoğrafla doğrula`, !!gs.checkin], ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, gs.hastaOnay === "tamam"]];
     return `<div class="pad stack">
       ${stepsBar(4)}
       <div class="row between"><h2 style="font-size:22px">${st === "kabul" ? "Randevun kesinleşti" : st === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
@@ -655,10 +660,11 @@
       <div class="card row" style="flex-wrap:nowrap"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1"><b>${esc(pp.full)}</b><div class="tiny muted">${esc(svc(r.service).name_tr)}</div></div>
         <div style="text-align:right"><div class="when">${gunEki(r)}${C.hhmm(r.arrival_min)}</div><div class="small num">${tl(r.price.patient_pays)} TL</div></div></div>
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
+      ${G.aktif(r) ? `<div id="gzHasta">${G.hastaHtml(r)}</div>` : ""}
       ${st === "kabul" && r.gun ? `<div class="card soft small">Randevun <b>yarın (${GUNLER[1].uzun}) ${C.hhmm(r.arrival_min)}</b>. Canlı takip yarın, sağlık çalışanı yola çıkınca başlar.</div>` : ""}
       <div class="timeline-v">${steps.map(([a, b, done], i) => `<div class="tv ${done ? "done" : (i === steps.findIndex((s) => !s[2]) ? "now" : "")}"><span class="dot"></span><div><b class="small">${esc(a)}</b><div class="tiny muted">${esc(b)}</div></div></div>`).join("")}</div>
       ${r.report.malzeme && r.report.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Ziyaretten önce hazırla</b>${r.report.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
-      ${st === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : `<button class="btn block" type="button" data-act="cancel">Talebi iptal et</button>`}
+      ${st === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : G.durum(r) && G.durum(r).checkin ? "" : `<button class="btn block" type="button" data-act="cancel">Talebi iptal et</button>`}
       <button class="btn ghost" type="button" data-act="home">Ana sayfa</button>
       ${!CAP.db ? `<div class="tiny muted" style="text-align:center">Bu görünümde talep yalnızca bu sayfadaki sağlık çalışanı ekranına gider.</div>` : `<div class="tiny muted" style="text-align:center">Talep ortak kayda yazıldı; başka cihazdaki sağlık çalışanı ekranı da görür.</div>`}
     </div>`;
@@ -677,20 +683,30 @@
     r._takip = { from, target, rt, yolDk, park, t0: r.accepted_at || Date.now(), onceki: !!once };
     return r._takip;
   }
-  function takipDurumu(T) {
+  function takipDurumu(T, r) {
     const e = (Date.now() - T.t0) / 1000, hazir = 3, yolSn = Math.min(40, Math.max(12, T.yolDk)), kapi = 5;
     if (e < hazir) return { adim: 0, f: 0 };
     if (e < hazir + yolSn) return { adim: 1, f: (e - hazir) / yolSn };
-    if (e < hazir + yolSn + kapi) return { adim: 3, f: 1 };
-    return { adim: 4, f: 1 };
+    const s = r ? G.durum(r) : null; // Güvenli Ziyaret: ziyaret ancak check-in ile başlar
+    if (e < hazir + yolSn + kapi || (s && !s.checkin)) return { adim: 3, f: 1 };
+    return { adim: 4, f: 1, bitti: !!(s && s.checkout) };
+  }
+  // Çalışanın konumu (prototip: planlı rotadan canlandırılır; gerçekte telefonun konumu, yalnızca ziyaret penceresinde)
+  function calisanKonumu(r) {
+    if (!r || r.gun) return null;
+    const hedef = [r.patient.lat, r.patient.lon];
+    if (!MAP) { const ulasti = Date.now() - (r.accepted_at || Date.now()) > 10000; return { pos: ulasti ? [hedef[0] + 0.0002, hedef[1]] : [hedef[0] + 0.02, hedef[1]], hedef, ulasti }; }
+    const T = takipVerisi(r), e = (Date.now() - T.t0) / 1000, yolSn = Math.min(40, Math.max(12, T.yolDk));
+    const ulasti = e >= 3 + yolSn, np = MAP.rotaNoktasi(T.rt, ulasti ? 1 : Math.max(0, (e - 3) / yolSn));
+    return { pos: ulasti ? [hedef[0] + 0.0003, hedef[1] + 0.0002] : np.pos, hedef, ulasti }; // kapıda ~40 m (park yeri)
   }
   function takipHtml(r) {
-    const T = takipVerisi(r), d = takipDurumu(T), np = MAP.rotaNoktasi(T.rt, d.f);
+    const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
     const adim = d.adim === 1 && np.kmLeft < 1 ? 2 : d.adim;
     const kalanDk = adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0;
     const bant = Math.max(1, Math.round(1.645 * 0.15 * (1 - d.f) * T.yolDk));
     const pp = person(r.provider_id).first;
-    const bas = [`${pp} hazırlanıyor, birazdan yola çıkacak`, `${pp} yolda`, `${pp} yaklaşıyor (1 km'den az)`, `${pp} geldi, park edip kapına geliyor`, `Ziyaret sürüyor`][adim];
+    const bas = [`${pp} hazırlanıyor, birazdan yola çıkacak`, `${pp} yolda`, `${pp} yaklaşıyor (1 km'den az)`, `${pp} kapında, kimliğini doğrula`, d.bitti ? "Ziyaret tamamlandı" : `Ziyaret sürüyor`][adim];
     const gecilen = T.rt.pts.slice(0, np.i).concat([np.pos]), kalan = [np.pos].concat(T.rt.pts.slice(np.i));
     const svgH = MAP.svg({ rotalar: [{ pts: adim < 3 ? kalan : T.rt.pts, gecilen: adim < 3 ? gecilen : null, renk: "var(--brand)" }],
       isaretler: [{ lat: T.target[0], lon: T.target[1], tur: "hasta", etiket: "Sen" }, { lat: np.pos[0], lon: np.pos[1], tur: "hareketli" }], aciklama: "Canlı takip haritası" });
@@ -732,6 +748,7 @@
 
   // ---------- hasta olayları ----------
   $("#pScreen").addEventListener("click", async (e) => {
+    if (G.onClick(e, P.request)) { renderP(); renderH(); gzYenile(true); return; }
     const t = e.target.closest("[data-act],[data-tile],[data-quick],[data-plan],[data-when],[data-sort],[data-pick]");
     if (!t) return;
     if (t.dataset.stop && !e.target.closest("[data-act]")) return;
@@ -802,16 +819,16 @@
     iv_serum: { tek: "Reçeteli serum, 3 gün, evde", s: "Hekim reçetesiyle 3 günlük serum tedavisi; ilk gün (beyan)", bed: false, mal: ["Serum askısı", "Damar yolu seti"], eks: ["Reçete fotoğrafı", "İlaç evde mi"] },
     kan_alma: { tek: "Hekim istemli tahlil için kan alma", s: "Aile hekiminin istediği tahliller için evden kan alma (beyan)", bed: false, mal: ["Tüpler", "Soğuk zincir çantası"], eks: ["Aç mı olunacak"] },
     im_enjeksiyon: { tek: "Reçeteli kas içi iğne", s: "Reçeteli iğne, 5 günlük kürün 2. günü (beyan)", bed: false, mal: ["Enjektör"], eks: ["Reçete"] },
-    sonda_bakimi: { tek: "Sonda değişimi, yatağa bağımlı hasta", s: "Sonda 1 aydır takılı, değişim zamanı geldi (beyan)", bed: true, mal: ["Sonda seti", "Eldiven"], eks: ["Sonda numarası"] },
+    sonda_bakimi: { tek: "Sonda değişimi, yatağa bağımlı hasta", s: "Sonda 1 aydır takılı, değişim zamanı geldi (beyan)", bed: true, mal: ["Sonda seti", "Eldiven"], eks: ["Sonda numarası"], guv: ["Evde serbest dolaşan büyük bir köpek var (beyan)"] },
     vital_takip: { tek: "Tansiyon ve şeker takibi", s: "Haftalık tansiyon ve şeker ölçümü istendi (beyan)", bed: true, mal: ["Tansiyon aleti", "Glukometre"], eks: ["Son ölçüm değerleri"] },
     beslenme_tupu_bakimi: { tek: "PEG tüpü çevresi kızarık", s: "Beslenme tüpü çevresinde kızarıklık, 3 gündür (beyan)", bed: true, mal: ["Pansuman seti"], eks: ["Ateş var mı"] },
     tele_hemsire_destekli: { tek: "Ateş ve öksürük, yatağa bağımlı", s: "2 gündür ateş ve öksürük; yatağa bağımlı (beyan)", bed: true, mal: ["Ateş ölçer", "Oksimetre"], eks: ["Ateş kaç derece"] },
     fizyoterapi_seansi: { tek: "Diz protezi sonrası fizik tedavi", s: "3 hafta önce diz protezi; hekim fizik tedavi önerdi (beyan)", bed: false, mal: ["Egzersiz bandı"], eks: ["Ameliyat raporu"] },
-    ev_muayene: { tek: "Halsizlik ve iştahsızlık, 80 yaş", s: "Bir haftadır halsizlik ve iştahsızlık; evden çıkamıyor (beyan)", bed: true, mal: [], eks: ["Kullandığı ilaçlar"] },
+    ev_muayene: { tek: "Halsizlik ve iştahsızlık, 80 yaş", s: "Bir haftadır halsizlik ve iştahsızlık; evden çıkamıyor (beyan)", bed: true, mal: [], eks: ["Kullandığı ilaçlar"], guv: ["Hastanın oğlu zaman zaman çok sinirlenip bağırıyormuş (beyan)", "Bina asansörsüz, 4. kat (beyan)"] },
   };
   function cannedReport(code) {
     const k = CANNED[code] || { tek: svc(code).name_tr, s: svc(code).name_tr + " talebi (beyan)", bed: false, mal: [], eks: ["Kullandığı ilaçlar"] };
-    return { kim_icin: "Hasta yakını (örnek)", yas_araligi: "70 üstü", sikayet: k.s, baslangic: "belirtildi", seyir: "belirtilmedi", siddet_beyani: "belirtilmedi", yataga_bagimli: k.bed, hekim_plani: "var", plan_detayi: "Plan/reçete beyan edildi; ziyarette görülmeli.", kronik_ilac_alerji: "belirtilmedi", ihtiyaclar: [svc(code).name_tr], malzeme: k.mal, foto_ozeti: /fotoğraf/.test(k.tek) ? "Örnek talepte fotoğraf yok (sentetik)." : "", eksik_bilgiler: k.eks, saglikci_icin_ozet: k.s + ". Bilgiler hasta yakınının beyanıdır.", tek_satir: k.tek, hasta_icin_ozet: k.s };
+    return { kim_icin: "Hasta yakını (örnek)", yas_araligi: "70 üstü", sikayet: k.s, baslangic: "belirtildi", seyir: "belirtilmedi", siddet_beyani: "belirtilmedi", yataga_bagimli: k.bed, hekim_plani: "var", plan_detayi: "Plan/reçete beyan edildi; ziyarette görülmeli.", kronik_ilac_alerji: "belirtilmedi", ihtiyaclar: [svc(code).name_tr], malzeme: k.mal, foto_ozeti: /fotoğraf/.test(k.tek) ? "Örnek talepte fotoğraf yok (sentetik)." : "", eksik_bilgiler: k.eks, saglikci_icin_ozet: k.s + ". Bilgiler hasta yakınının beyanıdır.", tek_satir: k.tek, hasta_icin_ozet: k.s, guvenlik_notlari: k.guv || [] };
   }
   function cannedRequests(pid) {
     const p = repo.providers[pid];
@@ -872,7 +889,7 @@
         <span class="pill" style="background:rgba(255,255,255,.18);color:inherit">Çevrimiçi</span></div>
         <div class="stats"><div><b class="num">${stops.length}</b><span>bugünkü ziyaret</span></div><div><b class="num">${km.toFixed(1)} km</b><span>toplam yol</span></div><div><b class="num">${tl(earn)} TL</b><span>bugünkü kazanç</span></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
-      ${DG.banner()}<div style="flex:1">${body}</div></div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
+      ${DG.banner()}<div id="gzUyari" class="gz-ust">${G.uyariHtml(gzR())}</div><div style="flex:1">${body}</div></div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
     if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
   }
   function hInbox(box) {
@@ -909,6 +926,7 @@
         ${[...(rep.ihtiyaclar || []).map((x) => "İstenen: " + x), ...(rep.malzeme || [])].map((x, i) => `<label for="ck${i}"><input type="checkbox" id="ck${i}"> <span>${esc(x)}</span></label>`).join("")}</div></div>` : ""}
       ${(rep.dikkat_edilecekler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Dikkat</h3>${rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
       ${(rep.eksik_bilgiler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Ziyarette netleştir</h3>${rep.eksik_bilgiler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
+      <div class="sec">${G.riskHtml(G.riskAnaliz(rep, P.request && r.id === P.request.id ? transcriptText() : "", r.arrival_min), { bosGoster: true })}</div>
       <div class="sec card stack" style="gap:8px"><h3>Rotan ve kazancın</h3>
         ${mapSVG(home, stops)}
         <div class="small">${r.ins && r.ins.shared ? `Bu ziyaret bugünkü rotana eklenir: ek yol <b>${r.ins.added_km} km</b> (tek başına ${r.ins.standalone_km} km).` : r.ins ? `Ek yol ${r.ins.added_km} km.` : ""}</div>
@@ -922,7 +940,7 @@
   }
   function hRoute(p, stops) {
     const home = [p.home_lat, p.home_lon];
-    return `<div class="pad stack">${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    return `<div class="pad stack">${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
   }
   // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
@@ -945,12 +963,34 @@
       <div class="stack" style="gap:6px"><b class="small">Hizmet verdiğim ilçeler</b><div class="seg">${window.EVDE_DATA.districts.map((d) => `<button class="chip" type="button" aria-pressed="${d.name === p.home_district}" data-toggle="1">${esc(d.name)}</button>`).join("")}</div></div>
       <div class="note small">Taslak ekran: değişiklikler kaydedilmez.</div></div>`;
   }
-  $("#hScreen").addEventListener("input", (e) => DG.onInput(e));
+  $("#hScreen").addEventListener("input", (e) => { if (!G.onInput(e, gzR())) DG.onInput(e); });
+  $("#hScreen").addEventListener("pointerdown", (e) => G.onPointerDown(e, gzR()));
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => $("#hScreen").addEventListener(ev, () => G.onPointerUp()));
+  $("#hScreen").addEventListener("contextmenu", (e) => { if (e.target.closest("[data-gz-sure]")) e.preventDefault(); });
+  $("#gzMasa").addEventListener("click", (e) => { if (G.onClick(e, P.request)) { renderP(); renderH(); gzYenile(true); } });
+  // Güvenli Ziyaret: zamanlayıcı ilerler; yalnızca değişen kutular yeniden çizilir (PIN girişi bozulmasın)
+  let gzImza = "";
+  function gzKoy(sel, html) {
+    const el = $(sel); if (!el || el._html === html) return;
+    const odak = document.activeElement && document.activeElement.id === "gzPin" && el.contains(document.activeElement);
+    el.innerHTML = html; el._html = html;
+    if (odak) { const i = $("#gzPin"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+  }
+  function gzYenile(zorla) {
+    const imza = G.tick(P.request);
+    if (!zorla && imza === gzImza) return;
+    gzImza = imza;
+    if (P.screen === "done" && P.request) gzKoy("#gzHasta", G.hastaHtml(P.request));
+    gzKoy("#gzCalisan", G.calisanHtml(gzR())); gzKoy("#gzUyari", G.uyariHtml(gzR())); gzKoy("#gzMasa", G.masaHtml(P.request));
+    if ($("#hScreen .tabs") && !$("#gzCalisan") && G.aktif(gzR()) && H.tab === "rota" && !H.open) renderH(); // ilk görünüş
+  }
+  setInterval(() => gzYenile(false), 400);
   $("#hScreen").addEventListener("change", (e) => DG.onChange(e));
   $("#hScreen").addEventListener("keydown", (e) => DG.onKey(e));
   $("#demoCtl").addEventListener("click", (e) => DG.demoClick(e));
   $("#hScreen").addEventListener("click", async (e) => {
     if (DG.onClick(e)) return;
+    if (G.onClick(e, gzR())) { renderH(); renderP(); gzYenile(true); return; }
     const t = e.target.closest("[data-tab],[data-open],[data-act],[data-toggle]");
     if (!t) return;
     if (t.dataset.toggle) { t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true"); return; }

@@ -34,6 +34,8 @@ def build(template: str, app: str, out_name: str) -> Path:
         html = html.replace("/*__TEKLIF__*/", "window.KAPIDA_MODEL = " + model + ";\n" + (WEB / "teklif.js").read_text(encoding="utf-8"))
     if "/*__DOGRULAMA__*/" in html:
         html = html.replace("/*__DOGRULAMA__*/", (WEB / "dogrulama.js").read_text(encoding="utf-8"))
+    if "/*__GUVENLIK__*/" in html:
+        html = html.replace("/*__GUVENLIK__*/", (WEB / "guvenlik.js").read_text(encoding="utf-8"))
     html = html.replace("/*__APP__*/", (WEB / app).read_text(encoding="utf-8"))
     out = WEB / "dist" / out_name
     out.parent.mkdir(exist_ok=True)
