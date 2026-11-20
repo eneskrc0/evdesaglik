@@ -37,7 +37,8 @@ with sync_playwright() as pw:
     if h.locator("[data-act=haccept]").count() == 0:
         h.locator("[data-open]").first.click()
     h.locator("[data-act=haccept]").click()
-    check(h.locator(".harita").count() == 1 and "Gerçek sokaklar" in h.inner_text(), "çalışanın 'Rotam' sekmesinde gerçek sokak haritası")
+    check(h.locator(".harita").count() >= 1 and "Gerçek sokaklar" in h.inner_text(), "çalışanın 'Rotam' sekmesinde gerçek sokak haritası")
+    check(h.locator("#hYol .harita").count() == 1, "çalışanın Rotam'ında canlı yol tarifi haritası")
     check(p.locator("#takip .harita").count() == 1, "hastada canlı takip haritası açıldı")
     t1 = p.locator("#takip").inner_text()
     time.sleep(6)

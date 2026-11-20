@@ -762,6 +762,8 @@
           <input class="inp" id="pAdres" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." value="${esc(P.info.adresYazi || "")}">
           <div id="pAdresList" class="stack" style="gap:4px"></div>
           ${P.info.nokta ? `<div class="tiny muted">📍 ${esc(P.info.nokta.adres)} · haritada en yakın yol noktasına yerleştirildi (~${String(P.info.nokta.km.toFixed(1)).replace(".", ",")} km)</div>` : `<div class="tiny muted">Adresler © OpenStreetMap katkıcıları. Yazmazsan ilçe merkezi kullanılır.</div>`}</div>` : ""}
+        <label class="stack small" style="gap:4px" for="pTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: kat, daire, zil adı, bina rengi)</span>
+          <input class="inp" id="pTarif" type="text" autocomplete="off" maxlength="160" placeholder="ör. 3. kat, daire 7, zil: Demir" value="${esc(P.info.tarif || "")}"></label>
         <label class="stack small" style="gap:4px" for="pDist"><b>Hangi ilçe?${ADR ? "" : " (açık adres sonra)"}</b>
           <select class="inp" id="pDist">${districts.map((d) => `<option${d === P.info.district ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
         ${saatSecimi()}
@@ -1058,12 +1060,66 @@
       <div class="hr-kutu">${svgH}</div>
       <div class="adimlar">${adlar.map((a, i) => `<span class="${i < adim ? "ok" : i === adim ? "now" : ""}">${a}</span>`).join("")}</div>
       <div class="tiny muted">${adim <= 2 ? `Kalan yol ~${np.kmLeft.toFixed(1).replace(".", ",")} km · muhtemel varış ${C.hhmm(r.arrival_min - bant)}–${C.hhmm(r.arrival_min + bant)} (${T.toplu ? "aktarma ve bekleme" : "trafik"} belirsizliği)` : `${T.toplu ? "Toplu taşıma" : `Rota ${T.rt.km.slice(-1)[0].toFixed(1).replace(".", ",")} km ·`} yolculuk ~${T.yolDk} dk + ${T.toplu ? "bina" : "park"} ${T.park} dk`} · ${T.onceki ? "önceki ziyaretinden geliyor" : "evinden geliyor"}</div>
-      ${T.toplu ? `<div class="tiny toplu-plan"><b>Yolculuk planı:</b> ${TOPLU.metin(T.rt, adim >= 1 && adim <= 2 ? d.f * T.rt.total : null)}</div>` : ""}
+      <div class="small neyle"><b>Neyle geliyor:</b> ${neyleGeliyor(T)}</div>
+      ${(r.mesajlar || []).length ? `<div class="small calisan-mesaj">💬 <b>${esc(pp)}:</b> ${esc(r.mesajlar[r.mesajlar.length - 1].metin)} <span class="tiny muted">${esc(r.mesajlar[r.mesajlar.length - 1].saat)}</span></div>` : ""}
       <div class="tiny muted">Prototip: hareket planlanan rotaya göre canlandırılıyor (1 sn ≈ 1 dk); gerçek uygulamada çalışanın telefon konumuyla beslenir.</div></div>`;
+  }
+  // ---- Çalışanın yol tarifi: neyle, nasıl, ne kadar sürede; canlı konum (hastanın takibiyle aynı canlandırma) ----
+  function neyleGeliyor(T) {
+    if (T.toplu) return `toplu taşımayla · ${TOPLU.ozet(T.rt)}`;
+    return T.rt && T.rt.legs ? "yürüyerek" : "🚗 kendi aracıyla";
+  }
+  // Çalışanın sıradaki ziyareti: hastanın canlı talebi ya da kabul ettiği (örnek) ziyaret
+  const YOL_ORNEK = {};
+  function siradakiZiyaret(pid) {
+    const r = gzR();
+    if (r && !r.gun) return r;
+    const stops = (H.accepted[pid] || []).filter((v) => (v.date || DATE) === DATE && !String(v.reqId).startsWith("T-")).sort((a, b) => a.start_min - b.start_min);
+    const v = stops.find((x) => x.start_min + (x.duration_min || 30) > SIMDI);
+    if (!v) return null;
+    return (YOL_ORNEK[v.reqId] ||= { id: v.reqId, provider_id: pid, service: v.service_code, arrival_min: v.start_min, accepted_at: Date.now(), synthetic: true,
+      patient: { lat: v.lat, lon: v.lon, district: (Object.values(repo.patients).find((q) => Math.abs(q.lat - v.lat) < 1e-6 && Math.abs(q.lon - v.lon) < 1e-6) || {}).district || "", adres: "", tarif: "" } });
+  }
+  function yolTarifiCanli(r) {
+    const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
+    const adim = d.adim === 1 && np.kmLeft < 1 ? 2 : d.adim;
+    const kalanDk = adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0;
+    const cikis = r.arrival_min - T.yolDk - T.park, sn = adim >= 1 && adim <= 2 ? d.f * T.rt.total : adim === 0 ? 0 : null;
+    const bas = ["Yola çıkmaya hazırlan", T.toplu ? "Yoldasın (toplu taşıma)" : "Yoldasın", "Yaklaşıyorsun (1 km'den az)", "Vardın: hastaya kapı kodunu söyle", "Ziyarettesin"][adim];
+    const gecilen = T.rt.pts.slice(0, np.i).concat([np.pos]), kalan = [np.pos].concat(T.rt.pts.slice(np.i));
+    const adimlar = T.toplu ? TOPLU.adimlar(T.rt, sn) : null;
+    const duraklar = adimlar ? T.rt.legs.map((L, i) => (L.t === "bin" ? { L, i } : null)).filter(Boolean).map(({ L }) => {
+      const k = T.rt.cum.findIndex((c) => c >= L.c0); const q = T.rt.pts[Math.max(0, k)]; return q ? { lat: q[0], lon: q[1], tur: "durak", etiket: TOPLU.hatAdi(L.hat).replace(/ \(.*\)$/, "") } : null; }).filter(Boolean) : [];
+    const svgH = MAP.svg({ rotalar: [{ pts: adim < 3 ? kalan : T.rt.pts, gecilen: adim < 3 ? gecilen : null, renk: "var(--brand)", kesik: !!T.toplu }],
+      isaretler: [...duraklar, { lat: T.target[0], lon: T.target[1], tur: "hasta", etiket: "Hasta" }, { lat: np.pos[0], lon: np.pos[1], tur: "hareketli", etiket: adim < 3 ? "Sen" : "" }], aciklama: "Yol tarifi haritası" });
+    const kmTop = T.rt.km.slice(-1)[0];
+    const satirlar = adimlar ? adimlar.map((a) => `<li class="${a.simdi ? "simdi" : ""}"><span class="yt-ikon" aria-hidden="true">${a.ikon}</span><span><b>${esc(a.metin)}</b>${a.alt ? `<span class="tiny muted"> ${esc(a.alt)}</span>` : ""}</span></li>`).join("")
+      : [["🏠", `${T.onceki ? "Önceki ziyaretinden" : "Evinden"} çık`, cikis <= SIMDI + 1 ? "hemen" : C.hhmm(cikis)], ["🚗", `${kmTop.toFixed(1).replace(".", ",")} km sür`, `trafikle ~${T.yolDk} dk`], ["🅿️", "Park et, binaya yürü", `~${T.park} dk`]]
+        .map(([i, m, a], k) => `<li class="${(k === 0 && adim === 0) || (k === 1 && (adim === 1 || adim === 2)) || (k === 2 && adim === 3) ? "simdi" : ""}"><span class="yt-ikon" aria-hidden="true">${i}</span><span><b>${m}</b><span class="tiny muted"> ${a}</span></span></li>`).join("");
+    return `<div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><div><div class="tiny muted">SIRADAKİ ZİYARET · YOL TARİFİ</div><b>${esc(bas)}</b></div>
+        ${adim <= 2 ? `<div style="text-align:right"><div class="when">${kalanDk} dk</div><div class="tiny muted">varış ${C.hhmm(r.arrival_min)}</div></div>` : ""}</div>
+      <div class="yt-mod">${T.toplu ? "🚌 Toplu taşımayla" : T.rt.legs ? "🚶 Yürüyerek" : "🚗 Araçla"} · toplam ~${T.yolDk + T.park} dk · yola çıkış <b>${cikis <= SIMDI + 1 ? "hemen" : C.hhmm(cikis)}</b>${cikis > SIMDI + 5 ? `<span class="tiny muted"> (demo: yolculuk şimdi canlandırılıyor)</span>` : ""}</div>
+      <div class="hr-kutu">${svgH}</div>
+      <ol class="yt-adimlar">${satirlar}</ol>
+      <div class="tiny muted">Prototip: hareket planlanan rotaya göre canlandırılıyor (1 sn ≈ 1 dk). Gerçekte konum telefonundan gelir; hasta da aynı konumu görür.</div>`;
+  }
+  function yolTarifiAlt(r) {
+    const t = takipVerisi(r), [la, lo] = t.target, q = `${la.toFixed(6)},${lo.toFixed(6)}`, toplu = t.toplu;
+    const adres = r.patient.adres ? `${esc(r.patient.adres)}${r.patient.district && !r.patient.adres.includes(r.patient.district) ? `, ${esc(r.patient.district)}` : ""}` : `${esc(r.patient.district || "")} · haritadaki nokta (${la.toFixed(5)}, ${lo.toFixed(5)})`;
+    return `<div class="card stack yt-adres" style="gap:8px">
+      <div><div class="tiny muted">ADRES</div><b>${adres}</b>${r.patient.tarif ? `<div class="small">🚪 ${esc(r.patient.tarif)}</div>` : `<div class="tiny muted">Kapı tarifi verilmedi; kapıda hastayı ara.</div>`}${r.patient.bedridden ? `<div class="tiny">Hasta yatağa bağımlı: kapıyı yakını açabilir.</div>` : ""}</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <a class="btn primary" style="flex:1;min-width:150px;text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=${toplu ? "transit" : "driving"}">Google Haritalar'da aç</a>
+        <a class="btn" style="flex:1;text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://maps.apple.com/?daddr=${q}&dirflg=${toplu ? "r" : "d"}">Apple Haritalar</a>
+        <a class="btn" style="flex:1;text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://yandex.com.tr/harita/?rtext=~${q}&rtt=${toplu ? "mt" : "auto"}">Yandex</a></div>
+      ${r.synthetic ? "" : `<div class="row" style="gap:6px"><button class="btn" type="button" data-act="hYoldayim" style="flex:1">“Yoldayım” mesajı gönder</button><button class="btn" type="button" data-act="hAra" style="flex:1">Hastayı ara</button></div>`}
+      <div class="tiny muted">Hastanın numarası sana gösterilmez; arama platform üzerinden yapılır (demo).</div></div>`;
   }
   setInterval(() => {
     const el = document.getElementById("takip");
     if (el && P.screen === "done" && P.request && P.request.status === "kabul" && !P.request.gun) el.innerHTML = takipHtml(P.request);
+    const hy = document.getElementById("hYol"), hr = H.pid ? siradakiZiyaret(H.pid) : null;
+    if (hy && hr && MAP) hy.innerHTML = yolTarifiCanli(hr);
   }, 700);
   // En yakın acil servisler: Enes'in yol süresi matrisi + şu anki saatin trafiği (C.yakinAcil)
   function acilKarti() {
@@ -1140,6 +1196,7 @@
   // Adres arama: yazdıkça öneri; seçilen adres en yakın yol noktasına (yol paketindeki 240 nokta) yerleşir
   $("#pScreen").addEventListener("input", (e) => {
     if (e.target.id === "puanYorum" && P.puanTaslak) { P.puanTaslak.yorum = e.target.value; return; }
+    if (e.target.id === "pTarif") { P.info.tarif = e.target.value; return; }
     if (e.target.id !== "pAdres" || !ADR) return;
     P.info.adresYazi = e.target.value;
     const r = ADR.ara(e.target.value), L = $("#pAdresList");
@@ -1194,7 +1251,7 @@
     const id = "T" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const r = {
       id, created_at: new Date().toISOString(), status: c.teklif ? "kabul" : "bekliyor", accepted_at: c.teklif ? Date.now() : undefined, teklif: c.teklif || null, provider_id: c.provider_id, service: c.service, level: P.triage.level,
-      arrival_min: c.arrival_min, gun: P.info.gun, date: gunTarih(P.info.gun), price: c.price, ins: c.insertion, patient: { district: P.info.district, lat: P.pt.lat, lon: P.pt.lon, bedridden: P.info.bed, plan: P.info.plan },
+      arrival_min: c.arrival_min, gun: P.info.gun, date: gunTarih(P.info.gun), price: c.price, ins: c.insertion, patient: { district: P.info.district, lat: P.pt.lat, lon: P.pt.lon, bedridden: P.info.bed, plan: P.info.plan, adres: P.info.nokta ? P.info.nokta.adres : "", tarif: (P.info.tarif || "").trim().slice(0, 160) },
       report: P.report, photos: P.photos.slice(0, 3).map((p) => p.url), red_flags_checked: true, from_app: true, author: CAP.uid || null,
     };
     P.request = r; P.sheet = null; P.screen = "done";
@@ -1348,7 +1405,9 @@
   }
   function hRoute(p, stops) {
     const home = [p.home_lat, p.home_lon];
-    return `<div class="pad stack">${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    const yr = MAP ? siradakiZiyaret(p.id) : null, ygs = yr && G.durum(yr);
+    const yolKart = yr && !(ygs && ygs.checkin) ? `<div class="card stack yol-tarifi" id="hYol" style="gap:8px" aria-live="off">${yolTarifiCanli(yr)}</div>${yolTarifiAlt(yr)}` : "";
+    return `<div class="pad stack">${yolKart}${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
   }
   // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
@@ -1463,6 +1522,16 @@
       const r = REQ.find((x) => x.id === t.dataset.id) || inbox(H.pid).find((x) => x.id === t.dataset.id);
       if (r && !r.synthetic) { const upd = { ...r, ek_bilgi: [...new Set([...(r.ek_bilgi || []), t.dataset.v])] }; await putRequest(upd); if (P.request && P.request.id === r.id) P.request = upd; }
       H.bilgiAcik = null; H.toast = `Hastadan istendi: ${t.dataset.v}${r && r.synthetic ? " (örnek talep)" : ""}`; renderH(); renderP(); return;
+    }
+    if (a === "hYoldayim" || a === "hAra") {
+      const r = gzR(); if (!r) return;
+      const pp = person(r.provider_id);
+      if (a === "hAra") { H.toast = "Hasta aranıyor… (demo: numaralar gizli, platform bağlar)"; P.toast = `${pp.full} seni arıyor (demo).`; renderH(); renderP(); return; }
+      const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
+      const kalan = d.adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0;
+      const metin = kalan ? `Yoldayım, yaklaşık ${kalan} dk sonra oradayım.` : "Kapınızdayım.";
+      r.mesajlar = [...(r.mesajlar || []), { metin, saat: C.hhmm(Math.max(SIMDI, r.arrival_min - kalan)) }];
+      putRequest(r); H.toast = "Mesaj hastaya gitti."; P.toast = `${pp.first}: ${metin}`; renderH(); renderP(); return;
     }
     if (a === "haccept" || a === "hreject") {
       const id = t.dataset.id, pid = H.pid;

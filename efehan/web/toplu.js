@@ -100,7 +100,36 @@
         return simdi ? `<span class="toplu-simdi">${t}</span>` : t;
       }).join(" → ");
     }
-    return { rota, metin, dilim };
+    // Hattın okunur adı: "ESHOT 105", "İZBAN (Çiğli-Aliağa)", "Metro (F.Altay–Evka 3)", "Tramvay", "Vapur (Karşıyaka–Konak)"
+    const MOD_AD = { otobus: "Otobüs", metro: "Metro", tramvay: "Tramvay", izban: "İZBAN", vapur: "Vapur" };
+    function hatAdi(hat) {
+      const h = NET.lines[hat] || {};
+      if (h.f === "ESHOT") return "ESHOT " + temiz(h.k);
+      const tur = MOD_AD[h.m] || temiz(h.f) || "Hat", ek = temiz(h.a || h.k);
+      return ek && ek !== tur ? `${tur} (${ek})` : tur;
+    }
+    // Çalışan için adım adım tarif: [{ikon, metin, alt, dk, c0, son}]; sn verilirse o anki adım "simdi"
+    function adimlar(r, sn) {
+      if (!r || !r.legs) return [];
+      const ceza = NET.param.binis_ceza || 0;
+      return r.legs.map((L, i) => {
+        const nx = r.legs[i + 1], son = i === r.legs.length - 1, simdi = sn != null && sn >= L.c0 && (!nx || sn < nx.c0);
+        if (L.t === "yuru") {
+          const dk = Math.max(1, Math.round(L.min));
+          return { ikon: "🚶", metin: `${dk} dk yürü`, alt: son ? "hastanın adresine" : L.to ? `${temiz(L.to)} durağına` : "", dk, c0: L.c0, simdi, son };
+        }
+        const h = NET.lines[L.hat] || {}, bekle = Math.max(1, Math.round(L.bekle - ceza));
+        return { ikon: IKON[h.m] || "🚌", metin: `${hatAdi(L.hat)} ile git`, alt: `bin: ${temiz(L.from)} · in: ${temiz(L.to) || "?"} · ${L.n} durak, ${Math.round(L.min)} dk (bekleme ~${bekle} dk)`,
+          dk: Math.round(L.min) + bekle, c0: L.c0, simdi, son, hat: hatAdi(L.hat), from: temiz(L.from) };
+      });
+    }
+    // Hasta için tek satır: "ESHOT 105 + İZBAN (Çiğli-Aliağa)"; yalnız yürüyüşse "yürüyerek"
+    function ozet(r) {
+      if (!r || !r.legs) return "";
+      const hatlar = r.legs.filter((L) => L.t === "bin").map((L) => `${IKON[(NET.lines[L.hat] || {}).m] || "🚌"} ${hatAdi(L.hat)}`);
+      return hatlar.length ? [...new Set(hatlar)].join(" + ") : "🚶 yürüyerek";
+    }
+    return { rota, metin, dilim, adimlar, ozet, hatAdi };
   }
   window.KapidaToplu = { create };
 })();
