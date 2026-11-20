@@ -3462,7 +3462,7 @@ YANIT yalnızca şu JSON olsun:
     document.body.classList.toggle("rol-calisan", rol === "calisan");
     if (rol) { $("#colP").classList.toggle("hide-m", rol !== "hasta"); $("#colH").classList.toggle("hide-m", rol !== "calisan"); }
   }
-  window.addEventListener("hashchange", rolUygula);
+  window.addEventListener("hashchange", () => { const h = (location.hash || "").replace("#", ""); if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else rolUygula(); });
   rolUygula();
   // Yalnız hasta telefonu açıkken (ortak veri yok): çalışan ekranı görünmediği için onayı demo olarak 6 sn sonra çalışan adına ver.
   const otoOnay = {};
@@ -3485,17 +3485,24 @@ YANIT yalnızca şu JSON olsun:
     calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12", prof: "hemsire" },
     doktor: { kullanici: "doktor", sifre: "1234", ad: person("HEK-02").full, aciklama: "Pratisyen hekim · HEK-02 · Bayraklı · mesleki başvurusu onaylı (demo)", pid: "HEK-02", prof: "hekim", hekimType: "pratisyen" },
   };
+  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; }
+  function calisanGir(h) {
+    H.pid = h.pid;
+    DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
+    DG.state.f.name = h.ad; DG.state.f.prof = h.prof; if (h.hekimType) DG.state.f.hekimType = h.hekimType;
+  }
   function oturumAc(rol) {
-    const h = HESAPLAR[rol];
-    window.KAPIDA_OTURUM = { rol, ad: h.ad };
-    if (rol === "hasta") { P.info.district = h.ilce; P.info.forWhom = P.info.forWhom || ""; }
-    else {
-      H.pid = h.pid;
-      DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
-      DG.state.f.name = h.ad; DG.state.f.prof = h.prof; if (h.hekimType) DG.state.f.hekimType = h.hekimType;
+    if (rol === "ikisi") { // iki telefon yan yana: hasta ve hemşire hesapları açık
+      hastaGir(); calisanGir(HESAPLAR.calisan);
+      window.KAPIDA_OTURUM = { rol, ad: HESAPLAR.hasta.ad + " + " + HESAPLAR.calisan.ad };
+    } else {
+      const h = HESAPLAR[rol];
+      window.KAPIDA_OTURUM = { rol, ad: h.ad };
+      if (rol === "hasta") hastaGir(); else calisanGir(h);
     }
-    location.hash = rol;
-    $("#girisKatman").remove();
+    if (location.hash !== "#" + rol) history.replaceState(null, "", "#" + rol);
+    rolUygula();
+    const g = $("#girisKatman"); if (g) g.remove();
     renderP(); renderH();
   }
   function girisEkrani() {
@@ -3508,13 +3515,13 @@ YANIT yalnızca şu JSON olsun:
     d.id = "girisKatman";
     d.innerHTML = `<div class="giris-kutu"><div class="logo">kapı<i>da</i></div><div class="small muted">Demo hesabıyla gir. Aynı telefonda ikisini yan yana görmek için "İkisi yan yana".</div>
       <div class="giris-sira">${kart("hasta", "🧑", "Hasta hesabı")}${kart("calisan", "🩺", "Hemşire hesabı")}${kart("doktor", "👨‍⚕️", "Doktor hesabı")}</div>
-      <button class="btn block" type="button" data-giris="ikisi">İkisi yan yana (tek ekran demo)</button>
+      <button class="btn block" type="button" data-giris="ikisi">İkisi yan yana: hasta + hemşire hesabıyla giriş (tek ekran demo)</button>
       <div class="tiny muted">Prototip: hesaplar sentetiktir, şifre hiçbir yere gönderilmez. Gerçek uygulamada giriş e-posta/telefon doğrulamasıyla, sağlık çalışanı için mesleki doğrulamayla yapılır.</div>
       <div class="tiny" id="girisHata" style="color:#b42318"></div></div>`;
     d.addEventListener("click", (e) => {
       const b = e.target.closest("[data-giris]"); if (!b) return;
       const rol = b.dataset.giris;
-      if (rol === "ikisi") { location.hash = "ikisi"; d.remove(); return; }
+      if (rol === "ikisi") { oturumAc("ikisi"); return; }
       const h = HESAPLAR[rol], k = d.querySelector(`[data-gk="${rol}"]`).value.trim(), s = d.querySelector(`[data-gs="${rol}"]`).value;
       if (k !== h.kullanici || s !== h.sifre) { d.querySelector("#girisHata").textContent = "Kullanıcı adı ya da şifre hatalı (demo: " + h.kullanici + " / " + h.sifre + ")."; return; }
       oturumAc(rol);
@@ -3523,7 +3530,8 @@ YANIT yalnızca şu JSON olsun:
   }
   // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
   { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
-    if (h === "hasta" || h === "calisan" || h === "doktor") oturumAc(h); else if (h !== "ikisi") girisEkrani(); }
+    // "ham": giriş yapılmamış ham görünüm (otomatik testler; doğrulama akışı baştan)
+    if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else if (h !== "ham") girisEkrani(); }
 
   renderP(); renderH();
   initCaps();

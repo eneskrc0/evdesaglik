@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ikisi"  # giriş ekranını atla (iki telefon yan yana)
+PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ham"  # giriş ekranını atla, hesapsız ham görünüm (doğrulama akışı baştan)
 D = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/vt")
 ok = 0
 

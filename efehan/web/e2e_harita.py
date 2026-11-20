@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ikisi"  # giriş ekranını atla (iki telefon yan yana)
+PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ham"  # giriş ekranını atla, hesapsız ham görünüm (doğrulama akışı baştan)
 OUT = Path(__file__).resolve().parent / "dist"
 ok = 0
 def check(c, m):

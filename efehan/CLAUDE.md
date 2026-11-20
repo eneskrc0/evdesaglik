@@ -25,8 +25,9 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
   Bilinen küçük fark: Kapıda yol süresini yukarı yuvarlar (Math.ceil), simülasyon yuvarlamaz (modelin yol özelliğinde ≤1 dk).
 - Giriş ve tek rol (20.11, Enes): açılışta demo giriş ekranı — hasta hesabı (hasta / 1234, Ayşe Demir, Bornova) ve sağlık çalışanı hesabı
   (hemsire / 1234, HEM-12) ve doktor hesabı (doktor / 1234, HEK-02 pratisyen; ikisi de mesleki başvurusu demo onaylı). Giriş o rolün tek
-  telefonunu açar (#hasta / #calisan / #doktor); "İkisi yan yana" eski
-  görünüm. Bağlantı #hasta, #calisan ya da ?rol=hasta|calisan|ikisi ile açılırsa giriş atlanır (testler ?rol=ikisi kullanır).
+  telefonunu açar (#hasta / #calisan / #doktor); "İkisi yan yana" (#ikisi) iki telefonu hasta + hemşire hesabı açık hâlde gösterir
+  (çalışan başvurusu demo onaylı). Bağlantı #hasta | #calisan | #doktor | #ikisi (ya da ?rol=...) ile açılırsa giriş atlanır; ?rol=ham hesapsız
+  ham görünüm (otomatik testler bunu kullanır; doğrulama akışı baştan). Yalnız hasta telefonunda talep 6 sn sonra demo olarak onaylanır.
   Gerçek kimlik doğrulama yok, şifre hiçbir yere gitmez. İki ayrı telefonda talep aktarımı için ortak veri (db) gerekir; açılmadı.
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 

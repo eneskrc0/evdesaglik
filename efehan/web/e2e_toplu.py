@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from app import routing  # noqa: E402
 
-PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ikisi"  # giriş ekranını atla (iki telefon yan yana)
+PAGE = (Path(__file__).resolve().parent / "dist" / "kapida.html").as_uri() + "?rol=ham"  # giriş ekranını atla, hesapsız ham görünüm (doğrulama akışı baştan)
 OUT = Path(__file__).resolve().parent / "dist"
 ok = 0
 
