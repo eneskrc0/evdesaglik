@@ -1,0 +1,51 @@
+id,text,expected,group,note
+Z01,Göğüs ağrım yok,DEGIL,olumsuz,GPT testi: olumsuz cümle acil sayılıyordu
+Z02,Göğsümde ağrı yok sadece öksürüyorum,DEGIL,olumsuz,
+Z03,Babamın nefes darlığı yok ama ayağında yara var,DEGIL,olumsuz,
+Z04,Bayılma olmadı başı dönüyor biraz,DEGIL,olumsuz,
+Z05,Nöbet geçirmedi ama ateşi var,DEGIL,olumsuz,olumsuz fiil (geçirmedi)
+Z06,Kanaması yok yarası akıntılı,DEGIL,olumsuz,
+Z07,Annemin göğüs ağrısı yok nefes darlığı da yok sadece halsiz,DEGIL,olumsuz,
+Z08,"Bilinci yerinde, konuşuyor, sadece yorgun",DEGIL,olumsuz,
+Z09,Zehirlenme değil sanırım mide bulantısı var,DEGIL,olumsuz,
+Z10,Göğüs ağrısı yok ama nefes alamıyorum,ACIL,olumsuz+acil,olumsuz yan cümle diğer acili gizlememeli
+Z11,"Göğsümde ağrı yok, baskı var",ACIL,olumsuz+acil,göğüs ilk yan cümlede baskı ikincide
+Z12,"Göğüs ağrım yok, yani aslında biraz var",ACIL,celiskili,çelişkide güvenli taraf
+Z13,Bilinci yok uyandıramıyoruz,ACIL,yokluk=belirti,'yok' burada belirtinin kendisi
+Z14,Nefesi yok,ACIL,yokluk=belirti,
+Z15,Babam kendinde değil,ACIL,yokluk=belirti,'değil' belirtinin parçası
+Z16,"Hava yetmiyor, soluk alamıyorum",ACIL,ifade,GPT testi
+Z17,Nefesim yetmiyor boğulacak gibiyim,ACIL,ifade,
+Z18,Soluk alamıyo dedem morardı,ACIL,agiz,
+Z19,Nefes alamıyo gari,ACIL,agiz,-r düşmesi
+Z20,Göğsüm daralıyor terliyorum,ACIL,ifade,
+Z21,kalbim sıkışıyor sol kolum uyuşuyor,ACIL,ifade,
+Z22,annemin ağzı kaydı konuşamıyo,ACIL,agiz,
+Z23,Babamın ağzı yamuldu dili dolaşıyor birden,ACIL,ifade,
+Z24,Bir tarafı tutmuyor kolu bacağı,ACIL,ifade,
+Z25,Uyandıramıyorum annemi,ACIL,ifade,
+Z26,yanıt vermiyo,ACIL,agiz,
+Z27,Çocuk ateşlendi titriyo kasılıyo,ACIL,agiz,
+Z28,kanama durmuyo,ACIL,agiz,
+Z29,gogsum sıkısıyor,ACIL,yazim,
+Z30,nefez alamıyorum,ACIL,yazim,yazım hatası (nefez)
+Z31,Dudakları mosmor oldu,ACIL,ifade,
+Z32,Fazla ilaç içti galiba,ACIL,ifade,114/112
+Z33,kendimi öldürmek istiyorum,ACIL,ifade,
+Z34,Annemin topuğunda yara var akıntı yapıyo,DEGIL,rutin,
+Z35,Serum takılması lazım doktor yazdı,DEGIL,rutin,
+Z36,Tansiyonunu ölçtürmek istiyorum,DEGIL,rutin,
+Z37,Dizim ağrıyor fizik tedavi lazım,DEGIL,rutin,
+Z38,Babamın kulağı az duyuyor,DEGIL,rutin,
+Z39,Göğsüm biraz yanıyor yemekten sonra,DEGIL,rutin,mide yanması
+Z40,Nefesim bazen daralıyor merdiven çıkınca,DEGIL,rutin,kronik efor dispnesi (hekim)
+Z41,Geçen yıl kalp krizi geçirdi şimdi kontrol istiyoruz,DEGIL,zaman,geçmiş olay
+Z42,Annem hemşire istiyor iğnesi var,DEGIL,rutin,
+Z43,Beni duyuyor musun,DEGIL,araLaf,
+Z44,Ne yapacağımı bilmiyorum,DEGIL,belirsiz,
+Z45,Ateşi var 38 derece öksürüyor,DEGIL,rutin,
+Z46,Kusuyor ishal oldu iki gündür,DEGIL,rutin,
+Z47,Şekeri düştü bayıldı,ACIL,ifade,
+Z48,Arı soktu nefes alamıyor,ACIL,ifade,
+Z49,Düştü kafasını çarptı kusuyor,ACIL,ifade,kafa travması + kusma
+Z50,Babam düştü kalçası ağrıyor kalkamıyor,DEGIL,rutin,hekim (acil değil ama bugün)

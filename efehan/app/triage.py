@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .db import Patient, Repo
-from .text import match, normalize
+from .text import match, match_live, normalize
 
 DISCLAIMER = ("Bu bir teşhis değildir; yönlendirmedir. Durum kötüleşirse ya da emin "
               "değilseniz 112'yi arayın.")
@@ -129,7 +129,7 @@ def triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
     # 1) Kırmızı bayraklar — her zaman önce
     hits = []
     for rf in repo.red_flags:
-        m = match(rf["parsed"], text)
+        m = match_live(rf["parsed"], complaint)
         if m:
             hits.append((rf, m))
     if hits:
