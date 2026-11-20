@@ -76,8 +76,8 @@ const fd2 = new FormData(); fd2.append("dosya", new Blob([new Uint8Array(11 * 10
 r = await iste("/ses", fd2); assert.equal(r.status, 413); ok("10 MB üstü ses reddediliyor");
 
 sahte = () => groqYanit('{"reply":"x"}'); let son;
-for (let i = 0; i < 62; i++) son = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }, { ip: "9.9.9.9" });
-assert.equal(son.status, 429); ok("aynı IP'den 10 dakikada 60'tan fazla istek sınırlanıyor");
+for (let i = 0; i < 122; i++) son = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }, { ip: "9.9.9.9" });
+assert.equal(son.status, 429); ok("aynı IP'den 10 dakikada 120'den fazla istek sınırlanıyor");
 r = await iste("/yok", { a: 1 }); assert.equal(r.status, 404); ok("bilinmeyen adres 404");
 
 // ---- Canlı ayar (GitHub'daki ayar.json) ----

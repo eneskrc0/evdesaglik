@@ -26,11 +26,31 @@ if (process.env.SAHTE) {
     return yan(sira[Math.min(kullanici - 1, sira.length - 1)]);
   };
 }
+// Senaryo testleri: sıradaki sohbet/rapor cevapları (POST /__sahte_sohbet {sohbet:[...], rapor:{...}|null}).
+// Öğe {durum: 429|500} hata döndürür, {gecikme: ms, ...} cevabı geciktirir. GET /__sahte_sayac istek sayılarını verir.
+const SENARYO = { sohbet: [], rapor: null, sayac: { sohbet: 0, rapor: 0 }, son: { sohbet: null, rapor: null } };
+const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 http.createServer(async (req, res) => {
   const parcalar = []; for await (const p of req) parcalar.push(p);
   const govde = parcalar.length ? Buffer.concat(parcalar) : undefined;
+  const cors = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
+  if (process.env.SAHTE && req.url === "/__sahte_sohbet") { const g = JSON.parse(String(govde || "{}")); SENARYO.sohbet = g.sohbet || []; SENARYO.rapor = g.rapor || null; SENARYO.sayac = { sohbet: 0, rapor: 0 }; SENARYO.son = { sohbet: null, rapor: null }; res.writeHead(200, cors); res.end("{}"); return; }
+  if (process.env.SAHTE && req.url === "/__sahte_sayac") { res.writeHead(200, cors); res.end(JSON.stringify({ ...SENARYO.sayac, kalan: SENARYO.sohbet.length, son: SENARYO.son })); return; }
+  const yolu = (req.url || "").split("?")[0];
+  if (process.env.SAHTE && req.method === "POST" && (yolu === "/sohbet" || yolu === "/rapor")) SENARYO.sayac[yolu.slice(1)]++; // sıradakiler bitse de say
+  if (process.env.SAHTE && req.method === "POST" && ((yolu === "/sohbet" && SENARYO.sohbet.length) || (yolu === "/rapor" && SENARYO.rapor))) {
+    const tur = yolu.slice(1);
+    try { SENARYO.son[tur] = JSON.parse(String(govde || "{}")); } catch (e) { /* yok */ }
+    const oge = tur === "sohbet" ? SENARYO.sohbet.shift() : SENARYO.rapor;
+    const { durum, gecikme, ...cevap } = oge;
+    if (gecikme) await bekle(gecikme);
+    if (durum) { res.writeHead(durum === 429 ? 429 : 502, cors); res.end(JSON.stringify({ hata: durum === 429 ? "yogun" : "model", mesaj: "sahte", sonra: 0 })); return; }
+    res.writeHead(200, { ...cors, "Access-Control-Allow-Origin": req.headers.origin || "*" }); res.end(JSON.stringify(tur === "sohbet" ? { yanit: cevap, model: "sahte" } : { rapor: cevap, model: "sahte" })); return;
+  }
   if (process.env.SAHTE && req.url === "/__sahte_metinler") { SAHTE_METINLER.splice(0, SAHTE_METINLER.length, ...JSON.parse(String(govde || "[]"))); res.writeHead(200, { "Access-Control-Allow-Origin": "*" }); res.end("{}"); return; }
   if (process.env.SAHTE && req.url === "/__ses_sayisi") { res.writeHead(200, { "Access-Control-Allow-Origin": "*" }); res.end(JSON.stringify({ kalan: SAHTE_METINLER.length })); return; }
-  const r = await worker.fetch(new Request("http://localhost:" + PORT + req.url, { method: req.method, headers: req.headers, body: ["GET", "HEAD", "OPTIONS"].includes(req.method) ? undefined : govde, duplex: "half" }), env);
+  // Sahte modda her istek ayrı "IP" sayılır: uzun test koşuları sunucunun IP başına istek sınırına takılmasın
+  const basliklar = process.env.SAHTE ? { ...req.headers, "cf-connecting-ip": "test-" + Math.random() } : req.headers;
+  const r = await worker.fetch(new Request("http://localhost:" + PORT + req.url, { method: req.method, headers: basliklar, body: ["GET", "HEAD", "OPTIONS"].includes(req.method) ? undefined : govde, duplex: "half" }), env);
   res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer()));
 }).listen(PORT, () => console.log(`Kapıda sunucusu: http://localhost:${PORT}${process.env.SAHTE ? " (sahte yapay zekâ)" : ""}`));

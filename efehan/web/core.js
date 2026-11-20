@@ -7,11 +7,23 @@
   const FOLD = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u" };
   // Konuşma dilinde -yor'un r'si düşer: "alamıyo", "durmuyo", "yapıyom" (text.py _AGIZ)
   const AGIZ_EK = { "": "r", m: "rum", n: "rsun", z: "ruz", lar: "rlar" };
+  // Ses tanıma bölmesi ("ala miyorum", "kana ma", "kay dı", "de gil") ve çift olumsuz ("yok değil" → "var"); text.py ile aynı
+  const EK_BOLUNME = /(?<=[a-z]) (m[iu]yor\w*|ma|me|d[iu]|t[iu]|yor|yorum|yoruz)(?= )/g;
+  const CIFT_OLUMSUZ = / (yok|degil) (degil|diyemem|diyemeyiz|denemez|sayilmaz)(?= )/g;
   function normalize(text) {
     let t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
     t = t.replace(/[çğıöşüâîû]/g, (c) => FOLD[c]);
-    t = t.replace(/[^a-z0-9;|]+/g, " ").trim();
-    return (" " + t + " ").replace(/(iyo|uyo)(m|n|z|lar)?(?= )/g, (_, a, b) => a + AGIZ_EK[b || ""]);
+    t = " " + t.replace(/[^a-z0-9;|]+/g, " ").trim() + " ";
+    t = t.replace(/ de gil/g, " degil").replace(EK_BOLUNME, "$1").replace(CIFT_OLUMSUZ, " var");
+    return t.replace(/(iyo|uyo)(m|n|z|lar)?(?= )/g, (_, a, b) => a + AGIZ_EK[b || ""]);
+  }
+  // Çok kelimeli anahtar: kelime ekleri ve araya en fazla bir kelime ("kanamasi hala durmuyor"); text.py has()
+  const IFADE = {};
+  const esc = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  function has(part, text) {
+    if (!part.includes(" ")) return text.includes(" " + part);
+    const rx = IFADE[part] || (IFADE[part] = new RegExp(" " + part.split(" ").filter(Boolean).map(esc).join("\\w* (?:\\w+ )?")));
+    return rx.test(text);
   }
   // Olumsuzluk ve zaman (text.py clauses / match_live ile aynı)
   const YAN = /[.!?;,\n]+|\s(?:ama|fakat|ancak|lakin|şimdi|simdi|şu an|su an|bugün|bugun)\s/;
@@ -20,7 +32,13 @@
   const ESKI = / (gecen (yil|sene|ay)|(yil|yillar|sene|seneler|ay|aylar) once|eskiden|gecmiste|cocukken|gencken) /;
   const YOKLUK_BELIRTI = / (bilinc\w*|nefes\w*|nabz\w*|nabiz\w*|solunum\w*|tepki\w*|kendinde|yerinde degil|hareket\w*) (yok|degil|kalmadi)/;
   const SIMDI = / (simdi|su an|bugun|yine|tekrar|az once|demin|biraz once|hala) /;
-  const CELISKI = / (aslinda|yani|galiba|sanki|biraz) (\w+ )?var /;
+  const CELISKI = / (aslinda|yani|galiba|sanki|biraz) (\w+ )?var | (yok|degil) var | var yok /;
+  const SIMDI_DURUM = / (simdi|su an|su anda|artik|bugun) (\w+ ){0,2}(iyi|yok|gecti|normal|duzeldi|olmuyor|kalmadi)/;
+  const ORGAN = new RegExp(" (gogu?s\\w*|gogs\\w*|diz\\w*|sirt\\w*|bel(i|im|in|inde|imde)?|bas(i|im|in|inda|imda|ina|ima)|kafa\\w*|" +
+    "kol(u|um|lari|larim|unda|umda)?|bacak\\w*|bacag\\w*|ayak\\w*|ayag\\w*|karin\\w*|karn\\w*|mide\\w*|boyun\\w*|" +
+    "boyn\\w*|omuz\\w*|omz\\w*|kalca\\w*|dis(i|im|leri|lerim)|kulak\\w*|kulag\\w*|goz\\w*|bogaz\\w*|" +
+    "el(i|im|leri|lerim)|parmak\\w*|parmag\\w*|yuz(u|um|unde|umde)|agz\\w*|kasik\\w*|kasig\\w*) ");
+  const eski = (n) => ESKI.test(n) && !SIMDI.test(n);
   function clauses(text) {
     const t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
     const out = [];
@@ -28,20 +46,33 @@
       if (c === undefined) continue;
       const n = normalize(c);
       if (!n.trim()) continue;
-      const neg = (n.split(" ").some((w) => OLUMSUZ.has(w)) && !YOKLUK_BELIRTI.test(n)) || (ESKI.test(n) && !SIMDI.test(n));
+      const neg = (n.split(" ").some((w) => OLUMSUZ.has(w)) && !YOKLUK_BELIRTI.test(n)) || eski(n);
       out.push([n, neg]);
     }
     return out;
   }
+  const canli = (p, cl) => { const yer = cl.filter(([n]) => has(p, n)).map(([, neg]) => neg); return !yer.length || !yer.every(Boolean); };
   function matchLive(parsed, rawText) {
     const full = normalize(rawText), cl = clauses(rawText), celiski = CELISKI.test(full);
     for (const parts of parsed) {
-      if (!parts.every((p) => full.includes(" " + p))) continue;
+      if (!parts.every((p) => has(p, full))) continue;
       if (celiski) return parts.join(" + ");
-      for (const p of parts) {
-        const yer = cl.filter(([n]) => n.includes(" " + p)).map(([, neg]) => neg);
-        if (!yer.length || !yer.every(Boolean)) return parts.join(" + ");
-      }
+      // Her parça olumlu bir yan cümlede olmalı; söz düşmesinde organ taşınır ("göğsümde ağrı yok, baskı var") — text.py
+      const olu = parts.filter((p) => !canli(p, cl));
+      if (!olu.length) return parts.join(" + ");
+      if (olu.every((p) => ORGAN.test(" " + p + " ")) &&
+          cl.some(([n, neg]) => !neg && !ORGAN.test(n) && parts.some((p) => !olu.includes(p) && has(p, n)))) return parts.join(" + ");
+    }
+    return null;
+  }
+  // Yalnızca geçmiş zaman yüzünden sayılmayan eşleşme, şu anki durum söylenmediyse (text.py gecmis_eslesme)
+  function gecmisEslesme(parsed, rawText) {
+    const full = normalize(rawText);
+    if (SIMDI_DURUM.test(full) || matchLive(parsed, rawText)) return null;
+    const cl = clauses(rawText);
+    for (const parts of parsed) {
+      if (!parts.every((p) => has(p, full))) continue;
+      if (cl.some(([n, neg]) => neg && eski(n) && !n.split(" ").some((w) => OLUMSUZ.has(w)) && parts.some((p) => has(p, n)))) return parts.join(" + ");
     }
     return null;
   }
@@ -56,7 +87,7 @@
   function match(specOrParsed, normText) {
     const alts = typeof specOrParsed === "string" ? parseKeywords(specOrParsed) : specOrParsed;
     for (const parts of alts) {
-      if (parts.every((p) => normText.includes(" " + p))) return parts.join(" + ");
+      if (parts.every((p) => has(p, normText))) return parts.join(" + ");
     }
     return null;
   }
@@ -116,9 +147,47 @@
   const REMOTE_OK_ROUTES = new Set(["CR_RECETE", "CR_PSIKO"]);
   const PHYSICIANS = new Set(["hekim", "uzman_hekim"]);
   // Kullanıcı belirli bir meslek istiyor mu? (profession_intents; triage.py requested_profession)
-  function requestedProfession(repo, text) {
+  // Düzeltmeden sonra söylenen meslek geçerli; ses tanıma bölmesine karşı uzun anahtarlar boşluksuz da denenir (triage.py)
+  const DUZELTME = / (aslinda|pardon|yok yok|hayir|yanlis soyledim|demek istedim|vazgectim|degil|yerine) /g;
+  function meslekAra(repo, text) {
     for (const it of repo.intents) { const m = match(it.parsed, text); if (m) return [it, m]; }
+    const sik = text.replace(/ /g, "");
+    for (const it of repo.intents) for (const parts of it.parsed) {
+      if (parts.every((p) => p.replace(/ /g, "").length >= 6 && sik.includes(p.replace(/ /g, "")))) return [it, parts.join(" + ")];
+    }
     return [null, null];
+  }
+  function requestedProfession(repo, text) {
+    const ds = [...text.matchAll(DUZELTME)];
+    for (let i = ds.length - 1; i >= 0; i--) {
+      const r = meslekAra(repo, text.slice(ds[i].index + ds[i][0].length - 1));
+      if (r[0]) return r;
+    }
+    return meslekAra(repo, text);
+  }
+  const SAGLIK_KOK = ["agri", "agriy", "aci", "yara", "ates", "oksur", "hasta", "ilac", "tansiyon", "seker", "nefes", "gogus", "gogs",
+    "bayil", "nobet", "kan ", "kanam", "dikis", "ameliyat", "igne", "serum", "pansuman", "sonda", "halsiz", "yorgun",
+    "uyus", "sis", "kizar", "kasin", "idrar", "ishal", "kabiz", "kus", "dus", "yuruy", "felc", "inme", "kalp", "bobrek",
+    "diyabet", "astim", "koah", "kanser", "demans", "alzheimer", "unutkan", "uyku", "uyuy", "istah", "kilo", "tahlil",
+    "recete", "rahatsiz", "bas don", "bulanti", "mide", "karin", "bel ", "sirt", "diz", "kalca", "kol", "bacak", "ayak",
+    "goz", "kulak", "isit", "konusma", "yutk", "yatalak", "yatag", "bakim", "lohusa", "dogum", "hamile", "bebek",
+    "asi", "tedavi", "kontrol", "muayene", "olcum", "vital", "zehir", "alerji", "kasil", "titre", "terle", "morar",
+    "sislik", "enfeksiyon", "iltihap", "akinti", "yanik", "kirik", "carp", "agzi", "yuzu", "bilinc", "kendinde", "tepki"];
+  // Sağlık içeriği var mı? (rapor kapısı; meslek adı tek başına yetmez) — triage.py saglik_icerigi
+  function saglikIcerigi(repo, raw) {
+    const n = normalize(raw);
+    if (repo.red_flags.some((rf) => match(rf.parsed, n)) || repo.routes.some((r) => match(r.parsed, n))) return true;
+    return SAGLIK_KOK.some((k) => n.includes(" " + k));
+  }
+  const GECMIS_EK = [{ code: "GB_NEFES_DARLIGI", parsed: [["nefes darligi"], ["nefes darlik"]] }];
+  // Sohbetin kullanıcı mesajları → acil, istenen meslek, şu an durumu sorulacak geçmiş belirtiler, sağlık içeriği (triage.py konusma_degerlendir)
+  function konusmaDegerlendir(repo, mesajlar, patient) {
+    const metin = mesajlar.join(". ");
+    const t = triage(repo, metin, patient);
+    const [it] = requestedProfession(repo, normalize(metin));
+    const gecmis = t.is_emergency ? [] : [...repo.red_flags, ...GECMIS_EK].filter((rf) => gecmisEslesme(rf.parsed, metin)).map((rf) => rf.code);
+    return { acil: t.is_emergency, level: t.level, message: t.message, red_flags: t.red_flags, reasons: t.reasons,
+      meslek: it ? it.profession_code : null, gecmis, saglik: saglikIcerigi(repo, metin) };
   }
   function intentOnly(repo, it, m, patient) {
     const prof = it.profession_code, svc = it.default_service, name = repo.professions[prof].name_tr;
@@ -427,7 +496,7 @@
   }
 
   const api = {
-    normalize, parseKeywords, match, matchLive, clauses, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
+    normalize, parseKeywords, match, matchLive, clauses, has, gecmisEslesme, saglikIcerigi, konusmaDegerlendir, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
     handleRequest, competenceScore, roadKm, travelMin, travel, trafikKatsayisi, yakinAcil, setYol, hhmm, LEVEL_TEXT, CFG,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

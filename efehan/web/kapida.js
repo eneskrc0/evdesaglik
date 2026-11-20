@@ -91,6 +91,7 @@
   // ---------- sesli asistan (sesli.js) ----------
   // Sesli mod mevcut sohbet akışını kullanır: konuşma → yazı → send() (acil kuralı, 3 soru, meslek, rapor aynen) → yanıt seslendirilir.
   const SV = window.KapidaSesli.create({ dinleyici: null, tts: null, gonder: sesliGonder,
+    acilMi: (t) => C.konusmaDegerlendir(repo, [...P.msgs.filter((m) => m.who === "me" && !m.araLaf).map((m) => m.text), t], { bedridden: false, has_physician_plan: false }).acil,
     ciz: () => { if (P.screen === "chat") renderP(); } });
   function sesliKur() {
     const S = window.KapidaSesli;
@@ -319,7 +320,12 @@
 
   // ---------- sohbet akışı ----------
   function startChat(prefill) {
-    Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null });
+    // Her yeni sohbet yeni bir talep: önceki talebin plan/yatak/kişi/hizmet/saat bilgisi taşınmaz (adres ve ilçe kalır);
+    // sohbet numarası artar, eski sohbetin geç gelen YZ cevabı ya da raporu bu sohbete yazılmaz.
+    P.sohbetNo = (P.sohbetNo || 0) + 1; P.busy = false; P.saatler = null;
+    if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (e) { /**/ } P.listening = false; }
+    Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null, plan: "bilinmiyor", bed: false, forWhom: "", gun: 0, when: 570 });
+    Object.assign(P, { gecmisSoru: null, gecmisSoruldu: false, atlaBekliyor: false });
     P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
     const hello = "Merhaba, ben Kapıda asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
@@ -335,14 +341,19 @@
     const photos = P.pendingShow || [];
     if (!text && !photos.length) return;
     if (P.busy) return;
+    // Aynı mesaj çok kısa sürede ikinci kez (çift dokunma, ses tanımanın iki kez bitirmesi): yok say
+    const sonMe = [...P.msgs].reverse().find((m) => m.who === "me");
+    if (!photos.length && sonMe && sonMe.text === text && Date.now() - (sonMe.t || 0) < 1500) return;
+    const no = P.sohbetNo;
     if (CAP.dictation && P.listening) { try { await CAP.dictation.stop(); } catch (e) { /**/ } }
+    if (no !== P.sohbetNo) return;
     P.pendingShow = [];
     const shown = text || "Fotoğraf ekledim.";
-    P.msgs.push({ who: "me", text: shown, photo: photos.map((p) => p.url) });
+    P.msgs.push({ who: "me", text: shown, photo: photos.map((p) => p.url), t: Date.now() });
     for (const m of P.msgs) delete m.quick;
-    // 1) Kural motoru: her mesajda kırmızı bayrak
-    const t = C.triage(repo, P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". "), { bedridden: false, has_physician_plan: false });
-    if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; renderP(); return; }
+    // 1) Kural motoru: her mesajda kırmızı bayrak (+ meslek, geçmiş belirti, sağlık içeriği)
+    const d = degerlendir();
+    if (d.acil) { acilAc(d.message, d.reasons[0], "Kural motoru"); return; }
     // 1a) Ara laf ("beni duyuyor musun", "tekrar eder misin", "bir saniye", "merhaba"): yerel kısa cevap,
     //     soru sayısına girmez, YZ'ye gitmez, demo sorusunu ilerletmez
     const laf = !photos.length && window.KapidaSesli ? window.KapidaSesli.araLaf(shown) : null;
@@ -356,21 +367,45 @@
       P.msgs.push({ who: "ai", text: cevap, quick: onceki && onceki.quick ? onceki.quick : [], araLaf: true });
       speak(cevap); renderP(); return;
     }
-    // 1b) "Direkt doktora yönlendir" / "soru sorma": soruları geç, hekime yönlendir
-    if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
+    // 1b) Geçmişte yaşanmış acil belirti için sorduğumuz "şu an da var mı?" sorusunun cevabı
+    if (P.gecmisSoru) {
+      const s = P.gecmisSoru; P.gecmisSoru = null;
+      const n = C.normalize(shown);
+      if (/ (evet|var|hala|devam\w*|oluyor|suan|su an|simdi de|yine) /.test(n) && !/ (yok|hayir|degil|gecti|olmuyor|kalmadi) /.test(n)) {
+        const rf = repo.red_flags.find((x) => s.kodlar.includes(x.code));
+        if (rf) { acilAc(rf.message_tr, `Geçmişte yaşanan '${rf.name_tr}' şu an da sürüyor (beyan)`, "Kural motoru"); return; }
+      }
+    }
+    // 1c) Yalnızca fiyat sorusu: başlangıç fiyatlarını yerel söyle (YZ'ye gitmez, soru hakkı harcanmaz)
+    if (!photos.length && !d.saglik && /( fiyat| ucret| ne kadar| kac para| kac lira| kac tl)/.test(C.normalize(shown))) {
+      P.msgs[P.msgs.length - 1].araLaf = true;
+      const f = (c) => `${svc(c).name_tr.toLocaleLowerCase("tr")} ${svc(c).base_fee_tl} TL`;
+      const cevap = `Başlangıç fiyatları: ${["ev_muayene", "tele_muayene", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
+      P.msgs.push({ who: "ai", text: cevap, araLaf: true }); speak(cevap); renderP(); return;
+    }
+    // 1d) "Direkt doktora yönlendir" / "soru sorma": soruları geç (acil kontrolü yukarıda yapıldı)
+    if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown)) || (P.atlaBekliyor && d.saglik)) { await doktoraYonlendir(); return; }
+    // 1e) Geçmişte yaşanmış acil belirti ("geçen yıl bayılmıştı") ve şu anki durum söylenmedi: bir kez sor
+    if (d.gecmis.length && !P.gecmisSoruldu) {
+      P.gecmisSoruldu = true; P.gecmisSoru = { kodlar: d.gecmis };
+      const soru = "Bunun daha önce yaşandığını anladım. Bu belirti şu anda da var mı?";
+      P.turns.push({ role: "user", content: shown }, { role: "assistant", content: soru });
+      P.msgs.push({ who: "ai", text: soru, quick: ["Evet, şu an da var", "Hayır, şu an yok"] }); speak(soru); renderP(); return;
+    }
     // 2) YZ ya da demo
     if (P.mode === "ai") {
       P.turns.push({ role: "user", content: shown + (photos.length ? " [fotoğraf eklendi]" : "") });
       P.busy = true; renderP();
       try {
         const r = await aiReply();
+        if (no !== P.sohbetNo) return; // kullanıcı bu arada yeni sohbete geçti: eski cevap yeni sohbete yazılmaz
         P.busy = false;
         const reply = String((r && r.reply) || "Anladım. Biraz daha anlatır mısın?");
         P.turns.push({ role: "assistant", content: reply });
         if (r && r.photo_notes) P.photoNotes.push(String(r.photo_notes));
         if (r && r.istenen_meslek && repo.professions[r.istenen_meslek]) P.info.yzMeslek = r.istenen_meslek;
         if (r && r.anlasilan) { const me = [...P.msgs].reverse().find((m) => m.who === "me"); if (me) me.understood = String(r.anlasilan).slice(0, 240); }
-        if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
+        if (r && r.red_flag) { acilAc(reply, String(r.red_flag_reason || "Asistan acil belirti sezdi"), "Yapay zekâ"); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
         // "Doktora yönlendir" kararını protokol verir: YZ işaretlese de kullanıcı bunu açıkça istemediyse ("bilmiyorum" gibi) soruları atlama
@@ -385,10 +420,12 @@
         // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
         const userTurns = P.turns.filter((x) => x.role === "user").length;
         // Şikâyet anlaşılmadan rapora geçme: YZ "hazır" dese de kullanıcı henüz derdini anlatmadıysa devam
-        const anlatti = P.turns.filter((x) => x.role === "user").map((x) => x.content).join(" ").trim().split(/\s+/).length >= 4;
+        // Sağlıkla ilgili bir şey anlatılmadan (anlamsız/konu dışı konuşma) rapor çıkmaz
+        const anlatti = d.saglik && P.turns.filter((x) => x.role === "user").map((x) => x.content).join(" ").trim().split(/\s+/).length >= 4;
         if (((r && r.ready) && anlatti) || (userTurns >= MAX_SORU + 1 && anlatti)) { await buildReport(); return; }
         renderP();
       } catch (e) {
+        if (no !== P.sohbetNo) return;
         P.busy = false;
         if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e && e.code)) {
           P.mode = "demo"; P.toast = "Yapay zekâ bu görünümde kullanılamıyor; demo sorularıyla devam ediyoruz.";
@@ -436,6 +473,13 @@
     };
   }
   const MAX_SORU = 3;
+  // Kural motoru tüm kullanıcı mesajları üzerinden (ara laflar hariç): acil, istenen meslek, geçmiş belirti, sağlık içeriği
+  const degerlendir = () => C.konusmaDegerlendir(repo, P.msgs.filter((m) => m.who === "me" && !m.araLaf).map((m) => m.text), { bedridden: false, has_physician_plan: false });
+  function acilAc(msg, why, src) {
+    P.emergency = { msg, why, src }; P.screen = "emergency"; P.busy = false;
+    if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (e) { /**/ } P.listening = false; }
+    renderP();
+  }
   // Meslek isteği: kural motoru (profession_intents) + YZ'nin anladığı istenen_meslek. Seviye kararını yine triyaj verir.
   const HEKIMLER = new Set(["hekim", "uzman_hekim"]);
   const kullaniciMetni = () => P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". ");
@@ -460,6 +504,12 @@
   const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
   async function doktoraYonlendir() {
     const m = istenenMeslek();
+    if (!m && !degerlendir().saglik) {
+      // Kısa yol istendi ama henüz ne olduğu söylenmedi: boş rapor yerine tek bir şey sor; sonraki içerikli mesajda doğrudan geçilir
+      P.atlaBekliyor = true;
+      const t = "Tamam, soru sormayacağım. Kimin için ve ne olduğunu tek cümleyle söyle, doğrudan ileteyim.";
+      P.msgs.push({ who: "ai", text: t }); speak(t); renderP(); return;
+    }
     P.info.doktor = true; P.info.atlaMeslek = m && !HEKIMLER.has(m) ? m : null;
     const t = P.info.atlaMeslek
       ? `Tamam, soruları geçiyorum. Seni ${yonelme(meslekAdi(m))} yönlendireceğim. ${meslekAdi(m)} doktor planıyla gelebildiği için bir sonraki ekranda doktorunun planı ya da reçetesi olup olmadığını seçmen yeterli.`
@@ -468,10 +518,12 @@
     await buildReport();
   }
   async function buildReport() {
+    const no = P.sohbetNo;
     P.screen = "building"; renderP();
     let rep = null;
     if (P.mode === "ai") {
       try { rep = await aiReport(); } catch (e) { P.toast = "Rapor yapay zekâyla hazırlanamadı; senin cevaplarınla basit bir özet çıkardık."; }
+      if (no !== P.sohbetNo) return;
     }
     if (!rep || typeof rep !== "object") {
       if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
@@ -492,6 +544,8 @@
       rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
     }
     ["ihtiyaclar", "malzeme", "eksik_bilgiler", "dikkat_edilecekler"].forEach((k) => { if (!Array.isArray(rep[k])) rep[k] = rep[k] ? [String(rep[k])] : []; });
+    // Rapor denetimi: söylenmeyen yaş/ilaç/alerji/onay çıkar, "bilmiyorum" → bilinmiyor, düzeltmede son söylenen (denetim.js)
+    if (window.KapidaDenetim) rep = window.KapidaDenetim.raporDenetle(rep, { mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })) });
     P.report = rep;
     P.info.bed = rep.yataga_bagimli === true;
     P.info.plan = ["var", "yok"].includes(rep.hekim_plani) ? rep.hekim_plani : "bilinmiyor";
@@ -988,7 +1042,7 @@
     if (a === "start") startChat();
     else if (a === "sesli") sesliBaslat(true);
     else if (a === "sesliac") sesliBaslat(false);
-    else if (a === "home") { P.screen = "home"; P.sheet = null; renderP(); }
+    else if (a === "home") { if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (er) { /**/ } P.listening = false; } P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
     else if (a === "skipdoc" && SV.acik) { const m = istenenMeslek(); SV.hizli(`Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.`); }
     else if (a === "skipdoc") { if (!P.busy) { const m = istenenMeslek(); P.msgs.push({ who: "me", text: `Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.` }); await doktoraYonlendir(); } }
@@ -1178,7 +1232,9 @@
       <div class="card row between"><div class="stack" style="gap:2px"><span class="when">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${svc(r.service).duration_min} dk</span><span class="small muted">${esc(r.patient.district)}${r.ins ? ` · ek yol ${r.ins.added_km} km` : ""}</span></div>
         <div style="text-align:right"><div class="earn num">+${tl(hEarn(r))} TL</div><div class="tiny muted">senin kazancın</div></div></div>
       <div class="sec card stack" style="gap:8px"><h3>1 · Hasta beyanı</h3>
-        <dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}</dd>`).join("")}</dl>
+        <dl class="kv">${kv.map(([k, v]) => { const alan = { "Kim için": "kim_icin", "Ne zamandır": "baslangic", "Seyir": "seyir", "Hekim planı": "hekim_plani", "Hastalık, ilaç, alerji": "kronik_ilac_alerji" }[k];
+          const yz = alan && rep._kaynak && rep._kaynak[alan] === "yz" && v && v !== "belirtilmedi";
+          return `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}${yz ? ` <span class="pill plain" title="Kullanıcı bunu açıkça söylemedi; yapay zekâ konuşmadan çıkardı">YZ çıkarımı</span>` : ""}</dd>`; }).join("")}</dl>
         ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}</div>
       ${(() => { const bos = kv.filter(([, v]) => !v || v === "belirtilmedi").map(([k]) => k + ": sorulmadı / belirtilmedi");
         const dogrulanmadi = r.patient.plan === "var" ? ["Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
@@ -1189,6 +1245,7 @@
         ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Dayandığı ifade:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}
         ${rep.oneri_gerekcesi ? `<div class="small"><span class="muted">Neden bu hizmet önerildi:</span> ${esc(rep.oneri_gerekcesi)} <span class="muted">(öneri; kararı sen verirsin)</span></div>` : ""}
         ${(rep.dikkat_edilecekler || []).length ? rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("") : ""}
+        ${(rep._denetim || []).length ? `<details class="small"><summary class="muted">Rapor denetimi: ${rep._denetim.length} düzeltme (söylenmeyen bilgi çıkarıldı, son beyan esas alındı)</summary>${rep._denetim.map((x) => `<div class="tiny">• ${esc(x.ne)}</div>`).join("")}</details>` : ""}
         <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir. Acil belirtiler otomatik taramada işaretlenmedi; bu bir güvence değildir, değerlendirme gerekli.</div></div>
       ${(r.photos || []).length || rep.foto_ozeti ? `<div class="sec card stack" style="gap:8px"><h3>Fotoğraflar</h3>${(r.photos || []).length ? `<div class="photos">${r.photos.map((u) => `<img src="${u}" alt="Hastanın eklediği fotoğraf">`).join("")}</div>` : ""}${rep.foto_ozeti ? `<div class="small">${esc(rep.foto_ozeti)}</div>` : ""}</div>` : ""}
       <div class="sec card stack" style="gap:8px"><h3>4 · Ziyaret</h3>
@@ -1415,6 +1472,9 @@
     // "ham": giriş yapılmamış ham görünüm (otomatik testler; doğrulama akışı baştan)
     if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else if (h !== "ham") girisEkrani(); }
 
+  // Otomatik testler için salt okunur durum görüntüsü (uygulamayı değiştirmez)
+  window.KapidaTest = { durum: () => JSON.parse(JSON.stringify({ ekran: P.screen, mesgul: P.busy, mod: P.mode, plan: P.info.plan, kim: P.info.forWhom,
+    mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })) };
   renderP(); renderH();
   initCaps();
 })();

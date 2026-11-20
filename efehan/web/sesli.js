@@ -40,7 +40,9 @@
     return out.reduce((a, s) => { if (a.length && s.length < 12 && (a[a.length - 1] + " " + s).length <= sinir) a[a.length - 1] += " " + s; else a.push(s); return a; }, []);
   }
   // Whisper sessizlikte uydurabilir: bilinen kalıplar ve anlamsız kısa çıktılar
-  const HALUSINASYON = [/altyaz/i, /[iİ]zlediğiniz için teşekkür/i, /abone ol/i, /teşekkürler\.?$/i, /^\W*$/, /^(ı+|h?ı+m*|e+h?|h?m+|a+h?)\W*$/i, /amara\.org/i, /www\./i, /^(müzik|alkış)\W*$/i];
+  // Gülme ("hahaha", en az 3 hece; "hı hı" = evet korunur), köşeli/yuvarlak ayraçlı ortam etiketi ("[Müzik]", "(alkış)", "♪") da konuşma değildir.
+  const HALUSINASYON = [/altyaz/i, /[iİ]zlediğiniz için teşekkür/i, /abone ol/i, /teşekkürler\.?$/i, /^\W*$/, /^(ı+|h?ı+m*|e+h?|h?m+|a+h?)\W*$/i, /amara\.org/i, /www\./i, /^(müzik|alkış)\W*$/i,
+    /^\W*(?:(?:ha|he|hi|hı|ho|hu)[\s,.!]*){3,}$/i, /^\s*[[(♪*].{0,40}[\])♪*]\s*$/, /^\W*(müzik|alkış|gülüşmeler|gülme|kahkaha|sessizlik|gürültü|anlaşılmıyor)\W*$/i];
   function halusinasyonMu(t) {
     const s = String(t || "").trim();
     if (s.length < 2) return true;
@@ -59,7 +61,7 @@
     ["duyma", new RegExp("^(?:alo+ )*(?:orada|orda|burada) ?m(?:i|isin|isiniz)" + NEZAKET + "$")],
     ["duyma", /^(?:alo+ ?)+$/],
     ["tekrar", new RegExp("^(?:(?:tekrar|bir daha|bi daha)(?: (?:eder|soyler|sorar|anlatir|okur))? ?(?:misin|misiniz|mi)?|anlamadim|duyamadim|ne dedin(?:iz)?|ne dediniz|efendim|pardon|nasil yani|ne|hi+|hm+|soruyu tekrarla(?:r misin)?)" + NEZAKET + "$")],
-    ["bekle", new RegExp("^(?:(?:bir|bi) (?:saniye|dakika|dakka|dk)(?: (?:bekle|bekler misin|bekleyin))?|dur(?: bekle)?|bekle|bekler misin|bekleyin|dusuneyim|bakayim|hatirlayayim)" + NEZAKET + "$")],
+    ["bekle", new RegExp("^(?:(?:bir|bi) (?:saniye|dakika|dakka|dk)(?: (?:bekle|bekler misin|bekleyin|dur))?|(?:dur|sus)(?: (?:bir|bi) (?:saniye|dakika|dakka|dk))?(?: bekle)?|bekle|bekler misin|bekleyin|dusuneyim|bakayim|hatirlayayim|sus|sessiz ol)" + NEZAKET + "$")],
     ["selam", new RegExp("^(?:alo )?(?:merhaba|merhabalar|selam|selamlar|iyi gunler|gunaydin|iyi aksamlar|selamun aleykum|selamin aleykum)(?: alo)?" + NEZAKET + "$")],
   ];
   function araLaf(t) {
@@ -67,6 +69,15 @@
     if (!k || k.split(" ").length > 7) return null;
     for (const [tur, re] of ARA_LAF) if (re.test(k)) return tur;
     return null;
+  }
+  // Yankı: mikrofon asistanın kendi sesini (hoparlörden) yakaladı mı? Kullanıcının cümlesi en az 3 kelime ve kelimelerinin
+  // (6 kelimede en fazla 1 tanıma farkıyla) asistanın son söylediğinde aynı sırayla geçiyorsa yankıdır. "Var", "evet", "bir haftadır var" yankı sayılmaz.
+  function yankiMi(asistan, duyulan) {
+    const a = katla(asistan).split(" ").filter(Boolean), k = katla(duyulan).split(" ").filter(Boolean);
+    if (k.length < 3 || !a.length) return false;
+    let j = 0, es = 0;
+    for (const w of k) { const i = a.indexOf(w, j); if (i >= 0) { es++; j = i + 1; } }
+    return es >= k.length - Math.floor(k.length / 6); // 6 kelimede en fazla 1 tanıma farkı; yeni kelime katan cevap yankı değildir
   }
   // Cümle yarım mı kaldı? ("...ve", "...ama", "...şey") → gönderme, devamını bekle
   const DEVAM = /(?:^| )(ve|ama|fakat|ancak|cunku|sey|yani|ile|ki|veya|yahut|bir de|bi de|sonra|hem|mesela|ozellikle)$/;
@@ -305,10 +316,13 @@
 
     async function isle(metin, sestenMi) {
       metin = String(metin || "").trim();
+      // Asistanın kendi sesi geri geldiyse (hoparlör → mikrofon) mesaj sayılmaz; sessizce yeniden dinle
+      if (sestenMi && st.asistan && yankiMi(st.asistan, metin)) { st.bosSay++; araYaz(""); if (st.bosSay >= 3) { st.durum = "beklemede"; ciz(); return; } dinle(); return; }
       if (sestenMi && halusinasyonMu(metin)) { st.bosSay++; araYaz(""); if (st.bosSay >= 3) { st.durum = "beklemede"; ciz(); return; } soyle("Seni tam duyamadım. Bir daha söyler misin?", "dinle"); return; }
       if (!metin) return;
       // Yarım kalan cümle: gönderme, devamını dinle (en fazla 2 parça); sonra hepsini birleştirip gönder
-      if (sestenMi && yarimMi(metin) && st.parcaSay < 2) {
+      // (acil olabilecek parça beklemeden gider: "hava yetmiyor ama…")
+      if (sestenMi && yarimMi(metin) && st.parcaSay < 2 && !(o.acilMi && o.acilMi((st.birikmis + " " + metin).trim()))) {
         st.birikmis = (st.birikmis + " " + metin).trim(); st.parcaSay++;
         dinle({ beklemeMs: 4000 }); araYaz(st.birikmis); return;
       }
@@ -369,7 +383,7 @@
     };
   }
 
-  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, araLaf, yarimMi, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
+  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, araLaf, yarimMi, yankiMi, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KapidaSesli = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

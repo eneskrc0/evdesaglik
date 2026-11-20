@@ -1,0 +1,194 @@
+[
+ {
+  "id": "S-01",
+  "kategori": "G",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-02",
+  "kategori": "G",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-03",
+  "kategori": "G",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-04",
+  "kategori": "G",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-05",
+  "kategori": "G",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-06",
+  "kategori": "A",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ },
+ {
+  "id": "S-07",
+  "kategori": "A",
+  "onem": "kritik",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ },
+ {
+  "id": "S-08",
+  "kategori": "K",
+  "onem": "kritik",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-09",
+  "kategori": "K",
+  "onem": "kritik",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ },
+ {
+  "id": "S-10",
+  "kategori": "K",
+  "onem": "kritik",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ },
+ {
+  "id": "S-11",
+  "kategori": "K",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "bekle",
+  "beklenen": "bekle"
+ },
+ {
+  "id": "S-12",
+  "kategori": "K",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "bekle",
+  "beklenen": "bekle"
+ },
+ {
+  "id": "S-13",
+  "kategori": "K",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "bekle",
+  "beklenen": "bekle"
+ },
+ {
+  "id": "S-14",
+  "kategori": "A",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": null,
+  "beklenen": null
+ },
+ {
+  "id": "S-15",
+  "kategori": "A",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "S-16",
+  "kategori": "A",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ },
+ {
+  "id": "S-17",
+  "kategori": "J",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "sessiz",
+  "beklenen": "sessiz"
+ },
+ {
+  "id": "S-18",
+  "kategori": "J",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "bitti",
+  "beklenen": "bitti"
+ },
+ {
+  "id": "S-19",
+  "kategori": "J",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "bitti",
+  "beklenen": "bitti"
+ },
+ {
+  "id": "S-20",
+  "kategori": "K",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": "dinliyor",
+  "beklenen": "dinliyor"
+ },
+ {
+  "id": "S-21",
+  "kategori": "K",
+  "onem": "kritik",
+  "gecti": true,
+  "gercek": "gonderilmedi",
+  "beklenen": "gonderilmedi"
+ },
+ {
+  "id": "S-22",
+  "kategori": "J",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": "beklemede",
+  "beklenen": "beklemede"
+ },
+ {
+  "id": "S-23",
+  "kategori": "J",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": "beklemede",
+  "beklenen": "beklemede"
+ },
+ {
+  "id": "S-24",
+  "kategori": "J",
+  "onem": "orta",
+  "gecti": true,
+  "gercek": 1,
+  "beklenen": 1
+ }
+]

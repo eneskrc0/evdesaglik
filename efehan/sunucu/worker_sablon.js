@@ -50,9 +50,9 @@ const VARSAYILAN_KOKENLER = ["https://eneskrc0.github.io", "https://raw.githack.
 const GROQ = "https://api.groq.com/openai/v1";
 const VARSAYILAN_YEDEK = ["openai/gpt-oss-20b", "llama-3.3-70b-versatile"];
 const VARSAYILAN = { MODEL: "openai/gpt-oss-120b", GORSEL_MODEL: "qwen/qwen3.8-27b", SES_MODEL: "whisper-large-v3" };
-const SINIR = { sesBayt: 10 * 1024 * 1024, tur: 40, turKarakter: 2000, transkript: 20000, resim: 3, resimKarakter: 1_600_000, istekPencereSn: 600, istekSayisi: 60 };
+const SINIR = { sesBayt: 10 * 1024 * 1024, tur: 40, turKarakter: 2000, transkript: 20000, resim: 3, resimKarakter: 1_600_000, istekPencereSn: 600, istekSayisi: 120 };
 
-// Basit kötüye kullanım sınırı: IP başına 10 dakikada 60 istek (yalnızca aynı sunucu örneği içinde; kaba bir korumadır).
+// Basit kötüye kullanım sınırı: IP başına 10 dakikada 120 istek (sesli modda her tur ses + sohbet = 2 istek) (yalnızca aynı sunucu örneği içinde; kaba bir korumadır).
 const sayac = new Map();
 function sinirAsildi(ip) {
   const simdi = Date.now(), pencere = SINIR.istekPencereSn * 1000;
