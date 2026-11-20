@@ -108,11 +108,22 @@
     const tur = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
     const uzanti = /mp4/.test(tur) ? "m4a" : /ogg/.test(tur) ? "ogg" : "webm";
     let akim = null, ctx = null, analiz = null, kaynak = null, rec = null, saat = null, oturum = 0;
+    let nesil = 0, bekleyenIzin = null; // nesil: birak() her çağrıldığında artar; izin beklerken kapatılırsa gelen akış hemen kapatılır
     const tampon = new Float32Array(1024);
+    function izinAl() {
+      if (bekleyenIzin) return bekleyenIzin; // aynı anda iki getUserMedia açılmasın (iki akış, biri sahipsiz kalır)
+      const benim = nesil;
+      bekleyenIzin = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+        .then((s) => {
+          if (benim !== nesil) { s.getTracks().forEach((t) => t.stop()); const h = new Error("kapatıldı"); h.code = "iptal"; throw h; }
+          return s;
+        }, () => { const h = new Error("mikrofon izni yok"); h.code = "not_granted"; throw h; })
+        .finally(() => { bekleyenIzin = null; });
+      return bekleyenIzin;
+    }
     async function hazirla() {
       if (!akim || !akim.active) {
-        try { akim = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-        catch (e) { const h = new Error("mikrofon izni yok"); h.code = "not_granted"; throw h; }
+        akim = await izinAl();
         if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ }
         kaynak = null;
       }
@@ -135,6 +146,8 @@
         const benim = ++oturum;
         await hazirla();
         if (benim !== oturum) return;
+        // önceki kayıt hâlâ sürüyorsa kapat (üst üste dokunmada iki kayıt ve iki zamanlayıcı kalmasın)
+        durdur(); if (rec && rec.state === "recording") { rec.onstop = null; try { rec.stop(); } catch (e) { /* yok */ } }
         const parcalar = []; const vad = VAD(secenek && secenek.beklemeMs ? { beklemeMs: secenek.beklemeMs } : null); let zorla = false, bitti = false;
         rec = tur ? new MediaRecorder(akim, { mimeType: tur }) : new MediaRecorder(akim);
         rec.ondataavailable = (e) => { if (e.data && e.data.size) parcalar.push(e.data); };
@@ -162,7 +175,7 @@
       },
       bitir() { if (this._bitir) this._bitir(true); },
       iptal() { oturum++; durdur(); if (rec && rec.state === "recording") { rec.onstop = null; try { rec.stop(); } catch (e) { /* yok */ } } this._bitir = null; },
-      birak() { this.iptal(); if (akim) akim.getTracks().forEach((t) => t.stop()); akim = null; if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ } kaynak = null; },
+      birak() { this.iptal(); nesil++; if (akim) akim.getTracks().forEach((t) => t.stop()); akim = null; if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ } kaynak = null; },
       kapat() { this.birak(); if (ctx) { try { ctx.close(); } catch (e) { /* yok */ } ctx = null; } },
     };
   }
@@ -247,12 +260,13 @@
   }
 
   // ---------- denetleyici ----------
-  // o: { dinleyici, tts, gonder(metin) → Promise<{tur: "devam"|"acil"|"bitti"|"hata", metin}>, ciz(), dom(id) }
+  // o: { dinleyici, tts, gonder(metin) → Promise<{tur: "devam"|"acil"|"bitti"|"hata", metin}>, acilMi(metin) → bool (kural motoru), ciz(), dom(id) }
   function create(o) {
     const st = { acik: false, durum: "kapali", seviye: 0, ara: "", sen: "", asistan: "", cumle: -1, hata: "", kulaklik: false, sessizSay: 0, bosSay: 0, birikmis: "", parcaSay: 0 };
     let kes = 0; // her yeni adımda artar; eski geri çağrılar yok sayılır
     const ciz = () => { try { o.ciz(); } catch (e) { /* yok */ } };
     const dl = () => o.dinleyici;
+    const acilMi = (t) => { try { return !!(o.acilMi && o.acilMi(t)); } catch (e) { return false; } };
     const tts = () => o.tts;
     function dom(id, f) { const el = typeof document !== "undefined" && document.getElementById(id); if (el) f(el); }
     function seviyeYaz(v) { st.seviye = st.seviye * 0.6 + v * 0.4; dom("svOrb", (el) => el.style.setProperty("--sv", st.seviye.toFixed(3))); }
@@ -286,7 +300,7 @@
           sessiz: () => { if (benim === kes) sessizlik(); },
           hata: (k) => { if (benim === kes) hata(k); },
         }, secenek);
-      } catch (e) { if (benim === kes) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); }
+      } catch (e) { if (benim === kes && !(e && e.code === "iptal")) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); }
     }
 
     function sessizlik() {
@@ -308,7 +322,8 @@
       if (sestenMi && halusinasyonMu(metin)) { st.bosSay++; araYaz(""); if (st.bosSay >= 3) { st.durum = "beklemede"; ciz(); return; } soyle("Seni tam duyamadım. Bir daha söyler misin?", "dinle"); return; }
       if (!metin) return;
       // Yarım kalan cümle: gönderme, devamını dinle (en fazla 2 parça); sonra hepsini birleştirip gönder
-      if (sestenMi && yarimMi(metin) && st.parcaSay < 2) {
+      // …ama yarım cümlede acil belirti varsa ("Babam nefes alamıyor ve") beklemeden gönder: acil kararı gecikmesin
+      if (sestenMi && yarimMi(metin) && st.parcaSay < 2 && !acilMi((st.birikmis + " " + metin).trim())) {
         st.birikmis = (st.birikmis + " " + metin).trim(); st.parcaSay++;
         dinle({ beklemeMs: 4000 }); araYaz(st.birikmis); return;
       }
@@ -342,7 +357,7 @@
         const hazir = D.hazirla ? D.hazirla() : Promise.resolve(); // getUserMedia dokunuşun içinde başlasın
         ciz();
         hazir.then(() => { if (st.acik) ilkMetin ? soyle(ilkMetin, "dinle") : dinle(); })
-          .catch((e) => { if (st.acik) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); });
+          .catch((e) => { if (st.acik && !(e && e.code === "iptal")) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); });
       },
       kapat(sustur) {
         if (!st.acik && st.durum === "kapali") { if (sustur !== false && tts()) tts().stop(); return; }
