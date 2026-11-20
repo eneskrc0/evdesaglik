@@ -425,7 +425,7 @@
     const code = route ? route.service_list[0] : "ev_muayene";
     return {
       kim_icin: a[1] || "belirtilmedi", yas_araligi: /70/.test(a[1] || "") ? "70 üstü" : "belirtilmedi",
-      sikayet: a[0] || "belirtilmedi", baslangic: a[2] || "belirtilmedi", seyir: /kötüleş/.test(a[2] || "") ? "kötüleşiyor (beyan)" : "belirtilmedi",
+      sikayet: a[0] || "belirtilmedi", hastanin_kendi_sozleri: a[0] || "belirtilmedi", baslangic: a[2] || "belirtilmedi", seyir: /kötüleş/.test(a[2] || "") ? "kötüleşiyor (beyan)" : "belirtilmedi",
       siddet_beyani: "belirtilmedi", yataga_bagimli: bed, hekim_plani: plan, plan_detayi: plan === "var" ? "Hasta yakını reçete/plan olduğunu belirtti; belge ziyarette görülmeli." : "",
       kronik_ilac_alerji: "belirtilmedi", ihtiyaclar: [svc(code).name_tr], malzeme: MATERIALS[code] || [],
       foto_ozeti: P.photos.length ? `${P.photos.length} fotoğraf eklendi (demo modunda yapay zekâ tarifi yok).` : "",
@@ -875,6 +875,7 @@
       <div class="card row" style="flex-wrap:nowrap"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1"><b>${esc(pp.full)}</b><div class="tiny muted">${esc(svc(r.service).name_tr)}</div></div>
         <div style="text-align:right"><div class="when">${gunEki(r)}${C.hhmm(r.arrival_min)}</div><div class="small num">${tl(r.price.patient_pays)} TL</div></div></div>
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
+      ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>${esc(pp.first)} senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}<div class="small muted">Fotoğrafı ziyaretten önce sohbetten ya da ziyarette gösterebilirsin.</div></div>` : ""}
       ${G.aktif(r) ? `<div id="gzHasta">${G.hastaHtml(r)}</div>` : ""}
       ${st === "kabul" && r.gun ? `<div class="card soft small">Randevun <b>yarın (${GUNLER[1].uzun}) ${C.hhmm(r.arrival_min)}</b>. Canlı takip yarın, sağlık çalışanı yola çıkınca başlar.</div>` : ""}
       <div class="timeline-v">${steps.map(([a, b, done], i) => `<div class="tv ${done ? "done" : (i === steps.findIndex((s) => !s[2]) ? "now" : "")}"><span class="dot"></span><div><b class="small">${esc(a)}</b><div class="tiny muted">${esc(b)}</div></div></div>`).join("")}</div>
@@ -1176,19 +1177,26 @@
       <div class="row between"><div class="row" style="gap:6px">${svcIcon(r.service)}<h2 style="font-size:19px">${esc(svc(r.service).name_tr)}</h2></div>${r.synthetic ? `<span class="pill plain">örnek</span>` : `<span class="pill sun">Uygulamadan</span>`}</div>
       <div class="card row between"><div class="stack" style="gap:2px"><span class="when">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${svc(r.service).duration_min} dk</span><span class="small muted">${esc(r.patient.district)}${r.ins ? ` · ek yol ${r.ins.added_km} km` : ""}</span></div>
         <div style="text-align:right"><div class="earn num">+${tl(hEarn(r))} TL</div><div class="tiny muted">senin kazancın</div></div></div>
-      <div class="sec card stack" style="gap:8px"><h3>Hastanın durumu</h3>
-        <div>${esc(rep.saglikci_icin_ozet || rep.sikayet)}</div>
+      <div class="sec card stack" style="gap:8px"><h3>1 · Hasta beyanı</h3>
         <dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}</dd>`).join("")}</dl>
-        ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}
+        ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}</div>
+      ${(() => { const bos = kv.filter(([, v]) => !v || v === "belirtilmedi").map(([k]) => k + ": sorulmadı / belirtilmedi");
+        const dogrulanmadi = r.patient.plan === "var" ? ["Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
+        const l = [...(rep.eksik_bilgiler || []), ...dogrulanmadi, ...bos];
+        return l.length ? `<div class="sec card stack" style="gap:4px"><h3>2 · Eksik ya da doğrulanmamış bilgiler</h3>${l.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""; })()}
+      <div class="sec card stack" style="gap:8px"><h3>3 · Yapay zekâ özeti</h3>
+        <div>${esc(rep.saglikci_icin_ozet || rep.sikayet)}</div>
+        ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Dayandığı ifade:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}
         ${rep.oneri_gerekcesi ? `<div class="small"><span class="muted">Neden bu hizmet önerildi:</span> ${esc(rep.oneri_gerekcesi)} <span class="muted">(öneri; kararı sen verirsin)</span></div>` : ""}
-        <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir; kontrol et. Kırmızı bayrak kontrolü: temiz.</div></div>
+        ${(rep.dikkat_edilecekler || []).length ? rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("") : ""}
+        <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir. Acil belirtiler otomatik taramada işaretlenmedi; bu bir güvence değildir, değerlendirme gerekli.</div></div>
       ${(r.photos || []).length || rep.foto_ozeti ? `<div class="sec card stack" style="gap:8px"><h3>Fotoğraflar</h3>${(r.photos || []).length ? `<div class="photos">${r.photos.map((u) => `<img src="${u}" alt="Hastanın eklediği fotoğraf">`).join("")}</div>` : ""}${rep.foto_ozeti ? `<div class="small">${esc(rep.foto_ozeti)}</div>` : ""}</div>` : ""}
-      ${(rep.ihtiyaclar || []).length || (rep.malzeme || []).length ? `<div class="sec card stack" style="gap:4px"><h3>İhtiyaçlar ve getirmen gerekenler</h3><div class="checklist">
-        ${[...(rep.ihtiyaclar || []).map((x) => "İstenen: " + x), ...(rep.malzeme || [])].map((x, i) => `<label for="ck${i}"><input type="checkbox" id="ck${i}"> <span>${esc(x)}</span></label>`).join("")}</div></div>` : ""}
-      ${(rep.dikkat_edilecekler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Dikkat</h3>${rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
-      ${(rep.eksik_bilgiler || []).length ? `<div class="sec card stack" style="gap:4px"><h3>Ziyarette netleştir</h3>${rep.eksik_bilgiler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""}
-      <div class="sec">${G.riskHtml(G.riskAnaliz(rep, P.request && r.id === P.request.id ? transcriptText() : "", r.arrival_min), { bosGoster: true })}</div>
-      <div class="sec card stack" style="gap:8px"><h3>Rotan ve kazancın</h3>
+      <div class="sec card stack" style="gap:8px"><h3>4 · Ziyaret</h3>
+        <div class="small">${esc(r.patient.district)} · ${gunEki(r)}${C.hhmm(r.arrival_min)} · ${svc(r.service).duration_min} dk${r.patient.bedridden ? " · hasta yatağa bağımlı" : ""}</div>
+        ${(rep.ihtiyaclar || []).length || (rep.malzeme || []).length ? `<div class="checklist">
+        ${[...(rep.ihtiyaclar || []).map((x) => "İstenen: " + x), ...(rep.malzeme || [])].map((x, i) => `<label for="ck${i}"><input type="checkbox" id="ck${i}"> <span>${esc(x)}</span></label>`).join("")}</div>` : ""}
+        ${G.riskHtml(G.riskAnaliz(rep, P.request && r.id === P.request.id ? transcriptText() : "", r.arrival_min), { bosGoster: true })}</div>
+      <div class="sec card stack" style="gap:8px"><h3>Rotan ve net kazancın</h3>
         ${mapSVG(home, stops)}
         <div class="small">${r.ins && r.ins.shared ? `Bu ziyaret bugünkü rotana eklenir: ek yol <b>${r.ins.added_km} km</b> (tek başına ${r.ins.standalone_km} km).` : r.ins ? `Ek yol ${r.ins.added_km} km.` : ""}</div>
         <div class="bill small"><span>Hizmet bedeli</span><span class="num">${tl(pr.service_fee)} TL</span><span>Platform payı (%10)</span><span class="num">−${tl(pr.service_fee * C.CFG.COMMISSION)} TL</span>
@@ -1196,7 +1204,8 @@
           ${pr.saving > 0 ? `<span class="disc">Paylaşım primi</span><span class="disc num">+${tl(pr.saving * C.CFG.SPLIT.saglikci)} TL</span>` : ""}
           <span class="tot">Sana kalan</span><span class="tot num">${tl(pr.provider_gets)} TL</span></div></div>
       <div style="height:70px"></div></div>
-      <div class="hbar" style="flex-wrap:wrap"><button class="btn" type="button" data-act="hreject" data-id="${esc(r.id)}">Reddet</button><button class="btn primary" type="button" data-act="haccept" data-id="${esc(r.id)}" style="flex:1"${DG.canAccept() ? "" : ` disabled aria-describedby="lockMsg"`}>Kabul et · ${C.hhmm(r.arrival_min)}</button>
+      <div class="hbar" style="flex-wrap:wrap">${H.bilgiAcik === r.id ? `<div class="stack" style="gap:6px;width:100%"><b class="small">5 · Hastadan ne istiyorsun?</b><div class="seg">${["Yaranın fotoğrafı", "Reçete / hekim planı fotoğrafı", "Kullandığı ilaçların listesi", "Adres tarifi"].map((x) => `<button class="chip" type="button" data-act="hbilgisor" data-id="${esc(r.id)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>` : ""}
+        <button class="btn" type="button" data-act="hreject" data-id="${esc(r.id)}">Reddet</button><button class="btn" type="button" data-act="hbilgi" data-id="${esc(r.id)}">Ek bilgi iste</button><button class="btn primary" type="button" data-act="haccept" data-id="${esc(r.id)}" style="flex:1"${DG.canAccept() ? "" : ` disabled aria-describedby="lockMsg"`}>Kabul et · ${C.hhmm(r.arrival_min)}</button>
         ${DG.canAccept() ? "" : `<div class="lockmsg" id="lockMsg" style="width:100%">Başvurun onaylanınca görev kabul edebilirsin.</div>`}</div>`;
   }
   function hRoute(p, stops) {
@@ -1293,6 +1302,12 @@
     if (t.dataset.open) { H.open = t.dataset.open; renderH(); $("#hScreen").scrollTop = 0; return; }
     const a = t.dataset.act;
     if (a === "hback") { H.open = null; renderH(); }
+    if (a === "hbilgi") { H.bilgiAcik = H.bilgiAcik === t.dataset.id ? null : t.dataset.id; renderH(); return; }
+    if (a === "hbilgisor") {
+      const r = REQ.find((x) => x.id === t.dataset.id) || inbox(H.pid).find((x) => x.id === t.dataset.id);
+      if (r && !r.synthetic) { const upd = { ...r, ek_bilgi: [...new Set([...(r.ek_bilgi || []), t.dataset.v])] }; await putRequest(upd); if (P.request && P.request.id === r.id) P.request = upd; }
+      H.bilgiAcik = null; H.toast = `Hastadan istendi: ${t.dataset.v}${r && r.synthetic ? " (örnek talep)" : ""}`; renderH(); renderP(); return;
+    }
     if (a === "haccept" || a === "hreject") {
       const id = t.dataset.id, pid = H.pid;
       const r = inbox(pid).find((x) => x.id === id);

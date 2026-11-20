@@ -110,6 +110,21 @@ with sync_playwright() as pw:
     saatler = [x[1] for x in secenekler() if x[0] == sec[0]]
     erken = [x for x in saatler if int(x[:2]) < 12]
     check(not erken, f"{sec[0]} artık 12.00'den önce önerilmiyor ({saatler or 'bu saatte listede yok'})")
+    # 6) Çalışan detayı: sıra, kırmızı bayrak ifadesi, ek bilgi isteği hastaya ulaşıyor
+    yukle(); sohbet("Annemin sırtında yara var pansuman lazım")
+    p.locator(".saatler").nth(0).locator(".saat").first.click(); p.locator("[data-act=options]").click()
+    pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)")
+    p.locator("details.klasik [data-pick]").first.click(); p.locator("[data-act=confirm]").click()
+    pg.locator("#demoCtl").get_by_role("button", name="Onaylandı — demo").click(); h.get_by_role("button", name="Panele git").click()
+    if h.locator("[data-act=haccept]").count() == 0: h.locator("[data-open]").first.click()
+    basliklar = h.locator("h3").all_inner_texts()
+    sira = [next((i for i, b in enumerate(basliklar) if b.startswith(k)), -1) for k in ["1 ·", "2 ·", "3 ·", "4 ·"]]
+    check(all(x >= 0 for x in sira) and sira == sorted(sira), f"çalışan detayı sırası: beyan → eksik bilgi → YZ özeti → ziyaret ({basliklar[:6]})")
+    t = h.inner_text()
+    check("temiz" not in t and "otomatik taramada işaretlenmedi" in t and "değerlendirme gerekli" in t, "'Kırmızı bayrak: temiz' yerine sınırını anlatan ifade")
+    check("Dayandığı ifade" in t or "Kendi sözleriyle" in t, "YZ özeti hasta ifadesiyle birlikte")
+    h.get_by_role("button", name="Ek bilgi iste").click(); h.get_by_role("button", name="Yaranın fotoğrafı").click()
+    check("senden ek bilgi istiyor" in p.inner_text() and "Yaranın fotoğrafı" in p.inner_text(), "çalışanın 'Ek bilgi iste' isteği hastanın randevu ekranında")
     check(not errs, f"sayfa hatası yok {errs}")
     br.close()
 print(f"Tamam: {ok} kontrol geçti.")
