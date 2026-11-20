@@ -358,7 +358,15 @@
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
-        if (r && r.doktora_yonlendir) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
+        // "Doktora yönlendir" kararını protokol verir: YZ işaretlese de kullanıcı bunu açıkça istemediyse ("bilmiyorum" gibi) soruları atlama
+        if (r && r.doktora_yonlendir && acikYonlendirme(kullaniciMetni())) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
+        if (r && r.doktora_yonlendir) {
+          const son = P.msgs[P.msgs.length - 1];
+          if (son && son.who === "ai" && /yönlendir/i.test(son.text)) {
+            son.text = P.turns.filter((x) => x.role === "user").length <= 1 ? "Anlıyorum, birlikte bakalım. Kimin için yardım istiyorsun ve ne oldu, kısaca anlatır mısın?" : "Anladım. Biraz daha anlatır mısın, ne zamandır böyle?";
+            son.quick = []; P.turns[P.turns.length - 1].content = son.text;
+          }
+        }
         // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
         const userTurns = P.turns.filter((x) => x.role === "user").length;
         // Şikâyet anlaşılmadan rapora geçme: YZ "hazır" dese de kullanıcı henüz derdini anlatmadıysa devam
@@ -431,6 +439,9 @@
   const cogul = (ad) => { const a = ad.toLocaleLowerCase("tr"); if (tamlama(a)) return a.slice(0, -1) + "leri"; return a + (kalin(a) ? "lar" : "ler"); };
   const MESLEK_KELIME = "doktor|hekim|hemsire|ebe|fizyoterapist|fizik tedavici|odyolog|diyetisyen|psikolog|podolog|ergoterapist|konusma terapist";
   const YONLENDIR_RE = new RegExp(`(direk|direkt|dogrudan|hemen|bir an once)\\s*(bir\\s*)?(${MESLEK_KELIME})|(${MESLEK_KELIME})(a|e|ya|ye)?\\s*(yonlendir|bagla|gonder)`);
+  // Kullanıcı soruların atlanmasını açıkça istedi mi? (YZ'nin doktora_yonlendir işareti yalnızca buna dayanır)
+  const ACIK_YONLENDIR_RE = /doktor(a)? (baksin|gelsin|gorsun|bakmali|baksa)|hekim (baksin|gelsin|gorsun)|soru(lari)? (sorma|gec|atla|yeter)|uzatma|direk|dogrudan|yonlendir/;
+  const acikYonlendirme = (t) => { const n = C.normalize(t); return DOKTOR_RE.test(n) || YONLENDIR_RE.test(n) || ACIK_YONLENDIR_RE.test(n); };
   const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
   async function doktoraYonlendir() {
     const m = istenenMeslek();

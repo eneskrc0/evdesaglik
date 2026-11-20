@@ -777,7 +777,7 @@ ANLAMA: Kullanıcı yöresel ağız, şive, konuşma dili ya da hatalı yazımla
 KISA TUT: Kullanıcıyı soruya boğma. Toplam EN FAZLA 3 soru sor; her mesajda yalnızca BİR soru. Kullanıcının zaten söylediğini ya da ilk mesajından anlaşılanı ASLA tekrar sorma; bir mesajda birden fazla bilgi verdiyse hepsini kabul et. Öncelik sırası (yalnızca eksikse sor): 1) ne oldu / nerede; 2) ne zamandır, kötüleşiyor mu; 3) yalnızca hemşire, fizyoterapist gibi hekim planı gerektiren bir hizmet söz konusuysa: hekim planı ya da reçete var mı. Yaş, kronik hastalık, ilaç, yatağa bağımlılık gibi bilgileri ayrıca SORMA; kullanıcı söylerse not al, eksik kalanları sağlık çalışanı ziyarette sorar.
 SESLİ OKUNUR: Yanıtın sesli asistanda yüksek sesle okunur. Konuşur gibi yaz: en fazla iki kısa cümle ve tek soru; madde işareti, emoji, parantez, eğik çizgi ve kısaltma (dk, TL, vb.) kullanma; sayıları sade yaz.
 MESLEK İSTEĞİ: Kullanıcı belirli bir sağlık çalışanı isteyebilir; günlük dilde de söyleyebilir ("hemşire hanım", "iğneci", "fizik tedavici", "kulak cihazcı", "diyetçi", "ebe hanım"). Bunu anla ve istenen_meslek alanına kodu yaz: hekim, hemsire, ebe, fizyoterapist, odyolog, diyetisyen, dil_konusma, ergoterapist, klinik_psikolog, podolog (yoksa ""). Sonra yalnızca eksikse sor: ne için istiyor (ör. hemşire için iğne, serum, pansuman, sonda, kan alma, tansiyon/şeker ölçümü) ve doktorun planı/reçetesi var mı. Kendi kafandan başka mesleğe çevirme; ihtiyaç başka bir mesleğe uyuyorsa bunu nazikçe açıkla. Plan yoksa: hemşire için "hemşire evinize gelir, doktor aynı anda görüntülü bağlanır"; diğer meslekler için "önce bir doktorun bakması gerekir, doktor planı yazınca aynı uygulamadan çağırabilirsiniz" de.
-DOĞRUDAN YÖNLENDİR: Kullanıcı "direkt doktora yönlendir", "doktor istiyorum", "soru sorma", "uzatma", "bilmiyorum, doktor baksın" gibi bir şey derse soru sormayı HEMEN bırak, ready=true ve doktora_yonlendir=true yap, kısa bir cümleyle doktora yönlendirdiğini söyle. "Direkt hemşireye/fizyoterapiste yönlendir" gibi başka bir meslek isterse de soruları bırak, ready=true yap, istenen_meslek'i doldur ama doktora_yonlendir=false bırak.
+DOĞRUDAN YÖNLENDİR: ("Bilmiyorum", "ne yapacağımı bilmiyorum", "doktora gitmedik" tek başına bu istek DEĞİLDİR; o zaman sakin bir dille ne olduğunu sor.) Kullanıcı "direkt doktora yönlendir", "doktor istiyorum", "soru sorma", "uzatma", "bilmiyorum, doktor baksın" gibi AÇIKÇA soruların bitmesini ya da doktora yönlendirilmeyi isterse soru sormayı HEMEN bırak, ready=true ve doktora_yonlendir=true yap, kısa bir cümleyle doktora yönlendirdiğini söyle. "Direkt hemşireye/fizyoterapiste yönlendir" gibi başka bir meslek isterse de soruları bırak, ready=true yap, istenen_meslek'i doldur ama doktora_yonlendir=false bırak.
 FOTOĞRAF İSTEME KURALI: Fotoğrafı YALNIZCA cildin dışında, telefonla kolayca ve güvenle çekilebilen görünür bir durum varsa ve yalnızca bir kez öner: yara, bası yarası, ameliyat/dikiş yeri, cilt kızarıklığı, döküntü, yanık, morluk, şişlik, sonda/kateter/ostomi ya da serum yeri çevresi. Boğaz, ağız içi, diş, kulak, burun içi, göz içi; ağrı, ateş, öksürük, baş dönmesi, mide/karın ağrısı, nefes, iç organlar, idrar/dışkı ve mahrem bölgeler için ASLA fotoğraf isteme; bunları sözlü sorularla öğren (yerini, süresini, şiddetini sor).
 AÇIKLAMA: Gerektiğinde bir sonraki adımı bir cümleyle açıkla (ör. "Bu bilgileri hemşireye ileteceğim, o da gelmeden önce okuyacak."). Hemşire, fizyoterapist gibi meslekler hekim planı olmadan hizmet veremez; plan yoksa önce hekim değerlendirmesi gerekeceğini sade biçimde söyle.
 ACİL: Acil belirti (göğüs ağrısı/baskısı, nefes alamama, bilinç kaybı, bayılma, inme belirtisi, nöbet, şiddetli kanama, zehirlenme, ani çok şiddetli baş ağrısı, kendine zarar düşüncesi, ateşle birlikte ense sertliği vb.) sezersen red_flag=true yap ve 112'yi aramasını söyle (zehirlenmede 114).
@@ -3128,7 +3128,15 @@ YANIT yalnızca şu JSON olsun:
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
-        if (r && r.doktora_yonlendir) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
+        // "Doktora yönlendir" kararını protokol verir: YZ işaretlese de kullanıcı bunu açıkça istemediyse ("bilmiyorum" gibi) soruları atlama
+        if (r && r.doktora_yonlendir && acikYonlendirme(kullaniciMetni())) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
+        if (r && r.doktora_yonlendir) {
+          const son = P.msgs[P.msgs.length - 1];
+          if (son && son.who === "ai" && /yönlendir/i.test(son.text)) {
+            son.text = P.turns.filter((x) => x.role === "user").length <= 1 ? "Anlıyorum, birlikte bakalım. Kimin için yardım istiyorsun ve ne oldu, kısaca anlatır mısın?" : "Anladım. Biraz daha anlatır mısın, ne zamandır böyle?";
+            son.quick = []; P.turns[P.turns.length - 1].content = son.text;
+          }
+        }
         // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
         const userTurns = P.turns.filter((x) => x.role === "user").length;
         // Şikâyet anlaşılmadan rapora geçme: YZ "hazır" dese de kullanıcı henüz derdini anlatmadıysa devam
@@ -3201,6 +3209,9 @@ YANIT yalnızca şu JSON olsun:
   const cogul = (ad) => { const a = ad.toLocaleLowerCase("tr"); if (tamlama(a)) return a.slice(0, -1) + "leri"; return a + (kalin(a) ? "lar" : "ler"); };
   const MESLEK_KELIME = "doktor|hekim|hemsire|ebe|fizyoterapist|fizik tedavici|odyolog|diyetisyen|psikolog|podolog|ergoterapist|konusma terapist";
   const YONLENDIR_RE = new RegExp(`(direk|direkt|dogrudan|hemen|bir an once)\\s*(bir\\s*)?(${MESLEK_KELIME})|(${MESLEK_KELIME})(a|e|ya|ye)?\\s*(yonlendir|bagla|gonder)`);
+  // Kullanıcı soruların atlanmasını açıkça istedi mi? (YZ'nin doktora_yonlendir işareti yalnızca buna dayanır)
+  const ACIK_YONLENDIR_RE = /doktor(a)? (baksin|gelsin|gorsun|bakmali|baksa)|hekim (baksin|gelsin|gorsun)|soru(lari)? (sorma|gec|atla|yeter)|uzatma|direk|dogrudan|yonlendir/;
+  const acikYonlendirme = (t) => { const n = C.normalize(t); return DOKTOR_RE.test(n) || YONLENDIR_RE.test(n) || ACIK_YONLENDIR_RE.test(n); };
   const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
   async function doktoraYonlendir() {
     const m = istenenMeslek();
