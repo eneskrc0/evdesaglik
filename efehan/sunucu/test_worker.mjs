@@ -49,6 +49,9 @@ r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = awa
 assert.equal(r.status, 200); assert.equal(v.yanit.reply, "yedek modelden"); assert.equal(v.model, "openai/gpt-oss-20b");
 ok("ana modelin kotası dolunca yedek modelle cevap veriliyor");
 assert.equal(JSON.parse(cagrilar[0].init.body).reasoning_effort, "low"); ok("gpt-oss kısa düşünüyor (reasoning_effort: low)");
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model === "openai/gpt-oss-120b" ? groqYanit("", 503) : groqYanit('{"reply":"kapasite"}'));
+r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = await r.json(); assert.equal(r.status, 200); assert.equal(v.yanit.reply, "kapasite");
+ok("model geçici hata verirse (503) yedek modele geçiliyor");
 cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model !== "llama-3.3-70b-versatile" ? groqYanit("", 429) : groqYanit('{"reply":"llama"}'));
 r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 200);
 assert.equal(JSON.parse(cagrilar[2].init.body).reasoning_effort, undefined); ok("gpt-oss dışı yedek modele düşünme ayarı gönderilmiyor");

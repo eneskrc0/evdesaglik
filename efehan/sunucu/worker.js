@@ -145,7 +145,7 @@ async function groqSohbet(env, ayar, mesajlar, resimler) {
   const yedekler = gorsel ? [] : ((ayar.modeller && Array.isArray(ayar.modeller.YEDEK) && ayar.modeller.YEDEK) || VARSAYILAN_YEDEK).filter((m) => m !== model);
   for (let deneme = 0; deneme < 2; deneme++) {
     const r = await fetch(GROQ + "/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + env.GROQ_API_KEY, "Content-Type": "application/json" }, body: JSON.stringify(govde) });
-    if (r.status === 429) {
+    if (r.status === 429 || r.status === 498 || r.status === 500 || r.status === 502 || r.status === 503) { // yoğun / kapasite dolu / geçici model hatası
       const yedek = yedekler.shift();
       if (yedek) { govde.model = yedek; if (/gpt-oss/.test(yedek)) govde.reasoning_effort = "low"; else delete govde.reasoning_effort; deneme--; continue; }
       return { hata: "yogun", sonra: +r.headers.get("retry-after") || 0 };
