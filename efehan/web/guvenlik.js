@@ -57,6 +57,8 @@
   }
 
   function create(o) {
+    // PIN'ler profilden (o.pinler) gelir; yoksa demo PIN'leri
+    const pinAl = () => Object.assign({ pin: PIN, baski: BASKI_PIN }, (o && o.pinler && o.pinler()) || {});
     const esc = o.esc, hhmm = o.hhmm;
     const S = {};                     // ziyaret durumu, talep kimliğine göre
     let surum = 0, basili = null;
@@ -224,7 +226,7 @@
       if (!aktif(r)) return "";
       const s = durum(r);
       const pinAlani = (baglam) => `<div class="row" style="flex-wrap:nowrap"><input class="inp gz-pin" id="gzPin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" maxlength="4" autocomplete="one-time-code" data-baglam="${baglam}" aria-label="PIN" placeholder="PIN" value="${esc(s.pin)}">
-        <button class="btn primary" type="button" data-gz="pin" data-baglam="${baglam}">${baglam === "sos" ? "İptal et" : "Yolundayım"}</button></div>${s.pinHata ? `<div class="tiny" role="alert" style="color:var(--coral)">${esc(s.pinHata)}</div>` : ""}<div class="tiny muted">Demo PIN: ${PIN}</div>`;
+        <button class="btn primary" type="button" data-gz="pin" data-baglam="${baglam}">${baglam === "sos" ? "İptal et" : "Yolundayım"}</button></div>${s.pinHata ? `<div class="tiny" role="alert" style="color:var(--coral)">${esc(s.pinHata)}</div>` : ""}<div class="tiny muted">${pinAl().pin === PIN ? `Demo PIN: ${PIN}` : "PIN: profilde belirlediğin"}</div>`;
       if (s.sos && !s.sos.iptal) {
         const kalan = Math.max(0, Math.ceil(SOS_IPTAL_SN - (Date.now() - s.sos.t0) / 1000));
         return `<div class="gz-uyari alarm stack" role="alert"><b>Alarm gönderildi</b><div class="small">Güvenlik masası konumunu görüyor ve seni arıyor. ${s.sos.bildirildi ? "112'ye bildirildi (demo)." : `<span data-canli>${kalan}</span> sn içinde iptal edilmezse 112'ye son konumla bildirilir.`}</div>
@@ -252,7 +254,7 @@
         <div class="gz-log">${s.olaylar.slice(0, 8).map((e) => `<div class="tiny ${e.tur}"><b>${esc(e.saat)}</b> ${esc(e.kim)}: ${esc(e.metin)}</div>`).join("") || `<div class="tiny muted">Henüz olay yok.</div>`}</div>
         <div class="row" style="gap:6px">${s.checkin && !s.checkout ? `<button class="btn gz-mini" type="button" data-gz="d-simdi" ${s.kontrol ? "disabled" : ""}>Kontrolü şimdi gönder</button><button class="btn gz-mini" type="button" data-gz="d-hizli" ${s.kontrol && sev < ZINCIR.length - 1 && !s.kontrol.acildi ? "" : "disabled"}>Zinciri hızlandır</button>` : ""}
           ${!s.checkin ? `<button class="btn gz-mini" type="button" data-gz="d-uzak" aria-pressed="${s.uzak}">Konum hatası dene</button>` : ""}</div>
-        <div class="tiny muted">Demo PIN ${PIN} · baskı PIN'i ${BASKI_PIN} (iptal ediyormuş gibi görünür, sessiz alarm verir). Konum yalnızca ziyaret penceresinde ve çalışanın onayıyla kaydedilir; olay yoksa süreli saklanıp silinmesi önerilir (KVKK).</div>`;
+        <div class="tiny muted">${pinAl().pin === PIN ? `Demo PIN ${PIN} · baskı PIN'i ${BASKI_PIN}` : "PIN ve baskı PIN'i profilde belirlendi"} (iptal ediyormuş gibi görünür, sessiz alarm verir). Konum yalnızca ziyaret penceresinde ve çalışanın onayıyla kaydedilir; olay yoksa süreli saklanıp silinmesi önerilir (KVKK).</div>`;
     }
 
     // ---------- etkileşim ----------
@@ -278,10 +280,10 @@
       }
       else if (a === "pin") {
         const pin = (s.pin || "").trim(), bag = t.dataset.baglam;
-        if (pin === PIN || pin === BASKI_PIN) {
+        if (pin === pinAl().pin || pin === pinAl().baski) {
           if (bag === "sos" && s.sos) { s.sos.iptal = true; s.pin = ""; s.pinHata = ""; olay(s, r, "Çalışan", "SOS iptal edildi (yanlış alarm)"); }
           else if (s.kontrol) kontrolCoz(s, r, "“Yolundayım” yanıtı verdi (PIN)");
-          if (pin === BASKI_PIN) sessizAlarm(s, r, "baskı PIN'i girildi");
+          if (pin === pinAl().baski) sessizAlarm(s, r, "baskı PIN'i girildi");
         } else { s.pinHata = "PIN yanlış."; degis(); }
       }
       else if (a === "ac") { if (s.kontrol) { s.kontrol.acildi = Date.now(); olay(s, r, "Çalışan", "Operatörün aramasını açtı"); } }

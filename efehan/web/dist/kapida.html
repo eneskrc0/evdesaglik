@@ -137,6 +137,37 @@ h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -.01em; }
 .satir-kart .sk-ok { color: var(--muted); flex: none; margin-left: 8px; } .satir-kart .sk-ok .ico { width: 20px; height: 20px; }
 .bolum { display: flex; align-items: center; gap: 12px; } .bolum h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; } .bolum::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .durum-pil { align-self: flex-start; }
+/* Profil ve ayarlar */
+.profil-dugme { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--brand-soft); color: var(--brand); font-weight: 800; font-size: 15px; display: grid; place-items: center; }
+.profil-dugme .ico { width: 22px; height: 22px; }
+.bas-harf { font-size: 26px; font-weight: 800; color: var(--brand); background: var(--brand-soft); border-color: transparent; }
+.ayar-grup h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 4px 6px; }
+.ag-kutu { background: var(--phone); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); }
+.menu-satir, .ayar-satir { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: none; padding: 13px 14px; color: var(--ink); min-height: 56px; }
+.ag-kutu > * + * { border-top: 1px solid var(--line); }
+.ms-ico { width: 36px; height: 36px; border-radius: 11px; background: var(--soft); display: grid; place-items: center; flex: none; } .ms-ico .ico { width: 20px; height: 20px; }
+.as-metin { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .as-metin b { font-size: 16px; } .as-metin > span { font-size: 13.5px; color: var(--muted); }
+.anahtar { width: 52px; height: 30px; border-radius: 15px; border: 0; background: var(--line); position: relative; flex: none; padding: 0; transition: background .15s; }
+.anahtar i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
+.anahtar[aria-checked="true"] { background: var(--brand); } .anahtar[aria-checked="true"] i { left: 25px; }
+.profil .ayar-satir { padding: 6px 2px 0; min-height: 0; }
+.cevrimici.kapali { background: var(--muted); }
+details.sss { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; } details.sss summary { font-weight: 700; cursor: pointer; } details.sss div { margin-top: 6px; }
+.hata-metin { color: var(--coral); font-weight: 600; font-size: 15px; } .hata-metin:empty { display: none; }
+.cikis-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--brand); }
+html[data-yazi="buyuk"] .screen { zoom: 1.12; } html[data-yazi="cokbuyuk"] .screen { zoom: 1.25; }
+/* Kayıtlı adresler */
+.adres-cubuk { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: var(--soft); border-radius: 14px; padding: 9px 12px; color: var(--ink); margin-top: 2px; }
+.adres-cubuk > .ico { color: var(--brand); width: 22px; height: 22px; }
+.ac-metin { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; } .ac-metin b { font-size: 15px; } .ac-metin > span { font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-ok { color: var(--brand); font-size: 12px; }
+.adres-secili { display: flex; gap: 10px; align-items: center; border: 1.5px solid var(--brand); background: var(--brand-soft); border-radius: 14px; padding: 10px 12px; }
+.adres-secili .as-ico { color: var(--brand); } .adres-secili > span:nth-child(2) { display: flex; flex-direction: column; gap: 1px; }
+.adres-satir { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 10px; }
+.adres-satir.secili { border-color: var(--brand); background: var(--brand-soft); }
+.as-sec { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: flex-start; border: 0; background: none; text-align: left; padding: 6px 0; color: var(--ink); }
+.as-radyo { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); flex: none; margin-top: 2px; }
+.adres-satir.secili .as-radyo { border: 6px solid var(--brand); }
 .sos { display: flex; gap: 10px; align-items: center; background: var(--coral-soft); color: var(--coral); border-radius: 14px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
 
 /* Sohbet */
@@ -2199,6 +2230,8 @@ YANIT yalnızca şu JSON olsun:
   }
 
   function create(o) {
+    // PIN'ler profilden (o.pinler) gelir; yoksa demo PIN'leri
+    const pinAl = () => Object.assign({ pin: PIN, baski: BASKI_PIN }, (o && o.pinler && o.pinler()) || {});
     const esc = o.esc, hhmm = o.hhmm;
     const S = {};                     // ziyaret durumu, talep kimliğine göre
     let surum = 0, basili = null;
@@ -2366,7 +2399,7 @@ YANIT yalnızca şu JSON olsun:
       if (!aktif(r)) return "";
       const s = durum(r);
       const pinAlani = (baglam) => `<div class="row" style="flex-wrap:nowrap"><input class="inp gz-pin" id="gzPin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" maxlength="4" autocomplete="one-time-code" data-baglam="${baglam}" aria-label="PIN" placeholder="PIN" value="${esc(s.pin)}">
-        <button class="btn primary" type="button" data-gz="pin" data-baglam="${baglam}">${baglam === "sos" ? "İptal et" : "Yolundayım"}</button></div>${s.pinHata ? `<div class="tiny" role="alert" style="color:var(--coral)">${esc(s.pinHata)}</div>` : ""}<div class="tiny muted">Demo PIN: ${PIN}</div>`;
+        <button class="btn primary" type="button" data-gz="pin" data-baglam="${baglam}">${baglam === "sos" ? "İptal et" : "Yolundayım"}</button></div>${s.pinHata ? `<div class="tiny" role="alert" style="color:var(--coral)">${esc(s.pinHata)}</div>` : ""}<div class="tiny muted">${pinAl().pin === PIN ? `Demo PIN: ${PIN}` : "PIN: profilde belirlediğin"}</div>`;
       if (s.sos && !s.sos.iptal) {
         const kalan = Math.max(0, Math.ceil(SOS_IPTAL_SN - (Date.now() - s.sos.t0) / 1000));
         return `<div class="gz-uyari alarm stack" role="alert"><b>Alarm gönderildi</b><div class="small">Güvenlik masası konumunu görüyor ve seni arıyor. ${s.sos.bildirildi ? "112'ye bildirildi (demo)." : `<span data-canli>${kalan}</span> sn içinde iptal edilmezse 112'ye son konumla bildirilir.`}</div>
@@ -2394,7 +2427,7 @@ YANIT yalnızca şu JSON olsun:
         <div class="gz-log">${s.olaylar.slice(0, 8).map((e) => `<div class="tiny ${e.tur}"><b>${esc(e.saat)}</b> ${esc(e.kim)}: ${esc(e.metin)}</div>`).join("") || `<div class="tiny muted">Henüz olay yok.</div>`}</div>
         <div class="row" style="gap:6px">${s.checkin && !s.checkout ? `<button class="btn gz-mini" type="button" data-gz="d-simdi" ${s.kontrol ? "disabled" : ""}>Kontrolü şimdi gönder</button><button class="btn gz-mini" type="button" data-gz="d-hizli" ${s.kontrol && sev < ZINCIR.length - 1 && !s.kontrol.acildi ? "" : "disabled"}>Zinciri hızlandır</button>` : ""}
           ${!s.checkin ? `<button class="btn gz-mini" type="button" data-gz="d-uzak" aria-pressed="${s.uzak}">Konum hatası dene</button>` : ""}</div>
-        <div class="tiny muted">Demo PIN ${PIN} · baskı PIN'i ${BASKI_PIN} (iptal ediyormuş gibi görünür, sessiz alarm verir). Konum yalnızca ziyaret penceresinde ve çalışanın onayıyla kaydedilir; olay yoksa süreli saklanıp silinmesi önerilir (KVKK).</div>`;
+        <div class="tiny muted">${pinAl().pin === PIN ? `Demo PIN ${PIN} · baskı PIN'i ${BASKI_PIN}` : "PIN ve baskı PIN'i profilde belirlendi"} (iptal ediyormuş gibi görünür, sessiz alarm verir). Konum yalnızca ziyaret penceresinde ve çalışanın onayıyla kaydedilir; olay yoksa süreli saklanıp silinmesi önerilir (KVKK).</div>`;
     }
 
     // ---------- etkileşim ----------
@@ -2420,10 +2453,10 @@ YANIT yalnızca şu JSON olsun:
       }
       else if (a === "pin") {
         const pin = (s.pin || "").trim(), bag = t.dataset.baglam;
-        if (pin === PIN || pin === BASKI_PIN) {
+        if (pin === pinAl().pin || pin === pinAl().baski) {
           if (bag === "sos" && s.sos) { s.sos.iptal = true; s.pin = ""; s.pinHata = ""; olay(s, r, "Çalışan", "SOS iptal edildi (yanlış alarm)"); }
           else if (s.kontrol) kontrolCoz(s, r, "“Yolundayım” yanıtı verdi (PIN)");
-          if (pin === BASKI_PIN) sessizAlarm(s, r, "baskı PIN'i girildi");
+          if (pin === pinAl().baski) sessizAlarm(s, r, "baskı PIN'i girildi");
         } else { s.pinHata = "PIN yanlış."; degis(); }
       }
       else if (a === "ac") { if (s.kontrol) { s.kontrol.acildi = Date.now(); olay(s, r, "Çalışan", "Operatörün aramasını açtı"); } }
@@ -3257,6 +3290,18 @@ YANIT yalnızca şu JSON olsun:
     check: I('<path d="M5 12l5 5 9-10"/>'),
     alert: I('<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17v.01"/>'),
     route: I('<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>'),
+    kisi: I('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
+    ayar: I('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    kilit: I('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+    kalkan: I('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+    soru: I('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>'),
+    bilgi: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'),
+    kart: I('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>'),
+    gorunum: I('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/>'),
+    grup: I('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.5 1.3 5.5 4"/>'),
+    telefon: I('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
+    cikis: I('<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/>'),
+    yildiz: I('<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/>'),
     zil: I('<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/>'),
     ileri: I('<path d="M9 5l7 7-7 7"/>'),
     takvim: I('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M10 15.5l2-1.5v4"/>'),
@@ -3269,9 +3314,11 @@ YANIT yalnızca şu JSON olsun:
   const AVATAR = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 17.5c0-6 5-9.5 11-9.5s11 3.5 11 9.5"/><path d="M16.5 17.5h23l-1 4h-21z"/><path d="M28 10.5v5M25.5 13h5" stroke="var(--brand)" stroke-width="2.2"/><path d="M18 22c0 7 4.5 12 10 12s10-5 10-12"/><path d="M8 52c1.5-8.5 9-13 20-13s18.5 4.5 20 13"/></svg>`;
   const MARKA = `<span class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</span>`;
   const BLD = { p: [], h: [] }, BLD_ANAHTAR = { p: new Set(), h: new Set() }, BLD_PANEL = { p: false, h: false }; // bildirimler (aşağıda)
-  // Uygulama başlığı: logo + bildirim zili (okunmamış sayısı; dokununca bildirim listesi)
-  const appbar = (taraf) => { const n = BLD[taraf].filter((x) => !x.okundu).length;
-    return `<div class="appbar">${MARKA}<button class="zil" type="button" data-zil="${taraf}" aria-label="${n ? `Bildirimler, ${n} okunmamış` : "Bildirimler"}" aria-expanded="${BLD_PANEL[taraf]}">${ICO.zil}<span class="zil-rozet"${n ? "" : " hidden"}>${n > 9 ? "9+" : n}</span></button></div>`; };
+  // Uygulama başlığı: logo + bildirim zili (okunmamış sayısı; dokununca bildirim listesi) + profil düğmesi (baş harfler)
+  const appbar = (taraf = "p") => { const n = BLD[taraf].filter((x) => !x.okundu).length;
+    const bas = taraf === "h" ? person(H.pid).initials : ((PR.h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr") || "");
+    return `<div class="appbar">${MARKA}<span class="row" style="gap:2px;flex-wrap:nowrap"><button class="zil" type="button" data-zil="${taraf}" aria-label="${n ? `Bildirimler, ${n} okunmamış` : "Bildirimler"}" aria-expanded="${BLD_PANEL[taraf]}">${ICO.zil}<span class="zil-rozet"${n ? "" : " hidden"}>${n > 9 ? "9+" : n}</span></button>
+      <button class="profil-dugme" type="button" data-act="${taraf === "h" ? "hprofil" : "profil"}" aria-label="Profil ve ayarlar">${bas ? esc(bas) : ICO.kisi}</button></span></div>`; };
   const svcIcon = (code) => {
     const s = svc(code) || {};
     if (/bas|yara|pansuman/.test(code)) return ICO.yarabandi;
@@ -3309,6 +3356,76 @@ YANIT yalnızca şu JSON olsun:
   // Toplu taşıma yolculuk planı (toplu.js; Enes'in GTFS ağı) ve çevrimdışı adres arama (adres.js; OSM sokak adları)
   const TOPLU = window.KapidaToplu && window.KAPIDA_TOPLU && window.EVDE_DATA.yol ? window.KapidaToplu.create(window.KAPIDA_TOPLU, window.EVDE_DATA.yol.noktalar) : null;
   const ADR = window.KapidaAdres && window.KAPIDA_ADRES ? window.KapidaAdres.create(window.KAPIDA_ADRES) : null;
+
+  // ---------- Kayıtlı adresler (yemek uygulamalarındaki gibi: bir kez yaz, sonra seç) ----------
+  // Adresler bu tarayıcıda, hesaba göre saklanır (localStorage; prototip, sunucuya gitmez). Demo hasta hesabında iki sentetik adres hazır.
+  const AB = { hesap: "misafir", liste: [], secili: null };
+  const ABASLIK = ["Ev", "İş", "Annemin evi", "Babamın evi"];
+  const adresAnahtar = () => "anindasaglik_adresler_" + AB.hesap;
+  // Bir OSM adres sonucunu (ll) yol paketindeki en yakın noktaya yerleştir: süre matrisi bu noktalarla çalışır
+  function noktaBul(ll) {
+    const nok = window.EVDE_DATA.yol.noktalar; let en = 0, ed = 1e9;
+    nok.forEach((n, i) => { const d = ADR ? ADR.km(ll, [n[0], n[1]]) : 1e9; if (d < ed) { ed = d; en = i; } });
+    const n = nok[en];
+    return { lat: n[0], lon: n[1], km: ed, ilce: window.EVDE_DATA.districts.some((d) => d.name === n[2]) ? n[2] : null };
+  }
+  const tarifMetni = (a) => [a.bina && `Bina no ${a.bina}`, a.kat && `${a.kat}. kat`, a.daire && `daire ${a.daire}`, a.tarif].filter(Boolean).join(", ");
+  function adresDefteriYaz() { try { localStorage.setItem(adresAnahtar(), JSON.stringify({ liste: AB.liste, secili: AB.secili })); } catch (e) { /* gizli sekme ya da yer yok: bellekte kalır */ } }
+  function adresDefteriYukle(hesap, ornekle) {
+    AB.hesap = hesap; AB.liste = []; AB.secili = null; let kayit = null;
+    try { kayit = JSON.parse(localStorage.getItem(adresAnahtar()) || "null"); } catch (e) { kayit = null; }
+    if (kayit && Array.isArray(kayit.liste)) { AB.liste = kayit.liste; AB.secili = kayit.secili; }
+    else if (ornekle && ADR) { // demo hasta: sentetik iki adres
+      const ornek = (baslik, ara, ilce, ek) => { const x = ADR.ara(ara)[0]; if (!x) return null; const n = noktaBul(x.ll);
+        return { id: "A" + Math.random().toString(36).slice(2, 8), baslik, adres: x.ad + (x.alt ? ", " + x.alt : ""), ilce: n.ilce || ilce, nokta: { lat: n.lat, lon: n.lon, km: n.km }, ...ek }; };
+      AB.liste = [ornek("Ev", "Kazımdirik Mah. 372. Sok.", "Bornova", { bina: "12", kat: "3", daire: "7", tarif: "zil: Demir", varsayilan: true }),
+        ornek("Annemin evi", "Bostanlı", "Karşıyaka", { bina: "5", kat: "1", daire: "2", tarif: "yeşil bina, bahçe kapısından" })].filter(Boolean);
+      adresDefteriYaz();
+    }
+    if (!AB.liste.some((a) => a.id === AB.secili)) AB.secili = ((AB.liste.find((a) => a.varsayilan) || AB.liste[0]) || {}).id || null;
+    const a = AB.liste.find((x) => x.id === AB.secili); if (a) adresUygula(a);
+  }
+  function adresUygula(a) {
+    AB.secili = a.id;
+    if (a.ilce) P.info.district = a.ilce;
+    P.info.nokta = a.nokta ? { ...a.nokta, adres: a.adres } : null;
+    P.info.adresYazi = a.adres || ""; P.info.tarif = tarifMetni(a); P.saatler = null;
+  }
+  const seciliAdres = () => AB.liste.find((a) => a.id === AB.secili) || null;
+
+  // ---------- Profil ve ayarlar (hasta + sağlık çalışanı) ----------
+  // Bu tarayıcıda, hesaba göre localStorage'da (prototip; sunucuya gitmez). Sağlık bilgisi, T.C. no, kart/banka numarası tutulmaz.
+  const yerel = { oku: (k, v) => { try { const x = JSON.parse(localStorage.getItem(k) || "null"); return x == null ? v : x; } catch (e) { return v; } },
+    yaz: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* gizli sekme: bellekte kalır */ } } };
+  const GORUNUM = Object.assign({ tema: "sistem", yazi: "normal" }, yerel.oku("anindasaglik_gorunum", {}));
+  function gorunumUygula() {
+    const r = document.documentElement;
+    if (GORUNUM.tema === "sistem") delete r.dataset.theme; else r.dataset.theme = GORUNUM.tema === "koyu" ? "dark" : "light";
+    if (GORUNUM.yazi === "normal") delete r.dataset.yazi; else r.dataset.yazi = GORUNUM.yazi;
+  }
+  gorunumUygula();
+  const hastaVarsayilan = () => ({ ad: "", telefon: "", eposta: "", yakinlar: [], odeme: "kart_kapida",
+    bildirim: { hatirlatma: true, yolda: true, puan: true, kampanyaSms: false, kampanyaEposta: false }, acil: { ad: "", telefon: "", yakinlik: "" }, destek: [] });
+  const PR = { hesap: null, h: hastaVarsayilan() };
+  function hastaProfiliYukle(hesap, ornek) {
+    PR.hesap = hesap;
+    const k = yerel.oku("anindasaglik_profil_" + hesap, null);
+    PR.h = Object.assign(hastaVarsayilan(), k || (ornek ? { ad: ornek.ad, telefon: "0532 000 00 00", yakinlar: [{ ad: "Fatma", yakinlik: "Annem" }, { ad: "Ahmet", yakinlik: "Babam" }] } : {}));
+    PR.h.bildirim = Object.assign(hastaVarsayilan().bildirim, PR.h.bildirim || {}); PR.h.acil = Object.assign(hastaVarsayilan().acil, PR.h.acil || {});
+  }
+  const hastaProfiliYaz = () => yerel.yaz("anindasaglik_profil_" + PR.hesap, PR.h);
+  const calisanVarsayilan = () => ({ cevrimici: true, kapaliHizmet: [], pin: "", baskiPin: "", acil: { ad: "", telefon: "", yakinlik: "" },
+    bildirim: { yeniTalep: true, ses: true, rota: true, puan: true }, destek: [] });
+  const CP = {};
+  function calisanProfili(pid) {
+    if (!pid) return calisanVarsayilan();
+    if (!CP[pid]) { const k = yerel.oku("anindasaglik_calisan_" + pid, {}); CP[pid] = Object.assign(calisanVarsayilan(), k); CP[pid].bildirim = Object.assign(calisanVarsayilan().bildirim, CP[pid].bildirim || {}); }
+    return CP[pid];
+  }
+  const calisanProfiliYaz = (pid) => yerel.yaz("anindasaglik_calisan_" + pid, calisanProfili(pid));
+  // Eşleştirme: çevrimdışı çalışan ya da kapattığı hizmet hastaya önerilmez
+  const calisiyor = (c) => { const cp = CP[c.provider_id]; return !cp || (cp.cevrimici && !cp.kapaliHizmet.includes(c.service)); };
+  const telGecerli = (t) => /^0?5\d{9}$/.test(String(t).replace(/\D/g, "").replace(/^90/, ""));
   const ulasim = (pid) => (repo.providers[pid] && repo.providers[pid].transport) || "araba";
   const ulasimEtiket = (pid) => (ulasim(pid) === "toplu" ? "🚌 toplu taşıma" : "🚗 araba");
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
@@ -3319,7 +3436,7 @@ YANIT yalnızca şu JSON olsun:
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
-  const G = window.KapidaGuvenlik.create({ esc, hhmm: C.hhmm, kisi: person, hizmet: svc, tarih: "16.11.2026", konum: calisanKonumu,
+  const G = window.KapidaGuvenlik.create({ esc, hhmm: C.hhmm, kisi: person, pinler: () => { const c = calisanProfili(H.pid); return c.pin ? { pin: c.pin, baski: c.baskiPin } : null; }, hizmet: svc, tarih: "16.11.2026", konum: calisanKonumu,
     metin: (r) => (P.request && r.id === P.request.id ? transcriptText() : ""), bildir: (taraf, m) => { if (taraf === "p") P.toast = m; else H.toast = m; } });
   const gzR = () => (P.request && P.request.provider_id === H.pid ? P.request : null); // çalışan ekranındaki aktif ziyaret
   const REQ = []; // tüm talepler (yerel + ortak)
@@ -3567,7 +3684,7 @@ YANIT yalnızca şu JSON olsun:
     P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
     const hello = "Merhaba, ben anında sağlık asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
-      P.msgs.push({ who: "ai", text: hello, quick: ["Annem için", "Babam için", "Kendim için"] });
+      P.msgs.push({ who: "ai", text: hello, quick: PR.h.yakinlar.length ? [...PR.h.yakinlar.slice(0, 3).map((y) => `${y.yakinlik} için`), "Kendim için"] : ["Annem için", "Babam için", "Kendim için"] });
     } else {
       P.msgs.push({ who: "ai", text: hello + "\n\n" + DEMO_Q[0][0], quick: DEMO_Q[0][1] });
     }
@@ -3875,6 +3992,7 @@ YANIT yalnızca şu JSON olsun:
   const meslekHizmetleri = (m) => [...(repo.profession_services[m] || [])].filter((s) => svc(s).category !== "tele").sort((a, b) => svc(a).name_tr.localeCompare(svc(b).name_tr, "tr"));
   // İstenen meslek varsa listede yalnızca o meslek (doktor isteğinde uzman hekim de); plan yoksa doktor adayları kalır
   function meslekSuz(t, cands) {
+    cands = cands.filter(calisiyor);
     const m = t && t.profession;
     if (!m) return cands;
     const ok = HEKIMLER.has(m) ? (p) => HEKIMLER.has(p) : t.level === "PLANLI" ? (p) => p === m : null;
@@ -3900,10 +4018,11 @@ YANIT yalnızca şu JSON olsun:
       <div class="steplabel">Adım ${n}/4 · ${labels[n - 1]}</div></div>`;
   }
   function renderP() {
+    { const odak = document.activeElement; if (["profil", "adresForm"].includes(P.screen) && odak && $("#pScreen").contains(odak) && /INPUT|TEXTAREA/.test(odak.tagName) && !P.zorla) return; }
     if (SV.acik && !["chat", "building", "summary", "emergency"].includes(P.screen)) SV.kapat();
     const el = $("#pScreen");
-    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency }[P.screen] || pHome;
-    el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
+    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency, adresForm: pAdresForm, profil: pProfil }[P.screen] || pHome;
+    el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.adresSec ? pAdresSec() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
     if (P.toast) { const t = P.toast; setTimeout(() => { if (P.toast === t) { P.toast = ""; const n = $("#pScreen .toast"); if (n) n.remove(); } }, 3800); }
     if (P.screen === "chat") { const m = $("#pMsgs"); if (m) m.scrollTop = m.scrollHeight; }
   }
@@ -3933,9 +4052,15 @@ YANIT yalnızca şu JSON olsun:
         <button class="btn primary block" type="button" data-act="takip" data-id="${aktif.id}">Takip et${aktif.status === "kabul" && !aktif.gun ? " · kapı kodu burada" : ""}</button></div>` : ""}
       ${liste.length ? `<details class="randevularim"${aktif ? "" : " open"}><summary><b>Randevularım</b> <span class="small muted">(${liste.length})</span></summary><div class="stack" style="gap:6px;margin-top:8px">${liste.map(satir).join("")}</div></details>` : ""}`;
   }
+  // Ana sayfa üstünde seçili adres (dokununca kayıtlı adresler)
+  function adresCubugu() {
+    const a = seciliAdres();
+    return `<button class="adres-cubuk" type="button" data-act="adresler" aria-label="Adres: ${esc(a ? a.baslik : "seçilmedi")} — değiştir">${ICO.pin}
+      <span class="ac-metin">${a ? `<b>${esc(a.baslik)} <span class="ac-ok">▾</span></b><span>${esc([a.adres, a.ilce && !String(a.adres).includes(a.ilce) ? a.ilce : ""].filter(Boolean).join(", "))}</span>` : `<b>Adres ekle <span class="ac-ok">▾</span></b><span>Bir kez kaydet, her seferinde yazma</span>`}</span></button>`;
+  }
   function pHome() {
-    const ad = window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : "";
-    return `${appbar("p")}<div class="pad stack" style="gap:16px;padding-top:10px">
+    const ad = PR.h.ad ? " " + PR.h.ad.trim().split(/\s+/)[0] : "";
+    return `${appbar("p")}${ADR ? `<div style="padding:0 18px">${adresCubugu()}</div>` : ""}<div class="pad stack" style="gap:16px;padding-top:10px">
       <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
       ${randevuKartlari()}
       <div class="hero"><span class="deco"></span>
@@ -3949,6 +4074,165 @@ YANIT yalnızca şu JSON olsun:
       <div class="stack" style="gap:10px">${TILES.map(([code, name, pre, aciklama]) => `<button class="satir-kart" type="button" data-tile="${esc(pre)}">
           <span class="sk-ico">${svcIcon(code)}</span><span class="ayrac"></span><span class="sk-metin"><b>${esc(name)}</b><span>${esc(aciklama)} · <span class="num">${tl(fromPrice(code))} TL</span>'den</span></span><span class="sk-ok">${ICO.ileri}</span></button>`).join("")}</div>
       <div class="sos">${ICO.alert}<span>Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi acil durumlarda beklemeyin: <b>112</b></span></div>
+    </div>`;
+  }
+  // ---------- Profil ekranları (ortak parçalar) ----------
+  const anahtar = (id, acik, etiket, alt = "") => `<div class="ayar-satir"><span class="as-metin"><b>${esc(etiket)}</b>${alt ? `<span>${esc(alt)}</span>` : ""}</span>
+    <button class="anahtar" type="button" role="switch" aria-checked="${!!acik}" aria-label="${esc(etiket)}" data-anahtar="${id}"><i></i></button></div>`;
+  const menuSatir = (ico, baslik, alt, veri) => `<button class="menu-satir" type="button" ${veri}><span class="ms-ico">${ico}</span><span class="as-metin"><b>${esc(baslik)}</b>${alt ? `<span>${esc(alt)}</span>` : ""}</span><span class="sk-ok">${ICO.ileri}</span></button>`;
+  const grup = (baslik, ic) => `<section class="ayar-grup"><h3>${esc(baslik)}</h3><div class="ag-kutu">${ic}</div></section>`;
+  const secenek = (ad, deger, secenekler) => `<div class="seg">${secenekler.map(([v, l]) => `<button class="chip" type="button" data-secim="${ad}" data-deger="${v}" aria-pressed="${deger === v}">${esc(l)}</button>`).join("")}</div>`;
+  function gorunumHtml() {
+    return `<div class="stack" style="gap:14px"><div class="stack small" style="gap:6px"><b>Yazı boyutu</b>${secenek("yazi", GORUNUM.yazi, [["normal", "Normal"], ["buyuk", "Büyük"], ["cokbuyuk", "Çok büyük"]])}<span class="tiny muted">Okumakta zorlanan yakınların için büyütebilirsin.</span></div>
+      <div class="stack small" style="gap:6px"><b>Tema</b>${secenek("tema", GORUNUM.tema, [["sistem", "Telefonla aynı"], ["acik", "Açık"], ["koyu", "Koyu"]])}</div></div>`;
+  }
+  const SSS = [["Teşhis koyuyor musunuz?", "Hayır. Asistan yalnızca anlattıklarını toplar ve sağlık çalışanına rapor olarak iletir; kararı sağlık çalışanı verir."],
+    ["Acil bir durumda ne yapmalıyım?", "Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi durumlarda beklemeden 112'yi ara. Uygulama acil durumda randevu vermez."],
+    ["Fiyat nasıl belirleniyor?", "Yapay zekâ bir fiyat önerir, sağlık çalışanı ±%10 içinde teklif verir. Seçmeden önce toplam tutarı görürsün; rotası uygun ziyaretlerde paylaşım indirimi sana yansır."],
+    ["Hemşire neden doktor planı istiyor?", "Hemşire, fizyoterapist gibi meslekler yönetmelik gereği hekimin planı ya da reçetesiyle hizmet verir."],
+    ["Kapıdaki kişinin doğru kişi olduğunu nasıl anlarım?", "Takip ekranındaki 4 haneli kapı kodunu ve fotoğrafı kapıdaki kişiyle karşılaştır. Eşleşmiyorsa kapıyı açma ve 'Sorun bildir'e bas."],
+    ["Verilerim nerede?", "Bu prototipte profil ve adreslerin yalnızca bu cihazda saklanır, sunucuya gönderilmez. 'Gizlilik ve verilerim' bölümünden indirebilir ya da silebilirsin."]];
+  function yardimHtml(taraf) {
+    const liste = taraf === "h" ? calisanProfili(H.pid).destek : PR.h.destek;
+    return `<div class="stack" style="gap:8px">${SSS.map(([q, a]) => `<details class="sss"><summary>${esc(q)}</summary><div class="small">${esc(a)}</div></details>`).join("")}</div>
+      <div class="stack small" style="gap:6px;margin-top:8px"><b>Destek ekibine yaz</b><textarea class="inp" id="${taraf}DestekMetin" rows="3" maxlength="600" placeholder="Sorununu ya da önerini yaz (sağlık bilgisi yazma)"></textarea>
+        <button class="btn primary" type="button" data-act="${taraf}destek">Gönder</button><span class="tiny muted">Prototip: mesaj bu cihazda saklanır, gerçek bir destek ekibine gitmez.</span>
+        ${liste.length ? `<div class="tiny muted">Gönderdiklerin: ${liste.length} mesaj · son: ${esc(liste[liste.length - 1].tarih)}</div>` : ""}</div>`;
+  }
+  const hakkindaHtml = () => `<div class="stack small" style="gap:8px"><div class="row" style="gap:10px">${MARKA}</div>
+    <div>Evde sağlık hizmetine hızlı ve güvenli ulaşım prototipi · GAZİ AI TECH 2026 · sürüm 0.21.11</div>
+    <div class="muted">Yapay zekâ teşhis koymaz, tedavi önermez; acil kararı kaynaklı kurallardan gelir. Veriler sentetiktir (İzmir).</div>
+    <div class="muted">Harita ve adresler © OpenStreetMap katkıcıları · trafik: TomTom 2025 · toplu taşıma: ESHOT/İZBAN açık verisi (GTFS) · bildirim modeli: ekip simülasyonu.</div></div>`;
+  const gizlilikHtml = (taraf) => `<div class="stack small" style="gap:10px">
+    <div class="note">Bu prototipte profilin, adreslerin ve ayarların yalnızca <b>bu cihazda</b> saklanır; sunucuya gönderilmez. Sohbet metni yalnızca yapay zekâ yanıtı için sunucudan geçer ve orada saklanmaz. ${taraf === "h" ? "Konumun yalnızca ziyaret penceresinde (yoldayken ve ziyarette) kaydedilir." : "T.C. kimlik no, kart ya da banka numarası istemeyiz."}</div>
+    <div class="muted">KVKK kapsamında verilerine erişme, düzeltme ve silme hakkın var. Gerçek uygulamada bu talepler hesap üzerinden işlenir.</div>
+    <button class="btn" type="button" data-act="${taraf}veriIndir">Verilerimi indir (JSON)</button>
+    ${taraf === "p" ? `<button class="btn" type="button" data-act="sohbetSil">Bu oturumdaki sohbeti sil</button>` : ""}
+    ${(taraf === "h" ? H.silOnay : P.silOnay) ? `<div class="card stack" style="gap:8px;border-color:var(--coral)"><b style="color:var(--coral)">Bu cihazdaki tüm verilerin silinsin mi?</b><span class="muted">Profil, ${taraf === "p" ? "adresler, " : ""}ayarlar silinir ve çıkış yapılır. Geri alınamaz.</span>
+      <div class="row"><button class="btn coral" type="button" data-act="${taraf}hesapSilEvet">Evet, sil</button><button class="btn" type="button" data-act="${taraf}hesapSilHayir">Vazgeç</button></div></div>`
+      : `<button class="btn" type="button" data-act="${taraf}hesapSil" style="color:var(--coral)">Hesabımı ve bu cihazdaki verilerimi sil</button>`}</div>`;
+  const altBaslik = (taraf, baslik) => `${appbar(taraf)}<div class="pad stack" style="gap:14px"><button class="back" type="button" data-act="${taraf}profilGeri">${ICO.back} Profil</button><h2 style="font-size:24px">${esc(baslik)}</h2>`;
+  const cikisDugmesi = (taraf) => window.KAPIDA_OTURUM ? `<button class="btn block cikis-btn" type="button" data-act="cikisYap">${ICO.cikis} Çıkış yap</button>` : `<div class="tiny muted" style="text-align:center">Demo hesabıyla girmedin (hesapsız görünüm).</div>`;
+
+  // ---------- Hasta profili ----------
+  function pProfil() {
+    const b = P.profilBolum, h = PR.h;
+    if (b === "kisisel") return `${altBaslik("p", "Kişisel bilgiler")}
+      <label class="stack small" style="gap:4px"><b>Ad soyad</b><input class="inp" id="prAd" maxlength="60" autocomplete="name" value="${esc(h.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Cep telefonu</b><input class="inp" id="prTel" type="tel" inputmode="tel" maxlength="16" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(h.telefon)}"><span class="tiny muted">Sağlık çalışanı seni bu numaradan arar; numaran ona gizli gösterilir.</span></label>
+      <label class="stack small" style="gap:4px"><b>E-posta</b> <span class="muted">(isteğe bağlı)</span><input class="inp" id="prEposta" type="email" maxlength="80" autocomplete="email" value="${esc(h.eposta)}"></label>
+      <div class="hata-metin" id="prHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="kisiselKaydet">Kaydet</button></div>`;
+    if (b === "yakinlar") return `${altBaslik("p", "Yakınlarım")}
+      <div class="small muted">Sık yardım istediğin kişiler. Sohbette "kimin için" sorusunda tek dokunuşla seçersin. Sağlık bilgisi kaydetmeyiz; her talepte o anki durumu anlatırsın.</div>
+      <div class="stack" style="gap:8px">${h.yakinlar.map((y, i) => `<div class="adres-satir"><span class="as-metin" style="flex:1;padding:6px 0"><b>${esc(y.yakinlik)}</b><span>${esc(y.ad || "")}</span></span><button class="btn ghost" type="button" data-yakin-sil="${i}" style="color:var(--muted)">Kaldır</button></div>`).join("") || `<div class="muted small">Henüz eklemedin.</div>`}</div>
+      <div class="card stack" style="gap:8px"><b class="small">Yakın ekle</b>${secenek("yakinlik", P.yakinTaslak || "Annem", [["Annem", "Annem"], ["Babam", "Babam"], ["Eşim", "Eşim"], ["Çocuğum", "Çocuğum"], ["Anneannem", "Anneannem"], ["Babaannem", "Babaannem"], ["Dedem", "Dedem"]])}
+        <input class="inp" id="prYakinAd" maxlength="40" placeholder="Adı (isteğe bağlı)"><button class="btn primary" type="button" data-act="yakinEkle">Ekle</button></div></div>`;
+    if (b === "odeme") return `${altBaslik("p", "Ödeme tercihi")}
+      <div class="stack" style="gap:8px">${[["kart_kapida", "Ziyarette kartla", "Sağlık çalışanının POS cihazıyla"], ["nakit", "Ziyarette nakit", "Tam tutarı hazırla"], ["uygulama", "Uygulamadan kartla", "Yakında · gerçek uygulamada güvenli ödeme altyapısıyla"]].map(([v, l, a]) =>
+        `<button class="adres-satir${h.odeme === v ? " secili" : ""}" type="button" data-secim="odeme" data-deger="${v}" ${v === "uygulama" ? "disabled" : ""} style="text-align:left;width:100%;background:none;${v === "uygulama" ? "opacity:.5" : ""}"><span class="as-radyo"></span><span class="as-metin" style="padding:6px 0"><b>${l}</b><span>${a}</span></span></button>`).join("")}</div>
+      <div class="tiny muted">Kart bilgisi bu prototipte istenmez ve saklanmaz.</div></div>`;
+    if (b === "bildirim") return `${altBaslik("p", "Bildirimler")}<div class="ag-kutu">
+      ${anahtar("p.hatirlatma", h.bildirim.hatirlatma, "Randevu hatırlatması", "Ziyaretten 1 saat ve 15 dk önce")}${anahtar("p.yolda", h.bildirim.yolda, "Sağlık çalışanı yola çıkınca", "Canlı takip bağlantısıyla")}
+      ${anahtar("p.puan", h.bildirim.puan, "Ziyaret sonrası puanlama")}${anahtar("p.kampanyaSms", h.bildirim.kampanyaSms, "Kampanya ve duyurular (SMS)", "İzin vermezsen gönderilmez")}${anahtar("p.kampanyaEposta", h.bildirim.kampanyaEposta, "Kampanya ve duyurular (e-posta)")}</div></div>`;
+    if (b === "gorunum") return `${altBaslik("p", "Görünüm ve erişilebilirlik")}${gorunumHtml()}<div class="ag-kutu">${anahtar("p.sesliOku", P.voice, "Asistanın yanıtlarını sesli oku", "Yazılı sohbette de")}</div></div>`;
+    if (b === "acil") return `${altBaslik("p", "Acil durum kişisi")}
+      <div class="small muted">Acil ekranında 112'nin yanında bu kişiyi tek dokunuşla arayabilirsin. Kimseye otomatik haber verilmez.</div>
+      <label class="stack small" style="gap:4px"><b>Adı</b><input class="inp" id="prAcilAd" maxlength="40" value="${esc(h.acil.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Yakınlığı</b><input class="inp" id="prAcilYakin" maxlength="30" placeholder="ör. Oğlum" value="${esc(h.acil.yakinlik)}"></label>
+      <label class="stack small" style="gap:4px"><b>Telefonu</b><input class="inp" id="prAcilTel" type="tel" inputmode="tel" maxlength="16" placeholder="05xx xxx xx xx" value="${esc(h.acil.telefon)}"></label>
+      <div class="hata-metin" id="prHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="acilKaydet">Kaydet</button></div>`;
+    if (b === "randevular") { const liste = (P.randevular || []).map((id) => (P.request && P.request.id === id ? P.request : REQ.find((x) => x.id === id))).filter(Boolean);
+      return `${altBaslik("p", "Randevularım")}<div class="stack" style="gap:6px">${liste.length ? liste.map((r) => `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}"><span><b>${esc(svc(r.service).name_tr)}</b><span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)} · ${tl(r.price.patient_pays)} TL</span></span><span class="pill ${randevuDurumu(r)[1]}">${esc(r.puan ? randevuDurumu(r)[0] + " · " + "★".repeat(r.puan.yildiz) : randevuDurumu(r)[0])}</span></button>`).join("") : `<div class="muted small">Henüz randevun yok.</div>`}</div></div>`; }
+    if (b === "gizlilik") return `${altBaslik("p", "Gizlilik ve verilerim")}${gizlilikHtml("p")}</div>`;
+    if (b === "yardim") return `${altBaslik("p", "Yardım ve destek")}${yardimHtml("p")}</div>`;
+    if (b === "hakkinda") return `${altBaslik("p", "Hakkında")}${hakkindaHtml()}</div>`;
+    const bas = (h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr");
+    const rs = (P.randevular || []).length;
+    return `${appbar()}<div class="pad stack" style="gap:16px">
+      <button class="back" type="button" data-act="home">${ICO.back} Ana sayfa</button>
+      <div class="profil"><div class="who"><span class="profil-foto bas-harf">${bas ? esc(bas) : ICO.kisi}</span><div style="min-width:0"><div class="profil-ad">${esc(h.ad || "Misafir")}</div>
+        <div class="small muted">${esc(h.telefon || "Telefon eklenmedi")}</div><button class="btn ghost" type="button" data-profil="kisisel" style="padding:4px 0">Bilgilerimi düzenle</button></div></div></div>
+      ${grup("Hesap", menuSatir(ICO.kisi, "Kişisel bilgiler", h.ad ? "Ad, telefon, e-posta" : "Adını ve telefonunu ekle", 'data-profil="kisisel"') + menuSatir(ICO.pin, "Adreslerim", AB.liste.length ? `${AB.liste.length} kayıtlı adres · ${seciliAdres() ? seciliAdres().baslik : ""}` : "Adres ekle", 'data-act="adresler"')
+        + menuSatir(ICO.grup, "Yakınlarım", h.yakinlar.length ? h.yakinlar.map((y) => y.yakinlik).join(", ") : "Sık yardım istediğin kişiler", 'data-profil="yakinlar"') + menuSatir(ICO.kart, "Ödeme tercihi", { kart_kapida: "Ziyarette kartla", nakit: "Ziyarette nakit", uygulama: "Uygulamadan kartla" }[h.odeme], 'data-profil="odeme"')
+        + menuSatir(ICO.takvim, "Randevularım", rs ? `${rs} randevu` : "Henüz randevu yok", 'data-profil="randevular"'))}
+      ${grup("Tercihler", menuSatir(ICO.zil, "Bildirimler", Object.values(h.bildirim).filter(Boolean).length + " bildirim açık", 'data-profil="bildirim"') + menuSatir(ICO.gorunum, "Görünüm ve erişilebilirlik", `Yazı: ${{ normal: "normal", buyuk: "büyük", cokbuyuk: "çok büyük" }[GORUNUM.yazi]} · tema: ${{ sistem: "telefonla aynı", acik: "açık", koyu: "koyu" }[GORUNUM.tema]}`, 'data-profil="gorunum"'))}
+      ${grup("Güvenlik", menuSatir(ICO.telefon, "Acil durum kişisi", h.acil.ad ? `${h.acil.ad}${h.acil.yakinlik ? " · " + h.acil.yakinlik : ""}` : "Eklenmedi", 'data-profil="acil"') + menuSatir(ICO.kalkan, "Gizlilik ve verilerim", "KVKK, verilerini indir ya da sil", 'data-profil="gizlilik"'))}
+      ${grup("Destek", menuSatir(ICO.soru, "Yardım ve destek", "Sık sorulanlar, bize yaz", 'data-profil="yardim"') + menuSatir(ICO.bilgi, "Hakkında", "Sürüm, veri kaynakları", 'data-profil="hakkinda"'))}
+      ${cikisDugmesi("p")}</div>`;
+  }
+
+  // ---------- Sağlık çalışanı profili ----------
+  function hProfil(p) {
+    const b = H.profilBolum, cp = calisanProfili(p.id), pp = person(p.id), po = puanOrtalama(p.id);
+    if (b === "hizmetler") { const ss = Object.keys(repo.provider_services[p.id] || {});
+      return `${altBaslik("h", "Hizmetlerim ve fiyatlarım")}<div class="small muted">Kapattığın hizmet hastalara önerilmez. Fiyat, hizmetin taban ücreti × senin katsayın (${String(p.fee_multiplier.toFixed(2)).replace(".", ",")}); teklifte ±%10 oynayabilirsin.</div>
+        <div class="ag-kutu">${ss.map((c) => anahtar("hz." + c, !cp.kapaliHizmet.includes(c), svc(c).name_tr, `${tl(svc(c).base_fee_tl * p.fee_multiplier)} TL · ${svc(c).duration_min} dk`)).join("")}</div></div>`; }
+    if (b === "mesleki") return `${altBaslik("h", "Mesleki bilgiler")}<div class="card stack small" style="gap:6px">
+      <div><span class="muted">Meslek:</span> <b>${esc(pp.prof)}</b></div><div><span class="muted">Deneyim:</span> <b>${p.years_experience} yıl</b></div>
+      <div><span class="muted">Bölge:</span> <b>${esc(p.home_district)}</b> · <span class="muted">ulaşım:</span> <b>${p.transport === "toplu" ? "toplu taşıma" : "araç"}</b></div>
+      <div><span class="muted">Başvuru durumu:</span> <b>${esc(DG.headerLabel())}</b></div></div>
+      <div class="tiny muted">Prototip: belgeler resmî sistemlerden doğrulanmaz.</div>
+      <button class="btn" type="button" data-act="hBasvuru">Mesleki başvuruyu aç</button></div>`;
+    if (b === "kazanc") { const g = REQ.filter((r) => r.provider_id === p.id && r.status === "kabul");
+      return `${altBaslik("h", "Kazançlarım")}<div class="stats" style="background:var(--soft)"><div>${ICO.takvim}<b class="num">${g.length}</b><span>kabul edilen</span></div><div>${ICO.para}<b class="num">${tl(g.reduce((a, r) => a + r.price.provider_gets, 0))} <small>TL</small></b><span>uygulamadan</span></div><div>${ICO.yildiz}<b class="num">${po.ort.toFixed(1).replace(".", ",")}</b><span>${po.sayi} değerlendirme</span></div></div>
+        <div class="note small">Ödemeler haftalık yapılır (prototip). Banka hesabı gerçek uygulamada kimlik doğrulamasıyla eklenir; bu prototipte hesap numarası istenmez ve saklanmaz.</div>
+        <div class="tiny muted">Platform payı %${Math.round(C.CFG.COMMISSION * 100)}; paylaşımlı ziyaret tasarrufunun %30'u sana.</div></div>`; }
+    if (b === "degerlendirme") return `${altBaslik("h", "Değerlendirmelerim")}${degerlendirmelerHtml(p.id)}</div>`;
+    if (b === "guvenlik") return `${altBaslik("h", "Güvenli Ziyaret ayarları")}
+      <div class="small muted">"Her şey yolunda mı?" kontrolüne PIN ile yanıt verirsin. Baskı PIN'i iptal ediyormuş gibi görünür ama güvenlik masasına sessiz alarm verir.</div>
+      <div class="row" style="gap:8px;flex-wrap:nowrap"><label class="stack small" style="gap:4px;flex:1"><b>Yeni PIN</b><input class="inp" id="hrPin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="${cp.pin ? "••••" : "2580"}"></label>
+        <label class="stack small" style="gap:4px;flex:1"><b>Baskı PIN'i</b><input class="inp" id="hrBaski" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="${cp.baskiPin ? "••••" : "0852"}"></label></div>
+      <label class="stack small" style="gap:4px"><b>Acil durum kişin</b><input class="inp" id="hrAcilAd" maxlength="40" placeholder="Adı" value="${esc(cp.acil.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Telefonu</b><input class="inp" id="hrAcilTel" type="tel" inputmode="tel" maxlength="16" placeholder="05xx xxx xx xx" value="${esc(cp.acil.telefon)}"><span class="tiny muted">Kontrole yanıt vermezsen zincirin 4. adımında aranır (demoda simüle).</span></label>
+      <div class="hata-metin" id="hrHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="hGuvenlikKaydet">Kaydet</button>${cp.pin ? `<button class="btn ghost" type="button" data-act="hPinSifirla">Demo PIN'lerine dön</button>` : ""}</div>`;
+    if (b === "bildirim") return `${altBaslik("h", "Bildirimler")}<div class="ag-kutu">${anahtar("h.yeniTalep", cp.bildirim.yeniTalep, "Yeni talep", "Rotana uyan talepler önce")}${anahtar("h.ses", cp.bildirim.ses, "Talep sesi")}${anahtar("h.rota", cp.bildirim.rota, "Yola çıkma hatırlatması", "Trafiğe göre zamanında")}${anahtar("h.puan", cp.bildirim.puan, "Yeni değerlendirme")}</div></div>`;
+    if (b === "gorunum") return `${altBaslik("h", "Görünüm ve erişilebilirlik")}${gorunumHtml()}</div>`;
+    if (b === "gizlilik") return `${altBaslik("h", "Gizlilik ve verilerim")}${gizlilikHtml("h")}</div>`;
+    if (b === "yardim") return `${altBaslik("h", "Yardım ve destek")}${yardimHtml("h")}</div>`;
+    if (b === "hakkinda") return `${altBaslik("h", "Hakkında")}${hakkindaHtml()}</div>`;
+    const acik = Object.keys(repo.provider_services[p.id] || {}).filter((c) => !cp.kapaliHizmet.includes(c)).length;
+    return `${appbar("h")}<div class="pad stack" style="gap:16px">
+      <button class="back" type="button" data-act="hprofilKapat">${ICO.back} Panel</button>
+      <div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(pp.full)}</div>
+        <div class="small muted">${esc(pp.prof)} · ${p.years_experience} yıl · ★ ${po.ort.toFixed(1).replace(".", ",")} (${po.sayi})</div></div></div>
+        ${anahtar("h.cevrimici", cp.cevrimici, cp.cevrimici ? "Çevrimiçi — talep alıyorsun" : "Çevrimdışı — talep almıyorsun", "Kapatınca hastalara önerilmezsin")}</div>
+      ${grup("Çalışma", menuSatir(ICO.bandage, "Hizmetlerim ve fiyatlarım", `${acik} hizmet açık`, 'data-hprofil="hizmetler"') + menuSatir(ICO.clock, "Çalışma saatlerim ve bölgem", "Saatlerim sekmesi", 'data-act="hSaatlerim"') + menuSatir(ICO.para, "Kazançlarım", "Ödemeler, platform payı", 'data-hprofil="kazanc"') + menuSatir(ICO.yildiz, "Değerlendirmelerim", `★ ${po.ort.toFixed(1).replace(".", ",")} · ${po.sayi} değerlendirme`, 'data-hprofil="degerlendirme"'))}
+      ${grup("Mesleki", menuSatir(ICO.steth, "Mesleki bilgiler ve başvuru", DG.headerLabel(), 'data-hprofil="mesleki"'))}
+      ${grup("Güvenlik ve tercihler", menuSatir(ICO.kalkan, "Güvenli Ziyaret", cp.pin ? "PIN'in ayarlı" : "Demo PIN'i kullanılıyor · acil kişi " + (cp.acil.ad ? "ekli" : "yok"), 'data-hprofil="guvenlik"') + menuSatir(ICO.zil, "Bildirimler", Object.values(cp.bildirim).filter(Boolean).length + " bildirim açık", 'data-hprofil="bildirim"') + menuSatir(ICO.gorunum, "Görünüm ve erişilebilirlik", "Yazı boyutu, tema", 'data-hprofil="gorunum"') + menuSatir(ICO.kilit, "Gizlilik ve verilerim", "Konum, KVKK, verilerini indir ya da sil", 'data-hprofil="gizlilik"'))}
+      ${grup("Destek", menuSatir(ICO.soru, "Yardım ve destek", "Sık sorulanlar, bize yaz", 'data-hprofil="yardim"') + menuSatir(ICO.bilgi, "Hakkında", "Sürüm, veri kaynakları", 'data-hprofil="hakkinda"'))}
+      ${cikisDugmesi("h")}</div>`;
+  }
+  function pAdresSec() {
+    return `<div class="sheet-bg" data-act="adresKapat"><div class="sheet" role="dialog" aria-label="Kayıtlı adreslerim">
+      <div class="row between"><h2 style="font-size:20px">Adreslerim</h2><button class="btn ghost" type="button" data-act="adresKapat">Kapat</button></div>
+      ${AB.liste.length ? "" : `<div class="muted small">Henüz kayıtlı adresin yok. Bir kez ekle; sonraki taleplerde sadece seçersin.</div>`}
+      <div class="stack" style="gap:8px">${AB.liste.map((a) => `<div class="adres-satir${a.id === AB.secili ? " secili" : ""}">
+        <button type="button" class="as-sec" data-adres-sec="${a.id}" aria-pressed="${a.id === AB.secili}"><span class="as-radyo"></span><span class="stack" style="gap:1px;min-width:0"><b>${esc(a.baslik)}${a.varsayilan ? ` <span class="pill plain">Varsayılan</span>` : ""}</b><span class="small muted">${esc(a.adres || a.ilce)}${a.ilce && a.adres && !a.adres.includes(a.ilce) ? ", " + esc(a.ilce) : ""}</span>${tarifMetni(a) ? `<span class="tiny muted">🚪 ${esc(tarifMetni(a))}</span>` : ""}</span></button>
+        <span class="row" style="gap:2px;flex-wrap:nowrap"><button class="btn ghost" type="button" data-adres-duzen="${a.id}">Düzenle</button>${P.adresSilOnay === a.id ? `<button class="btn ghost" type="button" data-adres-sil="${a.id}" style="color:var(--coral)">Evet, sil</button>` : `<button class="btn ghost" type="button" data-adres-silsor="${a.id}" style="color:var(--muted)">Sil</button>`}</span></div>`).join("")}</div>
+      <button class="btn primary block" type="button" data-act="adresYeni">+ Yeni adres ekle</button>
+      <div class="tiny muted">Adreslerin bu cihazda saklanır (prototip). Adresler © OpenStreetMap katkıcıları.</div></div></div>`;
+  }
+  function pAdresForm() {
+    const t = P.adresTaslak, districts = window.EVDE_DATA.districts.map((d) => d.name);
+    const ozel = !ABASLIK.includes(t.baslik);
+    return `${appbar()}<div class="pad stack" style="gap:14px">
+      <button class="back" type="button" data-act="adresIptal">${ICO.back} Geri</button>
+      <h2 style="font-size:24px">${t.id ? "Adresi düzenle" : "Yeni adres"}</h2>
+      <div class="stack small" style="gap:6px"><b>Adres başlığı</b><div class="seg">${[...ABASLIK, "Diğer"].map((b) => `<button class="chip" type="button" data-abaslik="${esc(b)}" aria-pressed="${b === "Diğer" ? ozel : t.baslik === b}">${esc(b)}</button>`).join("")}</div>
+        ${ozel ? `<input class="inp" id="fBaslik" maxlength="30" placeholder="ör. Dedemin evi" value="${esc(t.baslik)}">` : ""}</div>
+      <div class="stack small" style="gap:4px"><label for="fAdres"><b>Mahalle, cadde ya da sokak</b></label>
+        <input class="inp" id="fAdres" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." value="${esc(t.adres || "")}">
+        <div id="fAdresList" class="stack adres-liste" style="gap:4px"></div>
+        ${t.nokta ? `<div class="tiny muted">📍 Haritada yerleştirildi (~${String(t.nokta.km.toFixed(1)).replace(".", ",")} km)</div>` : `<div class="tiny muted">Listeden seç; adres haritadaki en yakın yola yerleşir.</div>`}</div>
+      <label class="stack small" style="gap:4px" for="fIlce"><b>İlçe</b><select class="inp" id="fIlce">${districts.map((d) => `<option${d === t.ilce ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+      <div class="row" style="gap:8px;flex-wrap:nowrap">${[["fBina", "Bina no", "bina"], ["fKat", "Kat", "kat"], ["fDaire", "Daire", "daire"]].map(([id, l, k]) => `<label class="stack small" style="gap:4px;flex:1" for="${id}"><b>${l}</b><input class="inp" id="${id}" inputmode="numeric" maxlength="6" value="${esc(t[k] || "")}"></label>`).join("")}</div>
+      <label class="stack small" style="gap:4px" for="fTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: zil adı, bina rengi)</span><input class="inp" id="fTarif" maxlength="120" placeholder="ör. zil: Demir, yeşil bina" value="${esc(t.tarif || "")}"></label>
+      <label class="row small" style="gap:10px"><input type="checkbox" id="fVarsayilan" ${t.varsayilan ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Varsayılan adresim olsun</label>
+      ${P.adresHata ? `<div class="small" style="color:var(--coral);font-weight:600" role="alert">${esc(P.adresHata)}</div>` : ""}
+      <button class="ana-btn" type="button" data-act="adresKaydet">Adresi kaydet</button>
     </div>`;
   }
   function pChat() {
@@ -3995,14 +4279,17 @@ YANIT yalnızca şu JSON olsun:
           <div class="seg">${opt("var", "Var")}${opt("yok", "Yok")}${opt("bilinmiyor", "Emin değilim")}</div>
           <div class="tiny muted">Hemşire, fizyoterapist gibi meslekler yalnızca doktor planıyla gelebilir.</div></div>
         <label class="row small" style="gap:10px"><input type="checkbox" id="pBed" ${P.info.bed ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Yatağa bağımlı / evden çıkamıyor</label>
-        ${ADR ? `<div class="stack small" style="gap:4px"><label for="pAdres"><b>Adres</b> <span class="muted">(sokak, cadde ya da mahalle)</span></label>
+        ${ADR && seciliAdres() ? (() => { const a = seciliAdres(); return `<div class="stack small" style="gap:6px"><b>Adres</b>
+          <div class="adres-secili"><span class="as-ico">${ICO.pin}</span><span style="flex:1;min-width:0"><b>${esc(a.baslik)}</b><span class="muted">${esc(a.adres || a.ilce)}${a.ilce && a.adres && !a.adres.includes(a.ilce) ? ", " + esc(a.ilce) : ""}</span>${tarifMetni(a) ? `<span class="muted">🚪 ${esc(tarifMetni(a))}</span>` : ""}</span>
+            <button class="btn ghost" type="button" data-act="adresler">Değiştir</button></div></div>`; })() : ADR ? `<div class="stack small" style="gap:4px"><label for="pAdres"><b>Adres</b> <span class="muted">(sokak, cadde ya da mahalle)</span></label>
           <input class="inp" id="pAdres" type="search" autocomplete="off" placeholder="ör. Kazımdirik Mah. 372. Sok." value="${esc(P.info.adresYazi || "")}">
-          <div id="pAdresList" class="stack" style="gap:4px"></div>
+          <div id="pAdresList" class="stack adres-liste" style="gap:4px"></div>
           ${P.info.nokta ? `<div class="tiny muted">📍 ${esc(P.info.nokta.adres)} · haritada en yakın yol noktasına yerleştirildi (~${String(P.info.nokta.km.toFixed(1)).replace(".", ",")} km)</div>` : `<div class="tiny muted">Adresler © OpenStreetMap katkıcıları. Yazmazsan ilçe merkezi kullanılır.</div>`}</div>` : ""}
-        <label class="stack small" style="gap:4px" for="pTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: kat, daire, zil adı, bina rengi)</span>
+        ${ADR && seciliAdres() ? "" : `<label class="stack small" style="gap:4px" for="pTarif"><b>Kapı tarifi</b> <span class="muted">(isteğe bağlı: kat, daire, zil adı, bina rengi)</span>
           <input class="inp" id="pTarif" type="text" autocomplete="off" maxlength="160" placeholder="ör. 3. kat, daire 7, zil: Demir" value="${esc(P.info.tarif || "")}"></label>
         <label class="stack small" style="gap:4px" for="pDist"><b>Hangi ilçe?${ADR ? "" : " (açık adres sonra)"}</b>
           <select class="inp" id="pDist">${districts.map((d) => `<option${d === P.info.district ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+        ${ADR ? `<label class="row small" style="gap:10px"><input type="checkbox" id="pAdresKaydet" ${P.adresKaydetme ? "" : "checked"} style="width:20px;height:20px;accent-color:var(--brand)"> Bu adresi kaydet, bir dahaki sefere yazma</label>` : ""}`}
         ${saatSecimi()}
       </div>
       ${r.malzeme && r.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Hazırlık</b>${r.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
@@ -4377,6 +4664,7 @@ YANIT yalnızca şu JSON olsun:
         <a class="btn block" href="tel:112" style="background:#fff;color:var(--coral);text-align:center;text-decoration:none">112'yi ara</a>
         <div class="tiny" style="opacity:.9">Bağlantı açılmazsa telefonundan 112'yi tuşla. Bu uygulama acil durumda randevu vermez.</div></div>
       <div class="card small"><b>Neden?</b> ${esc(e.why || "")}<div class="tiny muted">Algılayan: ${esc(e.src || "")}</div></div>
+      ${PR.h.acil.ad && telGecerli(PR.h.acil.telefon) ? `<a class="btn block" href="tel:${esc(String(PR.h.acil.telefon).replace(/\s/g, ""))}" style="text-align:center;text-decoration:none">${esc(PR.h.acil.ad)}${PR.h.acil.yakinlik ? ` (${esc(PR.h.acil.yakinlik)})` : ""} kişisini ara</a>` : ""}
       ${acilKarti()}
       <button class="btn block" type="button" data-act="chat">Yanlış anlaşıldı, sohbete dön</button>
     </div>`;
@@ -4419,7 +4707,12 @@ YANIT yalnızca şu JSON olsun:
     else if (a === "skipdoc" && SV.acik) { const m = istenenMeslek(); SV.hizli(`Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.`); }
     else if (a === "skipdoc") { if (!P.busy) { const m = istenenMeslek(); P.msgs.push({ who: "me", text: `Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.` }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
-    else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
+    else if (a === "options") { satirIciAdresiKaydet(); P.screen = "options"; P.sheet = null; renderP(); }
+    else if (a === "adresler") { P.adresSec = true; P.adresSilOnay = null; renderP(); }
+    else if (a === "adresKapat") { if (e.target === t || t.tagName === "BUTTON") { P.adresSec = false; renderP(); } }
+    else if (a === "adresYeni") { adresFormAc(null); }
+    else if (a === "adresIptal") { P.screen = P.adresDonus || "home"; P.adresHata = ""; renderP(); }
+    else if (a === "adresKaydet") { adresFormKaydet(); }
     else if (a === "voice") { P.voice = !P.voice; renderP(); }
     else if (a === "closeSheet") { if (e.target === t || t.tagName === "BUTTON") { P.sheet = null; renderP(); } }
     else if (a === "confirm") { await confirmBooking(); }
@@ -4429,26 +4722,63 @@ YANIT yalnızca şu JSON olsun:
   });
   $("#pScreen").addEventListener("submit", (e) => { if (e.target.id === "pComposer") { e.preventDefault(); const ta = $("#pInput"); const v = ta.value; ta.value = ""; send(v); } });
   $("#pScreen").addEventListener("keydown", (e) => { if (e.target.id === "pInput" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pComposer").requestSubmit(); } });
+  // Kayıtlı adres eylemleri
+  function adresFormAc(id) {
+    const a = AB.liste.find((x) => x.id === id);
+    P.adresTaslak = a ? JSON.parse(JSON.stringify(a)) : { baslik: ABASLIK.find((b) => !AB.liste.some((x) => x.baslik === b)) || "Diğer adres", adres: "", ilce: P.info.district, nokta: null, bina: "", kat: "", daire: "", tarif: "", varsayilan: !AB.liste.length };
+    if (P.screen !== "adresForm") P.adresDonus = P.screen;
+    P.adresSec = false; P.adresHata = ""; P.screen = "adresForm"; renderP();
+  }
+  function adresFormKaydet() {
+    const t = P.adresTaslak;
+    t.baslik = (t.baslik || "").trim().slice(0, 30);
+    if (!t.baslik) { P.adresHata = "Adrese bir başlık ver (ör. Ev)."; renderP(); return; }
+    if (!t.adres.trim() && !t.ilce) { P.adresHata = "Mahalle ya da sokak yaz, listeden seç."; renderP(); return; }
+    if (t.adres.trim() && !t.nokta) { P.adresHata = "Yazdığın adresi listeden seç ki haritada doğru yere yerleşsin."; renderP(); return; }
+    if (!t.id) { t.id = "A" + Math.random().toString(36).slice(2, 8); AB.liste.push(t); } else AB.liste = AB.liste.map((x) => (x.id === t.id ? t : x));
+    if (t.varsayilan) AB.liste.forEach((x) => { x.varsayilan = x.id === t.id; });
+    adresUygula(t); adresDefteriYaz();
+    P.toast = `"${t.baslik}" adresi kaydedildi.`; P.adresHata = ""; P.screen = P.adresDonus || "home"; renderP();
+  }
+  // Özet ekranında elle yazılan adres: "Bu adresi kaydet" işaretliyse seçenekler açılırken deftere eklenir
+  function satirIciAdresiKaydet() {
+    if (!ADR || seciliAdres() || P.adresKaydetme || !P.info.nokta) return;
+    const tarif = (P.info.tarif || "").trim();
+    const a = { id: "A" + Math.random().toString(36).slice(2, 8), baslik: AB.liste.length ? "Diğer adres" : "Ev", adres: P.info.nokta.adres, ilce: P.info.district,
+      nokta: { lat: P.info.nokta.lat, lon: P.info.nokta.lon, km: P.info.nokta.km }, bina: "", kat: "", daire: "", tarif, varsayilan: !AB.liste.length };
+    AB.liste.push(a); AB.secili = a.id; adresDefteriYaz();
+    P.toast = `Adresin "${a.baslik}" olarak kaydedildi; bir dahaki sefere yalnızca seçeceksin.`;
+  }
+  $("#pScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-adres-sec],[data-adres-duzen],[data-adres-sil],[data-adres-silsor],[data-abaslik]"); if (!t) return;
+    if (t.dataset.adresSec) { const a = AB.liste.find((x) => x.id === t.dataset.adresSec); if (a) { adresUygula(a); adresDefteriYaz(); P.adresSec = false; P.toast = `Adres: ${a.baslik}`; renderP(); } }
+    else if (t.dataset.adresDuzen) adresFormAc(t.dataset.adresDuzen);
+    else if (t.dataset.adresSilsor) { P.adresSilOnay = t.dataset.adresSilsor; renderP(); }
+    else if (t.dataset.adresSil) {
+      AB.liste = AB.liste.filter((x) => x.id !== t.dataset.adresSil); P.adresSilOnay = null;
+      if (AB.secili === t.dataset.adresSil) { AB.secili = null; const y = AB.liste.find((x) => x.varsayilan) || AB.liste[0]; if (y) adresUygula(y); else { P.info.nokta = null; P.info.adresYazi = ""; P.info.tarif = ""; } }
+      adresDefteriYaz(); renderP();
+    } else if (t.dataset.abaslik) { P.adresTaslak.baslik = t.dataset.abaslik === "Diğer" ? "" : t.dataset.abaslik; renderP(); if (t.dataset.abaslik === "Diğer") { const f = $("#fBaslik"); if (f) f.focus(); } }
+  });
   // Kullanıcının açtığı klasik liste, teklifler gelip ekran yenilenince kapanmasın
   // Adres arama: yazdıkça öneri; seçilen adres en yakın yol noktasına (yol paketindeki 240 nokta) yerleşir
   $("#pScreen").addEventListener("input", (e) => {
     if (e.target.id === "puanYorum" && P.puanTaslak) { P.puanTaslak.yorum = e.target.value; return; }
     if (e.target.id === "pTarif") { P.info.tarif = e.target.value; return; }
-    if (e.target.id !== "pAdres" || !ADR) return;
-    P.info.adresYazi = e.target.value;
-    const r = ADR.ara(e.target.value), L = $("#pAdresList");
+    if (P.adresTaslak && ({ fBaslik: "baslik", fBina: "bina", fKat: "kat", fDaire: "daire", fTarif: "tarif" })[e.target.id]) { P.adresTaslak[{ fBaslik: "baslik", fBina: "bina", fKat: "kat", fDaire: "daire", fTarif: "tarif" }[e.target.id]] = e.target.value; return; }
+    if (!["pAdres", "fAdres"].includes(e.target.id) || !ADR) return;
+    if (e.target.id === "pAdres") P.info.adresYazi = e.target.value; else { P.adresTaslak.adres = e.target.value; P.adresTaslak.nokta = null; }
+    const r = ADR.ara(e.target.value), L = $(e.target.id === "pAdres" ? "#pAdresList" : "#fAdresList");
     L.innerHTML = r.map((x, i) => `<button class="chip adres-oneri" type="button" data-adres="${i}" style="text-align:left">${x.mahalle ? "🏘️" : "📍"} <b>${esc(x.ad)}</b> <span class="muted">${esc(x.alt)}</span></button>`).join("")
       || (e.target.value.trim().length >= 3 ? `<div class="tiny muted">Bulunamadı; farklı yaz ya da ilçeyi seç.</div>` : "");
     L._sonuc = r;
   });
   $("#pScreen").addEventListener("click", (e) => {
     const b = e.target.closest("[data-adres]"); if (!b) return;
-    const x = $("#pAdresList")._sonuc[+b.dataset.adres], nok = window.EVDE_DATA.yol.noktalar;
-    let en = 0, ed = 1e9;
-    nok.forEach((n, i) => { const d = ADR.km(x.ll, [n[0], n[1]]); if (d < ed) { ed = d; en = i; } });
-    const n = nok[en];
-    if (window.EVDE_DATA.districts.some((d) => d.name === n[2])) P.info.district = n[2];
-    P.info.nokta = { lat: n[0], lon: n[1], adres: x.ad + (x.alt ? ", " + x.alt : ""), km: ed };
+    const L = b.closest(".adres-liste"), x = L._sonuc[+b.dataset.adres], n = noktaBul(x.ll), ad = x.ad + (x.alt ? ", " + x.alt : "");
+    if (L.id === "fAdresList") { Object.assign(P.adresTaslak, { adres: ad, nokta: { lat: n.lat, lon: n.lon, km: n.km } }); if (n.ilce) P.adresTaslak.ilce = n.ilce; P.adresHata = ""; renderP(); return; }
+    if (n.ilce) P.info.district = n.ilce;
+    P.info.nokta = { lat: n.lat, lon: n.lon, adres: ad, km: n.km };
     P.info.adresYazi = P.info.nokta.adres;
     P.saatler = null; renderP();
   });
@@ -4465,6 +4795,9 @@ YANIT yalnızca şu JSON olsun:
     }
     if (e.target.id === "pBed") { P.info.bed = e.target.checked; }
     if (e.target.id === "pDist") { P.info.district = e.target.value; P.info.nokta = null; P.info.adresYazi = ""; }
+    if (e.target.id === "pAdresKaydet") P.adresKaydetme = !e.target.checked;
+    if (e.target.id === "fIlce" && P.adresTaslak) P.adresTaslak.ilce = e.target.value;
+    if (e.target.id === "fVarsayilan" && P.adresTaslak) P.adresTaslak.varsayilan = e.target.checked;
   });
   // Mikrofon: start() tıklamadan hemen çağrılmalı
   $("#pScreen").addEventListener("click", (e) => {
@@ -4575,8 +4908,14 @@ YANIT yalnızca şu JSON olsun:
     if (!H.open) {
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
+    if (H.profil) {
+      // Arka plandaki yenilemeler (teklif, takip) yazılan formu silmesin
+      const odak = document.activeElement; if (odak && el.contains(odak) && /INPUT|TEXTAREA/.test(odak.tagName) && !H.profilZorla) return;
+      el.innerHTML = `<div style="min-height:100%">${hProfil(p)}</div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
+      if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
+      return; }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      ${appbar("h")}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici">Çevrimiçi</span>
+      ${appbar("h")}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici${calisanProfili(pid).cevrimici ? "" : " kapali"}">${calisanProfili(pid).cevrimici ? "Çevrimiçi" : "Çevrimdışı"}</span>
           <div class="tiny muted" style="margin-top:4px">${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
         <div class="stats"><div>${ICO.takvim}<b class="num">${stops.length}</b><span>ziyaret</span></div><div>${ICO.pin}<b class="num">${km.toFixed(1).replace(".", ",")} <small>km</small></b><span>toplam yol</span></div><div>${ICO.para}<b class="num">${tl(earn)} <small>TL</small></b><span>kazanç</span></div></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
@@ -4584,6 +4923,7 @@ YANIT yalnızca şu JSON olsun:
     if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
   }
   function hInbox(box) {
+    if (!calisanProfili(H.pid).cevrimici) return `<div class="pad stack"><div class="card stack" style="gap:8px"><b>Çevrimdışısın</b><span class="small muted">Yeni talepler sana önerilmiyor. Kabul ettiğin ziyaretler Rotam'da duruyor.</span><button class="btn primary" type="button" data-act="hCevrimiciOl">Çevrimiçi ol</button></div></div>`;
     if (!box.length) return `<div class="pad muted">Şu an yeni talep yok. Saatlerini genişletirsen daha fazla talep gelir.</div>`;
     const km = (x) => String(x).replace(".", ",");
     return `<div class="pad stack">${box.map((r) => `<button class="req ${r.synthetic ? "" : "new"}" type="button" data-open="${esc(r.id)}">
@@ -5001,7 +5341,7 @@ YANIT yalnızca şu JSON olsun:
     calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12", prof: "hemsire" },
     doktor: { kullanici: "doktor", sifre: "1234", ad: person("HEK-02").full, aciklama: "Pratisyen hekim · HEK-02 · Bayraklı · mesleki başvurusu onaylı (demo)", pid: "HEK-02", prof: "hekim", hekimType: "pratisyen" },
   };
-  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; }
+  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; adresDefteriYukle(HESAPLAR.hasta.kullanici, true); hastaProfiliYukle(HESAPLAR.hasta.kullanici, { ad: HESAPLAR.hasta.ad }); }
   function calisanGir(h) {
     H.pid = h.pid;
     DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
@@ -5044,6 +5384,87 @@ YANIT yalnızca şu JSON olsun:
     });
     document.body.appendChild(d);
   }
+  // ---------- Profil olayları ----------
+  function veriIndir(ad, veri) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(veri, null, 2)], { type: "application/json" }));
+    a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const cikisYap = () => $("#cikisBtn").click();
+  // Form hatası: ekranı yeniden çizmeden yaz (kullanıcının yazdıkları kaybolmasın)
+  const hataYaz = (sec, m) => { const el = $(sec); if (el) { el.textContent = m; el.scrollIntoView({ block: "nearest" }); } };
+  const tarihNow = () => new Date().toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+  function secimUygula(ad, deger, taraf) {
+    if (ad === "yazi" || ad === "tema") { GORUNUM[ad] = deger; yerel.yaz("anindasaglik_gorunum", GORUNUM); gorunumUygula(); }
+    else if (ad === "odeme") { PR.h.odeme = deger; hastaProfiliYaz(); }
+    else if (ad === "yakinlik") P.yakinTaslak = deger;
+    renderP(); renderH();
+  }
+  function anahtarUygula(id) {
+    const [k, alan] = id.split(/\.(.+)/);
+    if (k === "p") { if (alan === "sesliOku") P.voice = !P.voice; else { PR.h.bildirim[alan] = !PR.h.bildirim[alan]; hastaProfiliYaz(); } renderP(); return; }
+    const cp = calisanProfili(H.pid);
+    if (k === "h") { if (alan === "cevrimici") { cp.cevrimici = !cp.cevrimici; H.toast = cp.cevrimici ? "Çevrimiçisin; yeni talepler gelir." : "Çevrimdışısın; yeni talep almıyorsun."; } else cp.bildirim[alan] = !cp.bildirim[alan]; }
+    else if (k === "hz") { const i = cp.kapaliHizmet.indexOf(alan); if (i >= 0) cp.kapaliHizmet.splice(i, 1); else cp.kapaliHizmet.push(alan); }
+    calisanProfiliYaz(H.pid); P.saatler = null; renderH(); renderP();
+  }
+  $("#pScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-profil],[data-secim],[data-anahtar],[data-yakin-sil],[data-act]"); if (!t) return;
+    if (t.dataset.profil) { P.screen = "profil"; P.profilBolum = t.dataset.profil; P.profilHata = ""; renderP(); $("#pScreen").scrollTop = 0; return; }
+    if (t.dataset.secim) { secimUygula(t.dataset.secim, t.dataset.deger, "p"); return; }
+    if (t.dataset.anahtar) { anahtarUygula(t.dataset.anahtar); return; }
+    if (t.dataset.yakinSil) { PR.h.yakinlar.splice(+t.dataset.yakinSil, 1); hastaProfiliYaz(); renderP(); return; }
+    const a = t.dataset.act, v = (id) => (($("#" + id) || {}).value || "").trim();
+    if (a === "profil") { P.screen = "profil"; P.profilBolum = null; P.adresSec = false; P.silOnay = false; renderP(); $("#pScreen").scrollTop = 0; }
+    else if (a === "pprofilGeri") { P.profilBolum = null; P.profilHata = ""; P.silOnay = false; renderP(); }
+    else if (a === "kisiselKaydet") {
+      if (!v("prAd")) { hataYaz("#prHata", "Adını yaz."); return; }
+      if (v("prTel") && !telGecerli(v("prTel"))) { hataYaz("#prHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      if (v("prEposta") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("prEposta"))) { hataYaz("#prHata", "E-posta adresini kontrol et."); return; }
+      Object.assign(PR.h, { ad: v("prAd"), telefon: v("prTel"), eposta: v("prEposta") }); hastaProfiliYaz(); P.profilBolum = null; P.profilHata = ""; P.toast = "Bilgilerin kaydedildi."; renderP();
+    } else if (a === "yakinEkle") { PR.h.yakinlar.push({ yakinlik: P.yakinTaslak || "Annem", ad: v("prYakinAd") }); hastaProfiliYaz(); P.toast = "Yakının eklendi."; renderP(); }
+    else if (a === "acilKaydet") {
+      if (v("prAcilTel") && !telGecerli(v("prAcilTel"))) { hataYaz("#prHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      if (v("prAcilAd") && !v("prAcilTel")) { hataYaz("#prHata", "Acil durum kişisinin telefonunu da yaz."); return; }
+      PR.h.acil = { ad: v("prAcilAd"), yakinlik: v("prAcilYakin"), telefon: v("prAcilTel") }; hastaProfiliYaz(); P.profilBolum = null; P.profilHata = ""; P.toast = "Acil durum kişin kaydedildi."; renderP();
+    } else if (a === "pdestek") { if (!v("pDestekMetin")) return; PR.h.destek.push({ tarih: tarihNow(), metin: v("pDestekMetin").slice(0, 600) }); hastaProfiliYaz(); P.toast = "Mesajın alındı (prototip: bu cihazda saklandı)."; renderP(); }
+    else if (a === "pveriIndir") veriIndir("anindasaglik_verilerim.json", { profil: PR.h, adresler: AB.liste, gorunum: GORUNUM, randevular: (P.randevular || []).length });
+    else if (a === "sohbetSil") { P.msgs = []; P.turns = []; P.report = null; P.photos = []; P.toast = "Bu oturumdaki sohbet silindi."; renderP(); }
+    else if (a === "phesapSil") { P.silOnay = true; renderP(); }
+    else if (a === "phesapSilHayir") { P.silOnay = false; renderP(); }
+    else if (a === "phesapSilEvet") { try { localStorage.removeItem("anindasaglik_profil_" + PR.hesap); localStorage.removeItem(adresAnahtar()); } catch (er) { /**/ } cikisYap(); }
+    else if (a === "cikisYap") cikisYap();
+  });
+  $("#hScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-hprofil],[data-secim],[data-anahtar],[data-act]"); if (!t) return;
+    if (t.dataset.hprofil) { H.profilBolum = t.dataset.hprofil; H.profilHata = ""; renderH(); $("#hScreen").scrollTop = 0; return; }
+    if (t.dataset.secim) { secimUygula(t.dataset.secim, t.dataset.deger, "h"); return; }
+    if (t.dataset.anahtar) { anahtarUygula(t.dataset.anahtar); return; }
+    const a = t.dataset.act, v = (id) => (($("#" + id) || {}).value || "").trim(), cp = calisanProfili(H.pid);
+    if (a === "hprofil") { H.profil = true; H.profilBolum = null; H.silOnay = false; renderH(); $("#hScreen").scrollTop = 0; }
+    else if (a === "hprofilKapat") { H.profil = false; renderH(); }
+    else if (a === "hprofilGeri") { H.profilBolum = null; H.profilHata = ""; H.silOnay = false; renderH(); }
+    else if (a === "hCevrimiciOl") { cp.cevrimici = true; calisanProfiliYaz(H.pid); renderH(); renderP(); }
+    else if (a === "hSaatlerim") { H.profil = false; H.tab = "saat"; H.open = null; renderH(); }
+    else if (a === "hBasvuru") { H.profil = false; DG.state.open = true; renderH(); }
+    else if (a === "hGuvenlikKaydet") {
+      const pin = v("hrPin"), baski = v("hrBaski");
+      if (pin || baski) {
+        if (!/^\d{4}$/.test(pin) || !/^\d{4}$/.test(baski)) { hataYaz("#hrHata", "PIN ve baskı PIN'i 4 rakam olmalı."); return; }
+        if (pin === baski) { hataYaz("#hrHata", "Baskı PIN'i normal PIN'den farklı olmalı."); return; }
+        if (/^(\d)\1{3}$|^(0123|1234|2345|3456|4567|5678|6789)$/.test(pin)) { hataYaz("#hrHata", "Tahmin edilmesi kolay bir PIN seçme (1111, 1234 gibi)."); return; }
+        cp.pin = pin; cp.baskiPin = baski;
+      }
+      if (v("hrAcilTel") && !telGecerli(v("hrAcilTel"))) { hataYaz("#hrHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      cp.acil = { ad: v("hrAcilAd"), telefon: v("hrAcilTel"), yakinlik: "" };
+      calisanProfiliYaz(H.pid); H.profilBolum = null; H.profilHata = ""; H.toast = "Güvenli Ziyaret ayarların kaydedildi."; renderH();
+    } else if (a === "hPinSifirla") { cp.pin = ""; cp.baskiPin = ""; calisanProfiliYaz(H.pid); H.toast = "Demo PIN'lerine dönüldü (2580 / 0852)."; renderH(); }
+    else if (a === "hdestek") { if (!v("hDestekMetin")) return; cp.destek.push({ tarih: tarihNow(), metin: v("hDestekMetin").slice(0, 600) }); calisanProfiliYaz(H.pid); H.toast = "Mesajın alındı (prototip: bu cihazda saklandı)."; renderH(); }
+    else if (a === "hveriIndir") { const kopya = JSON.parse(JSON.stringify(cp)); if (kopya.pin) kopya.pin = kopya.baskiPin = "(gizli)"; veriIndir("anindasaglik_calisan_verilerim.json", { profil: kopya, gorunum: GORUNUM }); }
+    else if (a === "hhesapSil") { H.silOnay = true; renderH(); }
+    else if (a === "hhesapSilHayir") { H.silOnay = false; renderH(); }
+    else if (a === "hhesapSilEvet") { try { localStorage.removeItem("anindasaglik_calisan_" + H.pid); } catch (er) { /**/ } cikisYap(); }
+    else if (a === "cikisYap") cikisYap();
+  });
   $("#cikisBtn").addEventListener("click", () => { history.replaceState(null, "", location.pathname + location.search.replace(/[?&]rol=[^&]*/, "")); location.reload(); });
   // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
   { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
@@ -5052,7 +5473,10 @@ YANIT yalnızca şu JSON olsun:
 
   // Otomatik testler için salt okunur durum görüntüsü (uygulamayı değiştirmez)
   window.KapidaTest = { durum: () => JSON.parse(JSON.stringify({ ekran: P.screen, mesgul: P.busy, mod: P.mode, plan: P.info.plan, kim: P.info.forWhom,
-    mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })) };
+    mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })),
+    talep: () => (P.request ? JSON.parse(JSON.stringify(P.request.patient)) : null) };
+  if (AB.hesap === "misafir" && !AB.liste.length) adresDefteriYukle("misafir", false); // hesapla girildiyse hastaGir yükledi
+  if (!PR.hesap) hastaProfiliYukle("misafir", null);
   renderP(); renderH();
   initCaps();
 })();
