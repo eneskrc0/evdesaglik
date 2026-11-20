@@ -430,6 +430,50 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .yt-ikon { font-size: 20px; line-height: 1; width: 24px; text-align: center; flex: none; }
 .yt-adres a.btn { color: inherit; font-weight: 700; }
 .calisan-mesaj { background: var(--brand-soft); border-radius: 10px; padding: 8px 10px; }
+
+/* ---------- bildirimler: zil, liste, afiş, kilitli telefonlar ---------- */
+.zil { cursor: pointer; border-radius: 12px; }
+.zil:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.zil.salla .ico { animation: zilSalla .9s ease; transform-origin: 50% 10%; }
+@keyframes zilSalla { 0%,100% { transform: rotate(0); } 15% { transform: rotate(18deg); } 30% { transform: rotate(-15deg); } 45% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } }
+.zil-rozet { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; border: 2px solid var(--phone); box-sizing: content-box; }
+.bld-afis { position: absolute; left: 10px; right: 10px; top: 54px; z-index: 40; pointer-events: none; transform: translateY(-140%); opacity: 0; transition: transform .35s ease, opacity .35s ease; }
+.bld-afis.acik { transform: translateY(0); opacity: 1; }
+.bld-kart { display: flex; gap: 10px; align-items: flex-start; background: color-mix(in srgb, var(--phone) 92%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: 0 10px 26px rgba(0,0,0,.18); text-align: left; width: 100%; font: inherit; color: inherit; }
+.bld-kart .bld-ikon { width: 30px; height: 30px; border-radius: 9px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 16px; flex: none; }
+.bld-kart .bld-govde { flex: 1; min-width: 0; }
+.bld-kart .bld-ust { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--muted); }
+.bld-kart b { display: block; font-size: 14px; line-height: 1.3; }
+.bld-kart .bld-metin { font-size: 13px; line-height: 1.35; }
+.bld-kart.acil .bld-ikon { background: var(--coral, #e5484d); }
+.bld-panel { position: absolute; inset: 50px 0 0 0; z-index: 45; background: var(--phone); display: flex; flex-direction: column; }
+.bld-panel[hidden] { display: none; }
+.bld-panel .bld-bas { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.bld-panel .bld-liste { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.bld-panel button.bld-kart { cursor: pointer; box-shadow: none; }
+.bld-panel button.bld-kart.okunmadi { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 7%, var(--phone)); }
+.bld-bos { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 10px; }
+.kilit-col .cap { white-space: nowrap; }
+.phone.kilit { width: 250px; height: 530px; border-radius: 32px; border-width: 8px; background: #0f1a1b; }
+.kilit-ekran { position: absolute; inset: 0; background: radial-gradient(120% 80% at 30% 0%, #2e6f6c 0%, #123a3c 55%, #0b1f21 100%); color: #fff; padding: 18px 12px; display: flex; flex-direction: column; gap: 8px; filter: brightness(.55); transition: filter .5s ease; overflow: hidden; }
+.kilit-ekran.uyan { filter: brightness(1); }
+.kilit-ekran .k-kilit { text-align: center; font-size: 14px; opacity: .85; }
+.kilit-ekran .k-saat { text-align: center; font-size: 58px; font-weight: 300; line-height: 1; letter-spacing: -.02em; }
+.kilit-ekran .k-tarih { text-align: center; font-size: 13px; opacity: .85; margin-bottom: 8px; }
+.kilit-ekran .bld-kart { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.18); color: #fff; box-shadow: none; padding: 8px 10px; cursor: pointer; }
+.kilit-ekran .bld-kart .bld-ust { color: rgba(255,255,255,.75); }
+.kilit-ekran .bld-kart b { font-size: 13px; } .kilit-ekran .bld-kart .bld-metin { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kilit-ekran .k-daha { text-align: center; font-size: 11px; opacity: .8; }
+.kilit-ekran .bld-kart.yeni { animation: kilitGel .5s ease; }
+@keyframes kilitGel { from { transform: translateY(-14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.phone.kilit.titre { animation: titre .5s linear; }
+@keyframes titre { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
+.kilit-ekran .k-alt { margin-top: auto; text-align: center; font-size: 11px; opacity: .7; }
+.tek-rol.rol-hasta #kilitHCol, .tek-rol.rol-calisan #kilitPCol { display: none; }
+@media (max-width: 860px) { .kilit-col { display: none !important; } .bld-panel { inset: 0; } .bld-afis { top: 8px; } }
+@media (min-width: 861px) { .stage { gap: 24px; } }
+@media (max-width: 1460px) and (min-width: 861px) { .phone.kilit { width: 220px; height: 500px; } .stage { gap: 18px; } }
+@media (max-width: 1340px) and (min-width: 861px) { .phone.kilit { width: 196px; height: 470px; border-width: 7px; } .stage { gap: 12px; padding-left: 6px; padding-right: 6px; } .kilit-ekran .k-saat { font-size: 46px; } .kilit-col .cap { font-size: 11px; } }
 </style>
 </head>
 <body>
@@ -449,15 +493,23 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
   <div class="rol-kapi"><a href="#hasta">Yalnız hasta uygulaması</a><a href="#calisan">Yalnız hemşire uygulaması</a><a href="#doktor">Yalnız doktor uygulaması</a><a href="#ikisi">İkisi yan yana</a></div>
 </div>
 <div class="stage">
+  <div class="col kilit-col" id="kilitPCol" aria-label="Hastanın kilitli telefonu">
+    <div class="cap">Hasta telefonu · kilitli</div>
+    <div class="phone kilit"><div class="kilit-ekran" id="kilitP"></div></div>
+  </div>
   <div class="col" id="colP">
     <div class="cap">Hasta / yakını</div>
-    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="pScreen"></div></div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="pScreen"></div><div class="bld-afis" id="afisP" aria-hidden="true"></div><div class="bld-panel" id="panelP" hidden></div></div>
   </div>
   <div class="col hide-m" id="colH">
     <div class="cap">Sağlık çalışanı</div>
-    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="hScreen"></div></div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="hScreen"></div><div class="bld-afis" id="afisH" aria-hidden="true"></div><div class="bld-panel" id="panelH" hidden></div></div>
     <section class="democtl" id="demoCtl" aria-label="Demo kontrolleri"></section>
     <section class="democtl gz-masa" id="gzMasa" aria-label="Güvenlik masası" aria-live="polite"></section>
+  </div>
+  <div class="col kilit-col" id="kilitHCol" aria-label="Sağlık çalışanının kilitli telefonu">
+    <div class="cap">Çalışan telefonu · kilitli</div>
+    <div class="phone kilit"><div class="kilit-ekran" id="kilitH"></div></div>
   </div>
 </div>
 <p class="foot-note" id="footNote">Hastanın gönderdiği talep, seçtiği sağlık çalışanının ekranına raporuyla birlikte düşer. Teşhis koymaz; acil belirtide randevu yerine 112'ye yönlendirir. Sağlık çalışanı ilk girişte mesleki başvurusunu yapar; başvuru onaylanmadan görev kabul edemez (prototip: belgeler resmî sistemlerden doğrulanmaz).</p>

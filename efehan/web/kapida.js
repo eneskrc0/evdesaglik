@@ -61,8 +61,11 @@
   // Genel sağlık çalışanı avatarı (fotoğraf yerine; gerçek kişi değil)
   const AVATAR = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 17.5c0-6 5-9.5 11-9.5s11 3.5 11 9.5"/><path d="M16.5 17.5h23l-1 4h-21z"/><path d="M28 10.5v5M25.5 13h5" stroke="var(--brand)" stroke-width="2.2"/><path d="M18 22c0 7 4.5 12 10 12s10-5 10-12"/><path d="M8 52c1.5-8.5 9-13 20-13s18.5 4.5 20 13"/></svg>`;
   const MARKA = `<span class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</span>`;
-  const appbar = (taraf = "p") => { const bas = taraf === "h" ? person(H.pid).initials : ((PR.h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr") || "");
-    return `<div class="appbar">${MARKA}<span class="row" style="gap:2px;flex-wrap:nowrap"><button class="zil" type="button" aria-label="Bildirimler">${ICO.zil}<i></i></button>
+  const BLD = { p: [], h: [] }, BLD_ANAHTAR = { p: new Set(), h: new Set() }, BLD_PANEL = { p: false, h: false }; // bildirimler (aşağıda)
+  // Uygulama başlığı: logo + bildirim zili (okunmamış sayısı; dokununca bildirim listesi) + profil düğmesi (baş harfler)
+  const appbar = (taraf = "p") => { const n = BLD[taraf].filter((x) => !x.okundu).length;
+    const bas = taraf === "h" ? person(H.pid).initials : ((PR.h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr") || "");
+    return `<div class="appbar">${MARKA}<span class="row" style="gap:2px;flex-wrap:nowrap"><button class="zil" type="button" data-zil="${taraf}" aria-label="${n ? `Bildirimler, ${n} okunmamış` : "Bildirimler"}" aria-expanded="${BLD_PANEL[taraf]}">${ICO.zil}<span class="zil-rozet"${n ? "" : " hidden"}>${n > 9 ? "9+" : n}</span></button>
       <button class="profil-dugme" type="button" data-act="${taraf === "h" ? "hprofil" : "profil"}" aria-label="Profil ve ayarlar">${bas ? esc(bas) : ICO.kisi}</button></span></div>`; };
   const svcIcon = (code) => {
     const s = svc(code) || {};
@@ -805,7 +808,7 @@
   }
   function pHome() {
     const ad = PR.h.ad ? " " + PR.h.ad.trim().split(/\s+/)[0] : "";
-    return `${appbar()}${ADR ? `<div style="padding:0 18px">${adresCubugu()}</div>` : ""}<div class="pad stack" style="gap:16px;padding-top:10px">
+    return `${appbar("p")}${ADR ? `<div style="padding:0 18px">${adresCubugu()}</div>` : ""}<div class="pad stack" style="gap:16px;padding-top:10px">
       <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
       ${randevuKartlari()}
       <div class="hero"><span class="deco"></span>
@@ -1906,6 +1909,166 @@
     putRequest(upd); P.request = upd; P.toast = `${person(pid).full} talebini onayladı (demo).`;
     renderP(); renderH();
   }, 1000);
+
+  // ---------- bildirimler: zil + liste + uygulama içi afiş + kilitli telefonlar ----------
+  // Olaylar 1 sn'de bir izlenir; her olay bir kez bildirilir (anahtarla). Hasta: onay, teklif, yola çıktı, yaklaşıyor, kapında,
+  // mesaj, ziyaret başladı/bitti, ödeme. Çalışan: yeni talep, teklif isteği, randevu kesinleşti, yola çıkma zamanı, vardın,
+  // hasta kodu onayladı, "Her şey yolunda mı?", kazanç, yeni değerlendirme. Prototip: gerçek anlık bildirim (push) yok.
+  const BLD_EL = { p: { panel: "#panelP", afis: "#afisP", kilit: "#kilitP", zil: '[data-zil="p"]' }, h: { panel: "#panelH", afis: "#afisH", kilit: "#kilitH", zil: '[data-zil="h"]' } };
+  let bldSayac = 0;
+  function bildir(taraf, anahtar, o) {
+    if (BLD_ANAHTAR[taraf].has(anahtar)) return;
+    BLD_ANAHTAR[taraf].add(anahtar);
+    const n = { id: "b" + ++bldSayac, t: Date.now(), okundu: false, ikon: "🔔", ...o };
+    BLD[taraf].unshift(n); BLD[taraf].length = Math.min(BLD[taraf].length, 40);
+    bldCiz(taraf, n);
+  }
+  const bldZaman = (t) => { const sn = (Date.now() - t) / 1000; return sn < 45 ? "şimdi" : sn < 3600 ? `${Math.round(sn / 60)} dk önce` : `${Math.round(sn / 3600)} sa önce`; };
+  function bldKart(n, etiket, ek) {
+    const ic = `<span class="bld-ikon" aria-hidden="true">${n.ikon}</span><span class="bld-govde"><span class="bld-ust"><span>ANINDA SAĞLIK</span><span>${bldZaman(n.t)}</span></span><b>${esc(n.baslik)}</b>${n.metin ? `<span class="bld-metin">${esc(n.metin)}</span>` : ""}</span>`;
+    return etiket === "div" ? `<div class="bld-kart ${n.acil ? "acil" : ""} ${ek || ""}">${ic}</div>` : `<button type="button" class="bld-kart ${n.acil ? "acil" : ""} ${n.okundu ? "" : "okunmadi"} ${ek || ""}" ${etiket}="${n.id}">${ic}</button>`;
+  }
+  const bldAfisZaman = { p: null, h: null };
+  function bldCiz(taraf, yeni) {
+    const E = BLD_EL[taraf], L = BLD[taraf], okunmamis = L.filter((n) => !n.okundu).length;
+    document.querySelectorAll(E.zil).forEach((zil) => {
+      const rz = zil.querySelector(".zil-rozet"); if (rz) { rz.hidden = !okunmamis; rz.textContent = okunmamis > 9 ? "9+" : String(okunmamis); }
+      zil.setAttribute("aria-label", okunmamis ? `Bildirimler, ${okunmamis} okunmamış` : "Bildirimler");
+      if (yeni) { zil.classList.remove("salla"); void zil.offsetWidth; zil.classList.add("salla"); }
+    });
+    const panel = $(E.panel);
+    if (panel && BLD_PANEL[taraf]) {
+      panel.innerHTML = `<div class="bld-bas"><b>Bildirimler</b><span class="row" style="gap:6px">${okunmamis ? `<button class="btn gz-mini" type="button" data-bld-okundu="${taraf}">Tümünü okundu say</button>` : ""}<button class="btn gz-mini" type="button" data-bld-kapat="${taraf}">Kapat</button></span></div>
+        <div class="bld-liste">${L.length ? L.map((n) => bldKart(n, "data-bld")).join("") : `<div class="bld-bos">Henüz bildirim yok.</div>`}</div>`;
+    }
+    const kilit = $(E.kilit);
+    if (kilit) {
+      kilit.innerHTML = `<div class="k-kilit">🔒</div><div class="k-saat">09:30</div><div class="k-tarih">16 Kasım Pazartesi</div>
+        ${L.slice(0, 3).map((n) => bldKart(n, "data-kilit-bld", yeni && n === yeni ? "yeni" : "")).join("")}
+        ${L.length > 3 ? `<div class="k-daha">+${L.length - 3} bildirim daha</div>` : ""}
+        <div class="k-alt">${L.length ? "Bildirime dokun: uygulamada açılır" : "Bildirim gelince burada görünür"}</div>`;
+      if (yeni) {
+        kilit.classList.add("uyan"); const tel = kilit.closest(".phone"); tel.classList.remove("titre"); void tel.offsetWidth; tel.classList.add("titre");
+        clearTimeout(kilit._t); kilit._t = setTimeout(() => kilit.classList.remove("uyan"), 4000);
+      }
+    }
+    const afis = $(E.afis);
+    if (afis && yeni && !BLD_PANEL[taraf]) {
+      afis.innerHTML = bldKart(yeni, "div"); afis.classList.add("acik");
+      clearTimeout(bldAfisZaman[taraf]); bldAfisZaman[taraf] = setTimeout(() => afis.classList.remove("acik"), 3800);
+    }
+  }
+  function bldPanel(taraf, ac) {
+    BLD_PANEL[taraf] = ac;
+    const panel = $(BLD_EL[taraf].panel);
+    if (panel) panel.hidden = !ac;
+    document.querySelectorAll(BLD_EL[taraf].zil).forEach((z) => z.setAttribute("aria-expanded", String(ac)));
+    if (ac) { const a = $(BLD_EL[taraf].afis); if (a) a.classList.remove("acik"); }
+    bldCiz(taraf, null);
+    if (ac && panel) { const b = panel.querySelector("[data-bld-kapat]"); if (b) b.focus(); }
+  }
+  function bldAc(taraf, id) {
+    const n = BLD[taraf].find((x) => x.id === id); if (!n) return;
+    n.okundu = true; bldPanel(taraf, false);
+    const h = n.hedef || {};
+    if (taraf === "p") {
+      if (h.tur === "takip") { const r = REQ.find((x) => x.id === h.id) || P.request; if (r) { P.request = r; P.screen = "done"; } }
+      else if (h.tur === "teklif" && P.yz) P.screen = "options";
+      else if (h.tur === "home") P.screen = "home";
+      renderP();
+      if (h.tur === "takip") { const hedef = $("#pScreen .puan") || (h.kaydir && $(h.kaydir)); if (hedef) hedef.scrollIntoView({ block: "center" }); }
+    } else {
+      if (h.tur === "rota") { H.tab = "rota"; H.open = null; }
+      else if (h.tur === "talep") { H.tab = "talepler"; H.open = inbox(H.pid).some((r) => r.id === h.id) ? h.id : null; }
+      else if (h.tur === "talepler") { H.tab = "talepler"; H.open = null; }
+      renderH();
+    }
+    bldCiz(taraf, null);
+  }
+  document.addEventListener("click", (e) => {
+    const z = e.target.closest("[data-zil]"); if (z) { const t = z.dataset.zil; bldPanel(t, !BLD_PANEL[t]); return; }
+    const k = e.target.closest("[data-bld-kapat]"); if (k) { bldPanel(k.dataset.bldKapat, false); return; }
+    const o = e.target.closest("[data-bld-okundu]"); if (o) { BLD[o.dataset.bldOkundu].forEach((n) => (n.okundu = true)); bldCiz(o.dataset.bldOkundu, null); return; }
+    const b = e.target.closest("[data-bld]"); if (b) { bldAc(b.closest("#panelP") ? "p" : "h", b.dataset.bld); return; }
+    const kb = e.target.closest("[data-kilit-bld]");
+    if (kb) { const t = kb.closest("#kilitP") ? "p" : "h"; bldAc(t, kb.dataset.kilitBld); const tel = $(t === "p" ? "#colP .phone" : "#colH .phone"); if (tel) { tel.scrollIntoView({ block: "nearest", behavior: "smooth" }); tel.classList.remove("titre"); void tel.offsetWidth; tel.classList.add("titre"); } }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") ["p", "h"].forEach((t) => BLD_PANEL[t] && bldPanel(t, false)); });
+
+  function takipAdimi(r) {
+    if (!MAP || r.gun || r.status !== "kabul") return { adim: -1 };
+    const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
+    return { T, adim: d.adim === 1 && np.kmLeft < 1 ? 2 : d.adim, kalan: d.adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0 };
+  }
+  function bildirimIzle() {
+    // ---- hasta ----
+    const r = P.request;
+    if (r && !r.synthetic) {
+      const pp = person(r.provider_id), id = r.id, git = { tur: "takip", id };
+      if (r.status === "kabul") bildir("p", id + ":kabul", { ikon: "✅", baslik: "Randevun kesinleşti", metin: `${pp.full} · ${gunEki(r)}${C.hhmm(r.arrival_min)} · ${tl(r.price.patient_pays)} TL`, hedef: git });
+      if (r.status === "red") bildir("p", id + ":red", { ikon: "↩️", baslik: "Sağlık çalışanı uygun değil", metin: "Sana başka seçenekler gösterelim.", hedef: git });
+      const ta = takipAdimi(r);
+      if (ta.adim >= 1) bildir("p", id + ":yolda", { ikon: ta.T.toplu ? "🚌" : "🚗", baslik: `${pp.first} yola çıktı`, metin: `${neyleGeliyor(ta.T).replace(/<[^>]+>/g, "")} · tahmini varış ${C.hhmm(r.arrival_min)}`, hedef: git });
+      if (ta.adim >= 2) bildir("p", id + ":yakin", { ikon: "📍", baslik: `${pp.first} yaklaşıyor`, metin: `1 km'den az kaldı${ta.kalan ? ` · ~${ta.kalan} dk` : ""}.`, hedef: git });
+      if (ta.adim >= 3) bildir("p", id + ":kapida", { ikon: "🚪", baslik: `${pp.first} kapında`, metin: "Kapıyı açmadan önce uygulamada kodu ve fotoğrafı doğrula.", hedef: { ...git, kaydir: "#gzHasta" } });
+      (r.mesajlar || []).forEach((m, i) => bildir("p", `${id}:m${i}`, { ikon: "💬", baslik: pp.full, metin: m.metin, hedef: git }));
+      const gs = G.durum(r) || {};
+      if (gs.checkin) bildir("p", id + ":basladi", { ikon: "🩺", baslik: "Ziyaret başladı", metin: "Güvenli Ziyaret açık. Bir sorun olursa uygulamadan bildirebilirsin.", hedef: git });
+      if (gs.checkout) bildir("p", id + ":bitti", { ikon: "⭐", baslik: "Ziyaret bitti", metin: "Hizmet tamamlandı mı? Onayla ve puan ver.", hedef: git });
+      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
+      if (r.puan) bildir("p", id + ":puan", { ikon: "🙏", baslik: "Teşekkürler!", metin: `Puanın ${pp.first}'in profiline eklendi.`, hedef: git });
+    }
+    if (P.yz && P.yz.plan && P.screen === "options") {
+      for (const x of teklifDurumu(P.yz).satirlar) if (x.geldi && x.verir) bildir("p", `${P.yz.key}:t:${x.pid}`, { ikon: "💰", baslik: "Yeni teklif geldi", metin: `${person(x.pid).full} · hizmet ${tl(x.fiyat)} TL`, hedef: { tur: "teklif" } });
+    }
+    // ---- sağlık çalışanı ----
+    const pid = H.pid; if (!pid) return;
+    for (const q of inbox(pid)) if (!q.synthetic) bildir("h", q.id + ":yeni", { ikon: "🔔", baslik: "Yeni talep", metin: `${svc(q.service).name_tr} · ${q.patient.district} · ${gunEki(q)}${C.hhmm(q.arrival_min)} · +${tl(q.price.provider_gets)} TL`, hedef: { tur: "talep", id: q.id } });
+    if (P.yz && P.yz.plan) {
+      const d = teklifDurumu(P.yz), secilen = [...P.yz.plan.secilen, ...(d.ikinci ? P.yz.plan.tur2.secilen : [])];
+      const ak = `${P.yz.key}:istek:${pid}`;
+      if (!BLD_ANAHTAR.h.has(ak) && secilen.some((a) => a.pid === pid)) {
+        let ad = "Ev ziyareti"; try { ad = svc(decide().t.services[0]).name_tr; } catch (e) { /* yok */ }
+        bildir("h", ak, { ikon: "📨", baslik: "Teklif isteği", metin: `${ad} · ${P.info.district} · önerilen ${tl(P.yz.plan.oneri.fiyat)} TL`, hedef: { tur: "talepler" } });
+      }
+    }
+    const v = siradakiZiyaret(pid);
+    if (v) {
+      const vid = v.id, git = { tur: "rota" };
+      bildir("h", vid + ":h-kesin", { ikon: "📅", baslik: "Randevu kesinleşti", metin: `${svc(v.service).name_tr} · ${C.hhmm(v.arrival_min)} · ${v.patient.district || "İzmir"}`, hedef: git });
+      const tav = MAP && !v.gun ? (() => { const T = takipVerisi(v), d = takipDurumu(T, v); return { T, adim: d.adim }; })() : null;
+      if (tav) {
+        const cikis = v.arrival_min - tav.T.yolDk - tav.T.park;
+        bildir("h", vid + ":h-cik", { ikon: tav.T.toplu ? "🚌" : "🚗", baslik: "Yola çıkma zamanı", metin: `${tav.T.toplu ? `Toplu taşımayla: ${TOPLU.ozet(tav.T.rt)}` : "Araçla"} · yola çıkış ${cikis <= SIMDI + 1 ? "hemen" : C.hhmm(cikis)} · ~${tav.T.yolDk + tav.T.park} dk`, hedef: git });
+        if (tav.adim >= 3) bildir("h", vid + ":h-vardin", { ikon: "🚪", baslik: "Vardın", metin: "Kapı kodunu uygulamada gör ve hastaya söyle.", hedef: git });
+      }
+      const s = !v.synthetic ? G.durum(v) : null;
+      if (s) {
+        if (s.kodDurum === "eslesti") bildir("h", vid + ":h-kod", { ikon: "✅", baslik: "Hasta kodu onayladı", metin: "Ziyareti başlatabilirsin (check-in).", hedef: git });
+        if (s.kontrol) bildir("h", `${vid}:h-kontrol:${s.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: git });
+        if (s.checkout) bildir("h", vid + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(v.price ? v.price.provider_gets : 0)} TL (demo)`, hedef: git });
+      }
+    }
+    // tamamlanan ziyaretler için kazanç (sıradaki ziyaret değişse de)
+    const gr = gzR(); const gs2 = gr && G.durum(gr);
+    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
+    if (gs2 && gs2.kontrol) bildir("h", `${gr.id}:h-kontrol:${gs2.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: { tur: "rota" } });
+    for (const x of PUAN[pid] || []) bildir("h", `${pid}:puan:${x.reqId}`, { ikon: "⭐", baslik: "Yeni değerlendirme", metin: `${"★".repeat(x.yildiz)}${"☆".repeat(5 - x.yildiz)}${x.etiketler.length ? " · " + x.etiketler.join(", ") : ""}`, hedef: { tur: "rota" } });
+    // genel
+    if (DG.state && DG.state.status === "onaylandi") bildir("h", `${pid}:dg-onay`, { ikon: "🎓", baslik: "Mesleki başvurun onaylı (demo)", metin: "Artık görev kabul edebilirsin.", hedef: { tur: "talepler" } });
+    if (!BLD_ANAHTAR.h.has(`${pid}:gunaydin`)) {
+      const gun = hStops(pid), sira = gun.find((x) => x.start_min >= SIMDI);
+      bildir("h", `${pid}:gunaydin`, { ikon: "☀️", baslik: "Günaydın!", metin: gun.length ? `Bugün ${gun.length} ziyaretin var${sira ? `; sıradaki ${C.hhmm(sira.start_min)}` : ""}.` : "Bugün henüz ziyaretin yok. Saatlerini açarsan talep gelir.", hedef: { tur: "rota" } });
+    }
+  }
+  setTimeout(() => {
+    bildir("p", "hosgeldin", { ikon: "👋", baslik: "anında sağlık'a hoş geldin", metin: "Ne olduğunu konuşarak ya da yazarak anlat; fiyatı seçmeden önce görürsün.", hedef: { tur: "home" } });
+    bildir("p", "guvenli", { ikon: "🛡️", baslik: "Güvenli Ziyaret", metin: "Gelen kişiyi kapıda kod ve fotoğrafla doğrularsın; konum yalnızca ziyaret sırasında paylaşılır.", hedef: { tur: "home" } });
+    bildirimIzle(); setInterval(bildirimIzle, 1000);
+  }, 1500);
+  ["p", "h"].forEach((t) => bldCiz(t, null));
+  window.KapidaBildirim = { liste: (t) => BLD[t].map((n) => n.baslik), ac: (t) => bldPanel(t, true) };
+  setInterval(() => ["p", "h"].forEach((t) => { const k = $(BLD_EL[t].kilit); if (k) k.querySelectorAll(".bld-ust span:last-child").forEach((sp, i) => { const n = BLD[t][i]; if (n) sp.textContent = bldZaman(n.t); }); }), 15000);
 
   // Yalnız hasta telefonu: kapı kodu eşleşince çalışan adına demo check-in (3 sn), kısa bir ziyaret (8 sn) ve çıkış.
   // Böylece tek telefonda da "tamamlandı → puanla" adımına gelinir. Çalışan ekranı açıkken (#ikisi) bunu çalışan yapar.
