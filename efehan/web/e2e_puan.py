@@ -84,7 +84,11 @@ with sync_playwright() as pw:
     pg.goto(D.as_uri() + "?rol=ham"); pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Demo modu')", timeout=10000)
     p, h = pg.locator("#pScreen"), pg.locator("#hScreen")
     talep_ve_kabul(pg, p, h); kapiya_kadar(pg, p)
-    h.locator("[data-gz=checkin]").click(); pg.wait_for_timeout(300); h.locator("[data-gz=cikis]").click(); h.locator("[data-gz=cikis-sec][data-v=yok]").click()
+    h.locator("[data-gz=checkin]").click(); pg.wait_for_timeout(300)
+    p.locator("[data-act=home]").first.click()  # hasta ziyaret biterken ana sayfada
+    h.locator("[data-gz=cikis]").click(); h.locator("[data-gz=cikis-sec][data-v=yok]").click(); pg.wait_for_timeout(300)
+    check("ziyareti bitirdi" in p.inner_text() and p.get_by_role("button", name="Onayla ve puanla").count() == 1, "hasta ana sayfadayken ziyaret bitince en üstte 'Onayla ve puanla' kartı")
+    p.get_by_role("button", name="Onayla ve puanla").click()
     p.locator("[data-gz=h-tamam]").click()
     p.locator(".puan-btn").nth(4).click(); p.locator("[data-puan-etiket='Güven verdi']").click()
     p.locator(".puan-btn").nth(1).click()
@@ -92,6 +96,8 @@ with sync_playwright() as pw:
     p.locator("[data-puan-etiket='Geç kaldı']").click(); p.locator("[data-act=puanGonder]").click()
     check("kalite ekibi" in p.locator(".puan").inner_text(), "düşük puanda kalite ekibi incelemesi söylendi")
     check("inceliyor" in h.inner_text(), "çalışan ekranında 'kalite ekibi inceliyor' notu")
+    p.locator("[data-act=home]").first.click()
+    check("ziyaretini puanla" not in p.inner_text() and "★★" in p.locator(".randevularim").inner_text(), "puan verilince ana sayfadaki davet kalktı, Randevularım'da verilen puan yazıyor")
     check(not errs, f"sayfa hatası yok {errs}")
     pg.close()
 
