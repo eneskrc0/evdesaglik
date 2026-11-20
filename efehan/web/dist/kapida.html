@@ -399,6 +399,50 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .yt-ikon { font-size: 20px; line-height: 1; width: 24px; text-align: center; flex: none; }
 .yt-adres a.btn { color: inherit; font-weight: 700; }
 .calisan-mesaj { background: var(--brand-soft); border-radius: 10px; padding: 8px 10px; }
+
+/* ---------- bildirimler: zil, liste, afiş, kilitli telefonlar ---------- */
+.zil { cursor: pointer; border-radius: 12px; }
+.zil:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.zil.salla .ico { animation: zilSalla .9s ease; transform-origin: 50% 10%; }
+@keyframes zilSalla { 0%,100% { transform: rotate(0); } 15% { transform: rotate(18deg); } 30% { transform: rotate(-15deg); } 45% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } }
+.zil-rozet { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; border: 2px solid var(--phone); box-sizing: content-box; }
+.bld-afis { position: absolute; left: 10px; right: 10px; top: 54px; z-index: 40; pointer-events: none; transform: translateY(-140%); opacity: 0; transition: transform .35s ease, opacity .35s ease; }
+.bld-afis.acik { transform: translateY(0); opacity: 1; }
+.bld-kart { display: flex; gap: 10px; align-items: flex-start; background: color-mix(in srgb, var(--phone) 92%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; box-shadow: 0 10px 26px rgba(0,0,0,.18); text-align: left; width: 100%; font: inherit; color: inherit; }
+.bld-kart .bld-ikon { width: 30px; height: 30px; border-radius: 9px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 16px; flex: none; }
+.bld-kart .bld-govde { flex: 1; min-width: 0; }
+.bld-kart .bld-ust { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--muted); }
+.bld-kart b { display: block; font-size: 14px; line-height: 1.3; }
+.bld-kart .bld-metin { font-size: 13px; line-height: 1.35; }
+.bld-kart.acil .bld-ikon { background: var(--coral, #e5484d); }
+.bld-panel { position: absolute; inset: 50px 0 0 0; z-index: 45; background: var(--phone); display: flex; flex-direction: column; }
+.bld-panel[hidden] { display: none; }
+.bld-panel .bld-bas { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.bld-panel .bld-liste { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.bld-panel button.bld-kart { cursor: pointer; box-shadow: none; }
+.bld-panel button.bld-kart.okunmadi { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 7%, var(--phone)); }
+.bld-bos { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 10px; }
+.kilit-col .cap { white-space: nowrap; }
+.phone.kilit { width: 250px; height: 530px; border-radius: 32px; border-width: 8px; background: #0f1a1b; }
+.kilit-ekran { position: absolute; inset: 0; background: radial-gradient(120% 80% at 30% 0%, #2e6f6c 0%, #123a3c 55%, #0b1f21 100%); color: #fff; padding: 18px 12px; display: flex; flex-direction: column; gap: 8px; filter: brightness(.55); transition: filter .5s ease; overflow: hidden; }
+.kilit-ekran.uyan { filter: brightness(1); }
+.kilit-ekran .k-kilit { text-align: center; font-size: 14px; opacity: .85; }
+.kilit-ekran .k-saat { text-align: center; font-size: 58px; font-weight: 300; line-height: 1; letter-spacing: -.02em; }
+.kilit-ekran .k-tarih { text-align: center; font-size: 13px; opacity: .85; margin-bottom: 8px; }
+.kilit-ekran .bld-kart { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.18); color: #fff; box-shadow: none; padding: 8px 10px; cursor: pointer; }
+.kilit-ekran .bld-kart .bld-ust { color: rgba(255,255,255,.75); }
+.kilit-ekran .bld-kart b { font-size: 13px; } .kilit-ekran .bld-kart .bld-metin { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kilit-ekran .k-daha { text-align: center; font-size: 11px; opacity: .8; }
+.kilit-ekran .bld-kart.yeni { animation: kilitGel .5s ease; }
+@keyframes kilitGel { from { transform: translateY(-14px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.phone.kilit.titre { animation: titre .5s linear; }
+@keyframes titre { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
+.kilit-ekran .k-alt { margin-top: auto; text-align: center; font-size: 11px; opacity: .7; }
+.tek-rol.rol-hasta #kilitHCol, .tek-rol.rol-calisan #kilitPCol { display: none; }
+@media (max-width: 860px) { .kilit-col { display: none !important; } .bld-panel { inset: 0; } .bld-afis { top: 8px; } }
+@media (min-width: 861px) { .stage { gap: 24px; } }
+@media (max-width: 1460px) and (min-width: 861px) { .phone.kilit { width: 220px; height: 500px; } .stage { gap: 18px; } }
+@media (max-width: 1340px) and (min-width: 861px) { .phone.kilit { width: 196px; height: 470px; border-width: 7px; } .stage { gap: 12px; padding-left: 6px; padding-right: 6px; } .kilit-ekran .k-saat { font-size: 46px; } .kilit-col .cap { font-size: 11px; } }
 </style>
 </head>
 <body>
@@ -418,15 +462,23 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
   <div class="rol-kapi"><a href="#hasta">Yalnız hasta uygulaması</a><a href="#calisan">Yalnız hemşire uygulaması</a><a href="#doktor">Yalnız doktor uygulaması</a><a href="#ikisi">İkisi yan yana</a></div>
 </div>
 <div class="stage">
+  <div class="col kilit-col" id="kilitPCol" aria-label="Hastanın kilitli telefonu">
+    <div class="cap">Hasta telefonu · kilitli</div>
+    <div class="phone kilit"><div class="kilit-ekran" id="kilitP"></div></div>
+  </div>
   <div class="col" id="colP">
     <div class="cap">Hasta / yakını</div>
-    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="pScreen"></div></div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="pScreen"></div><div class="bld-afis" id="afisP" aria-hidden="true"></div><div class="bld-panel" id="panelP" hidden></div></div>
   </div>
   <div class="col hide-m" id="colH">
     <div class="cap">Sağlık çalışanı</div>
-    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="hScreen"></div></div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span class="sb-ico" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0zM3.3 6.4a7 7 0 0 1 9.4 0l1.5-1.8a9.4 9.4 0 0 0-12.4 0zM.4 2.9a11.5 11.5 0 0 1 15.2 0L16 2.4A12.4 12.4 0 0 0 0 2.4z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="8" rx="2" fill="currentColor"/><rect x="24.5" y="4" width="2" height="4" rx="1" fill="currentColor" opacity=".45"/></svg></span></div><div class="screen" id="hScreen"></div><div class="bld-afis" id="afisH" aria-hidden="true"></div><div class="bld-panel" id="panelH" hidden></div></div>
     <section class="democtl" id="demoCtl" aria-label="Demo kontrolleri"></section>
     <section class="democtl gz-masa" id="gzMasa" aria-label="Güvenlik masası" aria-live="polite"></section>
+  </div>
+  <div class="col kilit-col" id="kilitHCol" aria-label="Sağlık çalışanının kilitli telefonu">
+    <div class="cap">Çalışan telefonu · kilitli</div>
+    <div class="phone kilit"><div class="kilit-ekran" id="kilitH"></div></div>
   </div>
 </div>
 <p class="foot-note" id="footNote">Hastanın gönderdiği talep, seçtiği sağlık çalışanının ekranına raporuyla birlikte düşer. Teşhis koymaz; acil belirtide randevu yerine 112'ye yönlendirir. Sağlık çalışanı ilk girişte mesleki başvurusunu yapar; başvuru onaylanmadan görev kabul edemez (prototip: belgeler resmî sistemlerden doğrulanmaz).</p>
@@ -3216,7 +3268,10 @@ YANIT yalnızca şu JSON olsun:
   // Genel sağlık çalışanı avatarı (fotoğraf yerine; gerçek kişi değil)
   const AVATAR = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 17.5c0-6 5-9.5 11-9.5s11 3.5 11 9.5"/><path d="M16.5 17.5h23l-1 4h-21z"/><path d="M28 10.5v5M25.5 13h5" stroke="var(--brand)" stroke-width="2.2"/><path d="M18 22c0 7 4.5 12 10 12s10-5 10-12"/><path d="M8 52c1.5-8.5 9-13 20-13s18.5 4.5 20 13"/></svg>`;
   const MARKA = `<span class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</span>`;
-  const appbar = () => `<div class="appbar">${MARKA}<button class="zil" type="button" aria-label="Bildirimler">${ICO.zil}<i></i></button></div>`;
+  const BLD = { p: [], h: [] }, BLD_ANAHTAR = { p: new Set(), h: new Set() }, BLD_PANEL = { p: false, h: false }; // bildirimler (aşağıda)
+  // Uygulama başlığı: logo + bildirim zili (okunmamış sayısı; dokununca bildirim listesi)
+  const appbar = (taraf) => { const n = BLD[taraf].filter((x) => !x.okundu).length;
+    return `<div class="appbar">${MARKA}<button class="zil" type="button" data-zil="${taraf}" aria-label="${n ? `Bildirimler, ${n} okunmamış` : "Bildirimler"}" aria-expanded="${BLD_PANEL[taraf]}">${ICO.zil}<span class="zil-rozet"${n ? "" : " hidden"}>${n > 9 ? "9+" : n}</span></button></div>`; };
   const svcIcon = (code) => {
     const s = svc(code) || {};
     if (/bas|yara|pansuman/.test(code)) return ICO.yarabandi;
@@ -3880,7 +3935,7 @@ YANIT yalnızca şu JSON olsun:
   }
   function pHome() {
     const ad = window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : "";
-    return `${appbar()}<div class="pad stack" style="gap:16px;padding-top:10px">
+    return `${appbar("p")}<div class="pad stack" style="gap:16px;padding-top:10px">
       <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
       ${randevuKartlari()}
       <div class="hero"><span class="deco"></span>
@@ -4521,7 +4576,7 @@ YANIT yalnızca şu JSON olsun:
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      ${appbar()}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici">Çevrimiçi</span>
+      ${appbar("h")}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici">Çevrimiçi</span>
           <div class="tiny muted" style="margin-top:4px">${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
         <div class="stats"><div>${ICO.takvim}<b class="num">${stops.length}</b><span>ziyaret</span></div><div>${ICO.pin}<b class="num">${km.toFixed(1).replace(".", ",")} <small>km</small></b><span>toplam yol</span></div><div>${ICO.para}<b class="num">${tl(earn)} <small>TL</small></b><span>kazanç</span></div></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
@@ -4766,6 +4821,166 @@ YANIT yalnızca şu JSON olsun:
     putRequest(upd); P.request = upd; P.toast = `${person(pid).full} talebini onayladı (demo).`;
     renderP(); renderH();
   }, 1000);
+
+  // ---------- bildirimler: zil + liste + uygulama içi afiş + kilitli telefonlar ----------
+  // Olaylar 1 sn'de bir izlenir; her olay bir kez bildirilir (anahtarla). Hasta: onay, teklif, yola çıktı, yaklaşıyor, kapında,
+  // mesaj, ziyaret başladı/bitti, ödeme. Çalışan: yeni talep, teklif isteği, randevu kesinleşti, yola çıkma zamanı, vardın,
+  // hasta kodu onayladı, "Her şey yolunda mı?", kazanç, yeni değerlendirme. Prototip: gerçek anlık bildirim (push) yok.
+  const BLD_EL = { p: { panel: "#panelP", afis: "#afisP", kilit: "#kilitP", zil: '[data-zil="p"]' }, h: { panel: "#panelH", afis: "#afisH", kilit: "#kilitH", zil: '[data-zil="h"]' } };
+  let bldSayac = 0;
+  function bildir(taraf, anahtar, o) {
+    if (BLD_ANAHTAR[taraf].has(anahtar)) return;
+    BLD_ANAHTAR[taraf].add(anahtar);
+    const n = { id: "b" + ++bldSayac, t: Date.now(), okundu: false, ikon: "🔔", ...o };
+    BLD[taraf].unshift(n); BLD[taraf].length = Math.min(BLD[taraf].length, 40);
+    bldCiz(taraf, n);
+  }
+  const bldZaman = (t) => { const sn = (Date.now() - t) / 1000; return sn < 45 ? "şimdi" : sn < 3600 ? `${Math.round(sn / 60)} dk önce` : `${Math.round(sn / 3600)} sa önce`; };
+  function bldKart(n, etiket, ek) {
+    const ic = `<span class="bld-ikon" aria-hidden="true">${n.ikon}</span><span class="bld-govde"><span class="bld-ust"><span>ANINDA SAĞLIK</span><span>${bldZaman(n.t)}</span></span><b>${esc(n.baslik)}</b>${n.metin ? `<span class="bld-metin">${esc(n.metin)}</span>` : ""}</span>`;
+    return etiket === "div" ? `<div class="bld-kart ${n.acil ? "acil" : ""} ${ek || ""}">${ic}</div>` : `<button type="button" class="bld-kart ${n.acil ? "acil" : ""} ${n.okundu ? "" : "okunmadi"} ${ek || ""}" ${etiket}="${n.id}">${ic}</button>`;
+  }
+  const bldAfisZaman = { p: null, h: null };
+  function bldCiz(taraf, yeni) {
+    const E = BLD_EL[taraf], L = BLD[taraf], okunmamis = L.filter((n) => !n.okundu).length;
+    document.querySelectorAll(E.zil).forEach((zil) => {
+      const rz = zil.querySelector(".zil-rozet"); if (rz) { rz.hidden = !okunmamis; rz.textContent = okunmamis > 9 ? "9+" : String(okunmamis); }
+      zil.setAttribute("aria-label", okunmamis ? `Bildirimler, ${okunmamis} okunmamış` : "Bildirimler");
+      if (yeni) { zil.classList.remove("salla"); void zil.offsetWidth; zil.classList.add("salla"); }
+    });
+    const panel = $(E.panel);
+    if (panel && BLD_PANEL[taraf]) {
+      panel.innerHTML = `<div class="bld-bas"><b>Bildirimler</b><span class="row" style="gap:6px">${okunmamis ? `<button class="btn gz-mini" type="button" data-bld-okundu="${taraf}">Tümünü okundu say</button>` : ""}<button class="btn gz-mini" type="button" data-bld-kapat="${taraf}">Kapat</button></span></div>
+        <div class="bld-liste">${L.length ? L.map((n) => bldKart(n, "data-bld")).join("") : `<div class="bld-bos">Henüz bildirim yok.</div>`}</div>`;
+    }
+    const kilit = $(E.kilit);
+    if (kilit) {
+      kilit.innerHTML = `<div class="k-kilit">🔒</div><div class="k-saat">09:30</div><div class="k-tarih">16 Kasım Pazartesi</div>
+        ${L.slice(0, 3).map((n) => bldKart(n, "data-kilit-bld", yeni && n === yeni ? "yeni" : "")).join("")}
+        ${L.length > 3 ? `<div class="k-daha">+${L.length - 3} bildirim daha</div>` : ""}
+        <div class="k-alt">${L.length ? "Bildirime dokun: uygulamada açılır" : "Bildirim gelince burada görünür"}</div>`;
+      if (yeni) {
+        kilit.classList.add("uyan"); const tel = kilit.closest(".phone"); tel.classList.remove("titre"); void tel.offsetWidth; tel.classList.add("titre");
+        clearTimeout(kilit._t); kilit._t = setTimeout(() => kilit.classList.remove("uyan"), 4000);
+      }
+    }
+    const afis = $(E.afis);
+    if (afis && yeni && !BLD_PANEL[taraf]) {
+      afis.innerHTML = bldKart(yeni, "div"); afis.classList.add("acik");
+      clearTimeout(bldAfisZaman[taraf]); bldAfisZaman[taraf] = setTimeout(() => afis.classList.remove("acik"), 3800);
+    }
+  }
+  function bldPanel(taraf, ac) {
+    BLD_PANEL[taraf] = ac;
+    const panel = $(BLD_EL[taraf].panel);
+    if (panel) panel.hidden = !ac;
+    document.querySelectorAll(BLD_EL[taraf].zil).forEach((z) => z.setAttribute("aria-expanded", String(ac)));
+    if (ac) { const a = $(BLD_EL[taraf].afis); if (a) a.classList.remove("acik"); }
+    bldCiz(taraf, null);
+    if (ac && panel) { const b = panel.querySelector("[data-bld-kapat]"); if (b) b.focus(); }
+  }
+  function bldAc(taraf, id) {
+    const n = BLD[taraf].find((x) => x.id === id); if (!n) return;
+    n.okundu = true; bldPanel(taraf, false);
+    const h = n.hedef || {};
+    if (taraf === "p") {
+      if (h.tur === "takip") { const r = REQ.find((x) => x.id === h.id) || P.request; if (r) { P.request = r; P.screen = "done"; } }
+      else if (h.tur === "teklif" && P.yz) P.screen = "options";
+      else if (h.tur === "home") P.screen = "home";
+      renderP();
+      if (h.tur === "takip") { const hedef = $("#pScreen .puan") || (h.kaydir && $(h.kaydir)); if (hedef) hedef.scrollIntoView({ block: "center" }); }
+    } else {
+      if (h.tur === "rota") { H.tab = "rota"; H.open = null; }
+      else if (h.tur === "talep") { H.tab = "talepler"; H.open = inbox(H.pid).some((r) => r.id === h.id) ? h.id : null; }
+      else if (h.tur === "talepler") { H.tab = "talepler"; H.open = null; }
+      renderH();
+    }
+    bldCiz(taraf, null);
+  }
+  document.addEventListener("click", (e) => {
+    const z = e.target.closest("[data-zil]"); if (z) { const t = z.dataset.zil; bldPanel(t, !BLD_PANEL[t]); return; }
+    const k = e.target.closest("[data-bld-kapat]"); if (k) { bldPanel(k.dataset.bldKapat, false); return; }
+    const o = e.target.closest("[data-bld-okundu]"); if (o) { BLD[o.dataset.bldOkundu].forEach((n) => (n.okundu = true)); bldCiz(o.dataset.bldOkundu, null); return; }
+    const b = e.target.closest("[data-bld]"); if (b) { bldAc(b.closest("#panelP") ? "p" : "h", b.dataset.bld); return; }
+    const kb = e.target.closest("[data-kilit-bld]");
+    if (kb) { const t = kb.closest("#kilitP") ? "p" : "h"; bldAc(t, kb.dataset.kilitBld); const tel = $(t === "p" ? "#colP .phone" : "#colH .phone"); if (tel) { tel.scrollIntoView({ block: "nearest", behavior: "smooth" }); tel.classList.remove("titre"); void tel.offsetWidth; tel.classList.add("titre"); } }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") ["p", "h"].forEach((t) => BLD_PANEL[t] && bldPanel(t, false)); });
+
+  function takipAdimi(r) {
+    if (!MAP || r.gun || r.status !== "kabul") return { adim: -1 };
+    const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
+    return { T, adim: d.adim === 1 && np.kmLeft < 1 ? 2 : d.adim, kalan: d.adim <= 2 ? Math.max(1, Math.ceil((1 - d.f) * T.yolDk + T.park)) : 0 };
+  }
+  function bildirimIzle() {
+    // ---- hasta ----
+    const r = P.request;
+    if (r && !r.synthetic) {
+      const pp = person(r.provider_id), id = r.id, git = { tur: "takip", id };
+      if (r.status === "kabul") bildir("p", id + ":kabul", { ikon: "✅", baslik: "Randevun kesinleşti", metin: `${pp.full} · ${gunEki(r)}${C.hhmm(r.arrival_min)} · ${tl(r.price.patient_pays)} TL`, hedef: git });
+      if (r.status === "red") bildir("p", id + ":red", { ikon: "↩️", baslik: "Sağlık çalışanı uygun değil", metin: "Sana başka seçenekler gösterelim.", hedef: git });
+      const ta = takipAdimi(r);
+      if (ta.adim >= 1) bildir("p", id + ":yolda", { ikon: ta.T.toplu ? "🚌" : "🚗", baslik: `${pp.first} yola çıktı`, metin: `${neyleGeliyor(ta.T).replace(/<[^>]+>/g, "")} · tahmini varış ${C.hhmm(r.arrival_min)}`, hedef: git });
+      if (ta.adim >= 2) bildir("p", id + ":yakin", { ikon: "📍", baslik: `${pp.first} yaklaşıyor`, metin: `1 km'den az kaldı${ta.kalan ? ` · ~${ta.kalan} dk` : ""}.`, hedef: git });
+      if (ta.adim >= 3) bildir("p", id + ":kapida", { ikon: "🚪", baslik: `${pp.first} kapında`, metin: "Kapıyı açmadan önce uygulamada kodu ve fotoğrafı doğrula.", hedef: { ...git, kaydir: "#gzHasta" } });
+      (r.mesajlar || []).forEach((m, i) => bildir("p", `${id}:m${i}`, { ikon: "💬", baslik: pp.full, metin: m.metin, hedef: git }));
+      const gs = G.durum(r) || {};
+      if (gs.checkin) bildir("p", id + ":basladi", { ikon: "🩺", baslik: "Ziyaret başladı", metin: "Güvenli Ziyaret açık. Bir sorun olursa uygulamadan bildirebilirsin.", hedef: git });
+      if (gs.checkout) bildir("p", id + ":bitti", { ikon: "⭐", baslik: "Ziyaret bitti", metin: "Hizmet tamamlandı mı? Onayla ve puan ver.", hedef: git });
+      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
+      if (r.puan) bildir("p", id + ":puan", { ikon: "🙏", baslik: "Teşekkürler!", metin: `Puanın ${pp.first}'in profiline eklendi.`, hedef: git });
+    }
+    if (P.yz && P.yz.plan && P.screen === "options") {
+      for (const x of teklifDurumu(P.yz).satirlar) if (x.geldi && x.verir) bildir("p", `${P.yz.key}:t:${x.pid}`, { ikon: "💰", baslik: "Yeni teklif geldi", metin: `${person(x.pid).full} · hizmet ${tl(x.fiyat)} TL`, hedef: { tur: "teklif" } });
+    }
+    // ---- sağlık çalışanı ----
+    const pid = H.pid; if (!pid) return;
+    for (const q of inbox(pid)) if (!q.synthetic) bildir("h", q.id + ":yeni", { ikon: "🔔", baslik: "Yeni talep", metin: `${svc(q.service).name_tr} · ${q.patient.district} · ${gunEki(q)}${C.hhmm(q.arrival_min)} · +${tl(q.price.provider_gets)} TL`, hedef: { tur: "talep", id: q.id } });
+    if (P.yz && P.yz.plan) {
+      const d = teklifDurumu(P.yz), secilen = [...P.yz.plan.secilen, ...(d.ikinci ? P.yz.plan.tur2.secilen : [])];
+      const ak = `${P.yz.key}:istek:${pid}`;
+      if (!BLD_ANAHTAR.h.has(ak) && secilen.some((a) => a.pid === pid)) {
+        let ad = "Ev ziyareti"; try { ad = svc(decide().t.services[0]).name_tr; } catch (e) { /* yok */ }
+        bildir("h", ak, { ikon: "📨", baslik: "Teklif isteği", metin: `${ad} · ${P.info.district} · önerilen ${tl(P.yz.plan.oneri.fiyat)} TL`, hedef: { tur: "talepler" } });
+      }
+    }
+    const v = siradakiZiyaret(pid);
+    if (v) {
+      const vid = v.id, git = { tur: "rota" };
+      bildir("h", vid + ":h-kesin", { ikon: "📅", baslik: "Randevu kesinleşti", metin: `${svc(v.service).name_tr} · ${C.hhmm(v.arrival_min)} · ${v.patient.district || "İzmir"}`, hedef: git });
+      const tav = MAP && !v.gun ? (() => { const T = takipVerisi(v), d = takipDurumu(T, v); return { T, adim: d.adim }; })() : null;
+      if (tav) {
+        const cikis = v.arrival_min - tav.T.yolDk - tav.T.park;
+        bildir("h", vid + ":h-cik", { ikon: tav.T.toplu ? "🚌" : "🚗", baslik: "Yola çıkma zamanı", metin: `${tav.T.toplu ? `Toplu taşımayla: ${TOPLU.ozet(tav.T.rt)}` : "Araçla"} · yola çıkış ${cikis <= SIMDI + 1 ? "hemen" : C.hhmm(cikis)} · ~${tav.T.yolDk + tav.T.park} dk`, hedef: git });
+        if (tav.adim >= 3) bildir("h", vid + ":h-vardin", { ikon: "🚪", baslik: "Vardın", metin: "Kapı kodunu uygulamada gör ve hastaya söyle.", hedef: git });
+      }
+      const s = !v.synthetic ? G.durum(v) : null;
+      if (s) {
+        if (s.kodDurum === "eslesti") bildir("h", vid + ":h-kod", { ikon: "✅", baslik: "Hasta kodu onayladı", metin: "Ziyareti başlatabilirsin (check-in).", hedef: git });
+        if (s.kontrol) bildir("h", `${vid}:h-kontrol:${s.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: git });
+        if (s.checkout) bildir("h", vid + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(v.price ? v.price.provider_gets : 0)} TL (demo)`, hedef: git });
+      }
+    }
+    // tamamlanan ziyaretler için kazanç (sıradaki ziyaret değişse de)
+    const gr = gzR(); const gs2 = gr && G.durum(gr);
+    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
+    if (gs2 && gs2.kontrol) bildir("h", `${gr.id}:h-kontrol:${gs2.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: { tur: "rota" } });
+    for (const x of PUAN[pid] || []) bildir("h", `${pid}:puan:${x.reqId}`, { ikon: "⭐", baslik: "Yeni değerlendirme", metin: `${"★".repeat(x.yildiz)}${"☆".repeat(5 - x.yildiz)}${x.etiketler.length ? " · " + x.etiketler.join(", ") : ""}`, hedef: { tur: "rota" } });
+    // genel
+    if (DG.state && DG.state.status === "onaylandi") bildir("h", `${pid}:dg-onay`, { ikon: "🎓", baslik: "Mesleki başvurun onaylı (demo)", metin: "Artık görev kabul edebilirsin.", hedef: { tur: "talepler" } });
+    if (!BLD_ANAHTAR.h.has(`${pid}:gunaydin`)) {
+      const gun = hStops(pid), sira = gun.find((x) => x.start_min >= SIMDI);
+      bildir("h", `${pid}:gunaydin`, { ikon: "☀️", baslik: "Günaydın!", metin: gun.length ? `Bugün ${gun.length} ziyaretin var${sira ? `; sıradaki ${C.hhmm(sira.start_min)}` : ""}.` : "Bugün henüz ziyaretin yok. Saatlerini açarsan talep gelir.", hedef: { tur: "rota" } });
+    }
+  }
+  setTimeout(() => {
+    bildir("p", "hosgeldin", { ikon: "👋", baslik: "anında sağlık'a hoş geldin", metin: "Ne olduğunu konuşarak ya da yazarak anlat; fiyatı seçmeden önce görürsün.", hedef: { tur: "home" } });
+    bildir("p", "guvenli", { ikon: "🛡️", baslik: "Güvenli Ziyaret", metin: "Gelen kişiyi kapıda kod ve fotoğrafla doğrularsın; konum yalnızca ziyaret sırasında paylaşılır.", hedef: { tur: "home" } });
+    bildirimIzle(); setInterval(bildirimIzle, 1000);
+  }, 1500);
+  ["p", "h"].forEach((t) => bldCiz(t, null));
+  window.KapidaBildirim = { liste: (t) => BLD[t].map((n) => n.baslik), ac: (t) => bldPanel(t, true) };
+  setInterval(() => ["p", "h"].forEach((t) => { const k = $(BLD_EL[t].kilit); if (k) k.querySelectorAll(".bld-ust span:last-child").forEach((sp, i) => { const n = BLD[t][i]; if (n) sp.textContent = bldZaman(n.t); }); }), 15000);
 
   // Yalnız hasta telefonu: kapı kodu eşleşince çalışan adına demo check-in (3 sn), kısa bir ziyaret (8 sn) ve çıkış.
   // Böylece tek telefonda da "tamamlandı → puanla" adımına gelinir. Çalışan ekranı açıkken (#ikisi) bunu çalışan yapar.
