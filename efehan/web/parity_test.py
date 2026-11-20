@@ -26,7 +26,9 @@ EXTRA_TEXTS = ["Göğsümde YANMA var reflü sanırım", "IŞIK gözümü acıt�
                "kateter", "nöbetçi eczane nerede", "İğne yaptırmam lazım", "ateşli havale geçirdi",
                "hemşire çağırmak istiyorum", "fizik tedavici gelsin dizim ameliyatlı", "odyolog istiyorum",
                "yaram var doktor gelsin", "doktorla görüntülü görüşmek istiyorum", "lohusayım ebe lazım",
-               "pansuman için hemşire", "diyetisyen istiyorum şekerim var", "psikolog gelsin"] + [r["text"] for f in ("triage_zor.csv", "triage_gizli.csv") for r in __import__("csv").DictReader((Path(__file__).resolve().parents[1] / "data" / "eval" / f).open(encoding="utf-8"))]
+               "pansuman için hemşire", "diyetisyen istiyorum şekerim var", "psikolog gelsin"] + [r["text"] for f in ("triage_zor.csv", "triage_gizli.csv") for r in __import__("csv").DictReader((Path(__file__).resolve().parents[1] / "data" / "eval" / f).open(encoding="utf-8"))] + [
+    ". ".join(k["girdi"]) if isinstance(k["girdi"], list) else k["girdi"] for f in ("sesli_senaryolar.json", "sesli_gizli.json")
+    for k in json.loads((Path(__file__).resolve().parents[1] / "data" / "eval" / f).read_text(encoding="utf-8")) if k["katman"] == "kural"]
 
 
 def python_side() -> dict:

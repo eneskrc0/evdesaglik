@@ -42,16 +42,23 @@ cagrilar = []; r = await iste("/sohbet", { turlar: [{ role: "user", content: "a"
 assert.equal(v.yanit.reply, "ikinci deneme"); assert.equal(JSON.parse(cagrilar[1].init.body).response_format, undefined); ok("JSON kipi reddedilirse sade istekle yeniden deneniyor");
 
 sahte = () => groqYanit("", 429); cagrilar = []; r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 429);
-assert.deepEqual(cagrilar.map((c) => JSON.parse(c.init.body).model), ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"]);
+assert.deepEqual(cagrilar.map((c) => JSON.parse(c.init.body).model), ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]);
 ok("Groq yoğunsa önce iki yedek model denenir, hepsi doluysa 429 iletilir");
 cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model === "openai/gpt-oss-120b" ? groqYanit("", 429) : groqYanit('{"reply":"yedek modelden"}'));
 r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = await r.json();
 assert.equal(r.status, 200); assert.equal(v.yanit.reply, "yedek modelden"); assert.equal(v.model, "openai/gpt-oss-20b");
 ok("ana modelin kotası dolunca yedek modelle cevap veriliyor");
 assert.equal(JSON.parse(cagrilar[0].init.body).reasoning_effort, "low"); ok("gpt-oss kısa düşünüyor (reasoning_effort: low)");
-cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model !== "llama-3.3-70b-versatile" ? groqYanit("", 429) : groqYanit('{"reply":"llama"}'));
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model === "openai/gpt-oss-120b" ? groqYanit("", 503) : groqYanit('{"reply":"kapasite"}'));
+r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = await r.json(); assert.equal(r.status, 200); assert.equal(v.yanit.reply, "kapasite");
+ok("model geçici hata verirse (503) yedek modele geçiliyor");
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model !== "qwen/qwen3.8-27b" ? groqYanit("", 429) : groqYanit('{"reply":"qwen"}'));
 r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 200);
 assert.equal(JSON.parse(cagrilar[2].init.body).reasoning_effort, undefined); ok("gpt-oss dışı yedek modele düşünme ayarı gönderilmiyor");
+// Canlı testte bulunan hata: kaldırılmış yedek model (model_not_found) kullanıcıya 502 olarak gidiyordu
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model === "qwen/qwen3.8-27b" ? new Response(JSON.stringify({ error: { message: "The model `qwen/qwen3.8-27b` does not exist or you do not have access to it." } }), { status: 404 }) : groqYanit("", 429));
+r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 429);
+ok("kotalar doluyken kaldırılmış yedek model 502 değil 'yoğun' (429) döndürüyor; istemci bekleyip yeniden dener");
 
 sahte = () => groqYanit('{"reply":"foto"}'); cagrilar = [];
 const resim = "data:image/jpeg;base64," + "A".repeat(100);
@@ -73,8 +80,8 @@ const fd2 = new FormData(); fd2.append("dosya", new Blob([new Uint8Array(11 * 10
 r = await iste("/ses", fd2); assert.equal(r.status, 413); ok("10 MB üstü ses reddediliyor");
 
 sahte = () => groqYanit('{"reply":"x"}'); let son;
-for (let i = 0; i < 62; i++) son = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }, { ip: "9.9.9.9" });
-assert.equal(son.status, 429); ok("aynı IP'den 10 dakikada 60'tan fazla istek sınırlanıyor");
+for (let i = 0; i < 122; i++) son = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }, { ip: "9.9.9.9" });
+assert.equal(son.status, 429); ok("aynı IP'den 10 dakikada 120'den fazla istek sınırlanıyor");
 r = await iste("/yok", { a: 1 }); assert.equal(r.status, 404); ok("bilinmeyen adres 404");
 
 // ---- Canlı ayar (GitHub'daki ayar.json) ----

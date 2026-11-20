@@ -1,0 +1,531 @@
+[
+ {
+  "id": "GZ-01",
+  "kategori": "B",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Göğsümde ağrı falan yok, sadece biraz öksürüyorum",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-02",
+  "kategori": "B",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Nefes almakta zorlanmıyor ama bilinci kapalı",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-03",
+  "kategori": "B",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Nefes darlığı yok değil",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": true
+ },
+ {
+  "id": "GZ-04",
+  "kategori": "D",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Annemin değil, babamın dudakları morardı",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-05",
+  "kategori": "D",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Kızımın geçen hafta ateşi vardı şimdi yok, aşı için hemşire",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false,
+   "meslek": "hemsire"
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-06",
+  "kategori": "D",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Üç sene önce bayılmıştı, şimdi gayet iyi, kan aldıracağız",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false,
+   "gecmis_sor": false
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-07",
+  "kategori": "E",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Göğsüm sıkışıyor, kolum uyuşuyor",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-08",
+  "kategori": "E",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Babam kıpırdamıyor, seslenince bakmıyor",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-09",
+  "kategori": "E",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Annemin bir yanı tutmuyor",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-10",
+  "kategori": "F",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "göğüs ağrısı var yok",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-11",
+  "kategori": "F",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "nefes ala mıyor",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-12",
+  "kategori": "F",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "diyetis yen istiyorum",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "meslek": "diyetisyen"
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-13",
+  "kategori": "G",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Kediler uçabilir mi?",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-14",
+  "kategori": "G",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Hava durumu nasıl yarın",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-15",
+  "kategori": "C",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Fizyoterapist dedim ama aslında odyolog lazım",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "meslek": "odyolog"
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-16",
+  "kategori": "C",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Hemşire, hayır pardon, doktor istiyorum",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "meslek": "hekim"
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-17",
+  "kategori": "I",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Uzatma kanka, annemin yüzü bir tarafa kaydı",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-18",
+  "kategori": "A",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Şey, eşimin, nasıl anlatsam, sol tarafı uyuşuk, konuşması bozuldu birden",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-19",
+  "kategori": "H",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Galiba bayıldı ama emin değilim, şimdi uyanık",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": true
+ },
+ {
+  "id": "GZ-20",
+  "kategori": "B",
+  "katman": "kural",
+  "tur": "tek",
+  "girdi": "Hiç kanaması olmadı, dikiş yerine pansuman",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false
+  },
+  "beklenen_metin": "Gizli grup (geliştirmede çalıştırılmadı)",
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-21",
+  "kategori": "C",
+  "katman": "kural",
+  "tur": "cok",
+  "girdi": [
+   "Nefes darlığı yok",
+   "aslında var, şu an çok zorlanıyor"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup, çok turlu",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-22",
+  "kategori": "C",
+  "katman": "kural",
+  "tur": "cok",
+  "girdi": [
+   "Odyolog lazım",
+   "yok yok fizyoterapist"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "meslek": "fizyoterapist"
+  },
+  "beklenen_metin": "Gizli grup, çok turlu",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-23",
+  "kategori": "D",
+  "katman": "kural",
+  "tur": "cok",
+  "girdi": [
+   "İki yıl önce kalp krizi geçirdi",
+   "şu an göğsü sıkışıyor"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": true
+  },
+  "beklenen_metin": "Gizli grup, çok turlu",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-24",
+  "kategori": "H",
+  "katman": "kural",
+  "tur": "cok",
+  "girdi": [
+   "Bilmiyorum",
+   "şaka yaptım",
+   "kedim kayboldu"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "beklenen_metin": "Gizli grup, çok turlu",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-30",
+  "kategori": "L",
+  "katman": "rapor",
+  "tur": "cok",
+  "girdi": [
+   "babam için",
+   "ayağında yara var"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "alanlar": {
+    "yas_araligi": "belirtilmedi",
+    "kronik_ilac_alerji": "belirtilmedi"
+   }
+  },
+  "beklenen_metin": "Gizli grup, rapor",
+  "onem": "kritik",
+  "rapor": {
+   "kim_icin": "Babası",
+   "yas_araligi": "75 yaş",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "KOAH",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": ""
+  },
+  "plan": "bilinmiyor"
+ },
+ {
+  "id": "GZ-31",
+  "kategori": "L",
+  "katman": "rapor",
+  "tur": "cok",
+  "girdi": [
+   "annem için",
+   "yok pardon kayınvalidem için",
+   "dizi ağrıyor"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "icerir": {
+    "kim_icin": "kayınvalide"
+   }
+  },
+  "beklenen_metin": "Gizli grup, rapor",
+  "onem": "kritik",
+  "rapor": {
+   "kim_icin": "Annesi",
+   "yas_araligi": "belirtilmedi",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "belirtilmedi",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": ""
+  },
+  "plan": "bilinmiyor"
+ },
+ {
+  "id": "GZ-32",
+  "kategori": "L",
+  "katman": "rapor",
+  "tur": "cok",
+  "girdi": [
+   "alerjisi yok",
+   "aslında aspirine alerjisi var"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "icerir": {
+    "kronik_ilac_alerji": "aspirin"
+   }
+  },
+  "beklenen_metin": "Gizli grup, rapor",
+  "onem": "kritik",
+  "rapor": {
+   "kim_icin": "belirtilmedi",
+   "yas_araligi": "belirtilmedi",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "Alerji yok",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": ""
+  },
+  "plan": "bilinmiyor"
+ },
+ {
+  "id": "GZ-40",
+  "kategori": "K",
+  "katman": "ses",
+  "tur": "cok",
+  "girdi": [
+   "Doktorun planı ya da reçetesi var mı?",
+   "doktorun planı ya da reçetesi var mı"
+  ],
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "fonk": "yanki",
+   "sonuc": true
+  },
+  "beklenen_metin": "Gizli grup, ses",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-41",
+  "kategori": "K",
+  "katman": "ses",
+  "tur": "tek",
+  "girdi": "hahaha hihi",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "fonk": "halusinasyon",
+   "sonuc": true
+  },
+  "beklenen_metin": "Gizli grup, ses",
+  "onem": "yüksek"
+ },
+ {
+  "id": "GZ-42",
+  "kategori": "K",
+  "katman": "ses",
+  "tur": "tek",
+  "girdi": "Var",
+  "baslangic": "yeni sohbet, sunucu açık",
+  "beklenen": {
+   "fonk": "halusinasyon",
+   "sonuc": false
+  },
+  "beklenen_metin": "Gizli grup, ses",
+  "onem": "yüksek"
+ }
+]

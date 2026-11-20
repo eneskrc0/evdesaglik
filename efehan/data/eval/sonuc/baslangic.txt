@@ -1,0 +1,20 @@
+17 passed in 0.23s
+Vaka sayısı              : 67
+Kırmızı bayrak duyarlılığı: 25/25 (%100)
+Aşırı triyaj (gereksiz acil): 0
+Seviye doğruluğu         : %100
+Kod doğruluğu            : %100
+Vaka: 50 · doğru: 50 · kaçan acil: 0/27 · gereksiz acil: 0
+Vaka: 30 · doğru: 30 · kaçan acil: 0/17 · gereksiz acil: 0
+triyaj: 451 durum, eşleştirme: 1920 durum, fark: 0
+Tamam: 25 kontrol geçti.
+Tamam: 33 kontrol geçti.
+e2e_dogrulama: Tamam: 56 kontrol geçti.
+e2e_guvenlik: Tamam: 30 kontrol geçti.
+e2e_harita: Tamam: 8 kontrol geçti.
+e2e_meslek: Tamam: 16 kontrol geçti.
+e2e_randevu: Tamam: 18 kontrol geçti.
+e2e_sesli: Tamam: 36 kontrol geçti.
+e2e_sunucu: Tamam: 20 kontrol geçti.
+e2e_teklif: Tamam: 12 kontrol geçti.
+e2e_toplu: Tamam: 9 kontrol geçti.

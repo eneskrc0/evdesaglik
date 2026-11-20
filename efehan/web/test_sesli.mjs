@@ -44,6 +44,11 @@ check(c.every((x) => x.length <= 180), "hiçbir parça 180 karakteri aşmıyor")
 check(S.halusinasyonMu("Altyazı M.K.") && S.halusinasyonMu("İzlediğiniz için teşekkürler.") && S.halusinasyonMu("Hmm") && S.halusinasyonMu(""), "Whisper'ın sessizlik uydurmaları eleniyor");
 check(!S.halusinasyonMu("Annemin topuğunda yara var") && !S.halusinasyonMu("Teşekkürler.") && !S.halusinasyonMu("Evet"), "gerçek kısa yanıtlar ('Evet', 'Teşekkürler.') korunuyor");
 
+check(S.halusinasyonMu("Hahaha") && S.halusinasyonMu("ha ha ha") && S.halusinasyonMu("[Müzik]") && S.halusinasyonMu("(alkış)"), "gülme ve ayraçlı ortam etiketleri eleniyor");
+check(!S.halusinasyonMu("Hı hı") && !S.halusinasyonMu("He") && !S.halusinasyonMu("Yok") && !S.halusinasyonMu("Var") && !S.halusinasyonMu("Hayır"), "kısa onay/ret ('hı hı', 'he', 'yok', 'var') korunuyor");
+// ---- yankı: asistanın kendi sesi ----
+check(S.yankiMi("Bu yara ne zamandır var, kötüleşiyor mu?", "bu yara ne zamandır var kötüleşiyor mu") && S.yankiMi("Doktorun planı var mı?", "doktorun planı var mı"), "asistanın kendi cümlesi yankı sayılıyor");
+check(!S.yankiMi("Doktorun planı var mı?", "var") && !S.yankiMi("Bu yara ne zamandır var?", "bir haftadır var") && !S.yankiMi("Ne zamandır var?", "iki gündür var kötüleşiyor") && !S.yankiMi("Ağrı ne zaman başladı?", "ağrı ne zaman başladı bilmiyorum"), "kısa ya da yeni bilgi taşıyan cevap yankı sayılmıyor");
 // ---- ara laflar: soru sayılmaz ----
 const LAF = { "Beni duyuyor musun?": "duyma", "Alo alo": "duyma", "Sesim geliyor mu?": "duyma", "Orada mısın?": "duyma", "Duyuyor musun kanka": "duyma",
   "Tekrar eder misin?": "tekrar", "Anlamadım": "tekrar", "Ne dediniz?": "tekrar", "Bir saniye": "bekle", "Dur bekle": "bekle", "Merhaba": "selam", "İyi günler": "selam", "Alo, merhaba": "selam" };
@@ -114,6 +119,11 @@ D = dinleyici(["Annemin topuğunda yara var ve", "akıntı yapıyor"]); const ge
 const sv7 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, gonder: async (t) => { gelen7.push(t); return { tur: "dur" }; } });
 sv7.ac(); await bekle(200);
 check(gelen7.length === 1 && gelen7[0] === "Annemin topuğunda yara var ve akıntı yapıyor", "yarım cümle devamıyla birleştirilip tek mesaj olarak gönderildi");
+// yarım ama acil olabilecek parça beklemeden gider
+D = dinleyici(["Hava yetmiyor ama", "unused"]); const gelen9 = [];
+const sv9 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, acilMi: (t) => /hava yetmiyor/i.test(t), gonder: async (t) => { gelen9.push(t); return { tur: "dur" }; } });
+sv9.ac(); await bekle(200);
+check(gelen9[0] === "Hava yetmiyor ama", "'…ama' ile bitse de acil olabilecek parça devamı beklenmeden gönderildi");
 // yarım cümleden sonra susarsa olduğu gibi gönderilir
 D = dinleyici(["Babamın dizi ağrıyor ama", null]); const gelen8 = [];
 const sv8 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, gonder: async (t) => { gelen8.push(t); return { tur: "dur" }; } });

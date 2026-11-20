@@ -15,10 +15,11 @@ v0.1: kural tabanlı. Kırmızı bayraklar ileride de kural tabanlı kalmalı (g
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .db import Patient, Repo
-from .text import match, match_live, normalize
+from .text import gecmis_eslesme, match, match_live, normalize
 
 DISCLAIMER = ("Bu bir teşhis değildir; yönlendirmedir. Durum kötüleşirse ya da emin "
               "değilseniz 112'yi arayın.")
@@ -41,13 +42,64 @@ REMOTE_OK_ROUTES = {"CR_RECETE", "CR_PSIKO"}
 PHYSICIANS = {"hekim", "uzman_hekim"}
 
 
-def requested_profession(repo: Repo, text: str):
-    """Kullanıcı belirli bir meslek istiyor mu? (profession_intents, öncelik sırasıyla). text normalize edilmiş."""
+# Kendini düzeltme: "hemşire istiyorum… aslında fizyoterapist", "doktor, yok yok hemşire" → düzeltmeden sonraki istek geçerli
+_DUZELTME = re.compile(r" (aslinda|pardon|yok yok|hayir|yanlis soyledim|demek istedim|vazgectim|degil|yerine) ")
+
+
+def _meslek_ara(repo: Repo, text: str):
     for it in repo.intents:
         m = match(it["parsed"], text)
         if m:
             return it, m
+    # Ses tanıma kelimeyi bölebilir ("hem şire", "fizyo terapist"): uzun anahtarları boşluksuz da dene
+    sik = text.replace(" ", "")
+    for it in repo.intents:
+        for parts in it["parsed"]:
+            if all(len(p.replace(" ", "")) >= 6 and p.replace(" ", "") in sik for p in parts):
+                return it, " + ".join(parts)
     return None, None
+
+
+def requested_profession(repo: Repo, text: str):
+    """Kullanıcı belirli bir meslek istiyor mu? (profession_intents, öncelik sırasıyla). text normalize edilmiş.
+    Düzeltme varsa son düzeltmeden sonra söylenen meslek esastır."""
+    for d in reversed(list(_DUZELTME.finditer(text))):
+        it, m = _meslek_ara(repo, text[d.end() - 1:])
+        if it:
+            return it, m
+    return _meslek_ara(repo, text)
+
+
+# Sağlıkla ilgili içerik var mı? (rapor kapısı: anlamsız/konu dışı konuşmadan rapor çıkmaz). Meslek adı tek başına yetmez.
+SAGLIK_KOK = ("agri", "agriy", "aci", "yara", "ates", "oksur", "hasta", "ilac", "tansiyon", "seker", "nefes", "gogus", "gogs",
+              "bayil", "nobet", "kan ", "kanam", "dikis", "ameliyat", "igne", "serum", "pansuman", "sonda", "halsiz", "yorgun",
+              "uyus", "sis", "kizar", "kasin", "idrar", "ishal", "kabiz", "kus", "dus", "yuruy", "felc", "inme", "kalp", "bobrek",
+              "diyabet", "astim", "koah", "kanser", "demans", "alzheimer", "unutkan", "uyku", "uyuy", "istah", "kilo", "tahlil",
+              "recete", "rahatsiz", "bas don", "bulanti", "mide", "karin", "bel ", "sirt", "diz", "kalca", "kol", "bacak", "ayak",
+              "goz", "kulak", "isit", "konusma", "yutk", "yatalak", "yatag", "bakim", "lohusa", "dogum", "hamile", "bebek",
+              "asi", "tedavi", "kontrol", "muayene", "olcum", "vital", "zehir", "alerji", "kasil", "titre", "terle", "morar",
+              "sislik", "enfeksiyon", "iltihap", "akinti", "yanik", "kirik", "carp", "agzi", "yuzu", "bilinc", "kendinde", "tepki")
+
+
+def saglik_icerigi(repo: Repo, raw: str) -> bool:
+    n = normalize(raw)
+    if any(match(rf["parsed"], n) for rf in repo.red_flags) or any(match(r["parsed"], n) for r in repo.routes):
+        return True
+    return any(f" {k}" in n for k in SAGLIK_KOK)
+
+
+# Kırmızı bayrak olmasa da geçmişte yaşandıysa şu anki durumu sorulacak belirti (S01: nefes darlığı)
+GECMIS_EK = [{"code": "GB_NEFES_DARLIGI", "parsed": [["nefes darligi"], ["nefes darlik"]]}]
+
+
+def konusma_degerlendir(repo: Repo, mesajlar: list[str], patient: Patient) -> dict:
+    """Sohbetin kullanıcı mesajları → acil mi, istenen meslek, şu an durumu sorulacak geçmiş belirtiler, sağlık içeriği."""
+    metin = ". ".join(mesajlar)
+    t = triage(repo, metin, patient)
+    it, _ = requested_profession(repo, normalize(metin))
+    gecmis = [] if t.is_emergency else [rf["code"] for rf in repo.red_flags + GECMIS_EK if gecmis_eslesme(rf["parsed"], metin)]
+    return {"acil": t.is_emergency, "level": t.level, "message": t.message, "red_flags": t.red_flags, "reasons": t.reasons,
+            "meslek": it["profession_code"] if it else None, "gecmis": gecmis, "saglik": saglik_icerigi(repo, metin)}
 
 
 def _intent_only(repo: Repo, it: dict, m: str, patient: Patient) -> TriageResult:

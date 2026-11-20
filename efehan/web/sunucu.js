@@ -14,8 +14,11 @@
     for (let i = 0; ; i++) {
       try { return await istekTek(url, yol, govde, zamanAsimiMs); }
       catch (e) {
-        if (e.code !== "rate_limited" || i >= beklemeler.length) throw e;
-        await new Promise((r) => setTimeout(r, e.sonra ? Math.min(15000, e.sonra * 1000) : beklemeler[i]));
+        // Yoğunlukta 3 kez, geçici sunucu/model hatasında 1 kez (1,5 sn sonra) yeniden dene.
+        // Zaman aşımında yeniden denenmez: kullanıcı (sesli modda sessizce) iki kat beklemesin, hemen haber verilir.
+        const gecici = e.code === "sunucu";
+        if (!(e.code === "rate_limited" || (gecici && i === 0)) || i >= beklemeler.length) throw e;
+        await new Promise((r) => setTimeout(r, gecici ? 1500 : e.sonra ? Math.min(15000, e.sonra * 1000) : beklemeler[i]));
       }
     }
   }
@@ -136,7 +139,7 @@
         try { const r = await fetch(url + "/", { method: "GET" }); const v = await r.json(); return !!(v && v.ok && v.anahtar); } catch (e) { return false; }
       },
       async sohbet(turlar, fotoNotlari, resimler) {
-        const v = await istek(url, "/sohbet", { turlar, foto_notlari: fotoNotlari || [], resimler: resimler || [] });
+        const v = await istek(url, "/sohbet", { turlar, foto_notlari: fotoNotlari || [], resimler: resimler || [] }, 25000);
         return v.yanit;
       },
       async rapor(transkript, fotoNotlari, resimler) {

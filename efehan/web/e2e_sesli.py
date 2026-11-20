@@ -201,6 +201,20 @@ try:
         # randevu sonrası ana ekran kartı sesli moddan bağımsız çalışıyor (sesli mod ana ekranda kapalı)
         check(not errs, f"sayfa hatası yok {errs}")
 
+        print("I) Yankı ve geçmiş belirti sorusu (asistanın kendi sesi mesaj sayılmaz)")
+        metinler(["Babam geçen yıl bayılmıştı", "Bunun daha önce yaşandığını anladım. Bu belirti şu anda da var mı?", "Evet, şu an da oluyor"])
+        pg, errs = yeni_sayfa(); p = pg.locator("#pScreen")
+        pg.goto(URL); pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Yapay zekâ açık')", timeout=8000)
+        p.get_by_role("button", name="Sesli asistanla konuş").click()
+        bekle_soylenen(pg, "şu anda da var mı", 30)
+        check(True, "geçmişte yaşanan acil belirti için 'şu anda da var mı' diye sesle soruldu")
+        try: pg.wait_for_function("KapidaTest.durum().ekran === 'emergency'", timeout=40000)
+        except Exception: print("    durum:", pg.evaluate("KapidaTest.durum()")["mesajlar"], soylenen(pg)[-300:]); raise
+        me = [m["metin"] for m in pg.evaluate("KapidaTest.durum()")["mesajlar"] if m["kim"] == "me"]
+        check(not any("daha önce yaşandığını" in m for m in me), f"asistanın sorusunun yankısı kullanıcı mesajı olmadı ({me})")
+        check(p.locator(".sesli").count() == 0, "'şu an da var' cevabıyla acil ekranı açıldı, dinleme durdu")
+        check(not errs, f"sayfa hatası yok {errs}")
+
         print("F) Ekran görüntüsü")
         metinler(["Babam için, dizinde şişlik var"])
         pg, errs = yeni_sayfa(); p = pg.locator("#pScreen")

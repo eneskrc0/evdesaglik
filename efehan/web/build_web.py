@@ -38,6 +38,8 @@ def build(template: str, app: str, out_name: str) -> Path:
         html = html.replace("/*__GUVENLIK__*/", (WEB / "guvenlik.js").read_text(encoding="utf-8"))
     if "/*__SESLI__*/" in html:
         html = html.replace("/*__SESLI__*/", (WEB / "sesli.js").read_text(encoding="utf-8"))
+    if "/*__DENETIM__*/" in html:
+        html = html.replace("/*__DENETIM__*/", (WEB / "denetim.js").read_text(encoding="utf-8"))
     if "/*__TOPLU__*/" in html:  # Enes'in toplu taşıma ağı (GTFS; enes/sim/build_transit.py) — yolculuk planı için
         tp = WEB.parents[1] / "enes" / "web" / "transit_izmir.json"
         html = html.replace("/*__TOPLU__*/", "window.KAPIDA_TOPLU = " + (tp.read_text(encoding="utf-8") if tp.exists() else "null") + ";\n" + (WEB / "toplu.js").read_text(encoding="utf-8"))
@@ -66,7 +68,7 @@ def build_worker() -> Path:
     node = subprocess.run(["node", "-e", "const I=require(process.argv[1]);process.stdout.write(JSON.stringify({s:I.SOHBET_KURALLARI,r:I.RAPOR_SABLONU,i:I.SES_IPUCU}))", str(WEB / "istemler.js")], capture_output=True, text=True, check=True)
     ist = json.loads(node.stdout)
     ayar = {"sohbet_kurallari": ist["s"], "rapor_sablonu": ist["r"], "ses_ipucu": ist["i"], "hizmetler": hizmetler,
-            "modeller": {"MODEL": "openai/gpt-oss-120b", "GORSEL_MODEL": "qwen/qwen3.8-27b", "SES_MODEL": "whisper-large-v3"}}
+            "modeller": {"MODEL": "openai/gpt-oss-120b", "GORSEL_MODEL": "qwen/qwen3.8-27b", "SES_MODEL": "whisper-large-v3", "YEDEK": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"]}}
     ayar = {"surum": hashlib.sha1(json.dumps(ayar, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:8], **ayar}
     (SUNUCU / "ayar.json").write_text(json.dumps(ayar, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{SUNUCU / 'ayar.json'} (sürüm {ayar['surum']})")
