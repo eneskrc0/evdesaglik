@@ -68,6 +68,17 @@ CREATE TABLE complaint_routes (
     source_id         TEXT NOT NULL REFERENCES sources(id)
 );
 
+-- Kullanıcının belirli bir meslek isteği ("hemşire istiyorum", "fizik tedavici gelsin")
+CREATE TABLE profession_intents (
+    code              TEXT PRIMARY KEY,
+    profession_code   TEXT NOT NULL REFERENCES professions(code),
+    keywords          TEXT NOT NULL,   -- red_flags ile aynı biçim
+    default_service   TEXT NOT NULL REFERENCES services(code), -- şikâyet kalıbı yoksa önerilecek hizmet
+    priority          INTEGER NOT NULL,-- yüksek = önce (özel meslek > genel 'doktor')
+    note              TEXT,
+    source_id         TEXT NOT NULL REFERENCES sources(id)
+);
+
 -- Bölgeler (sentetik demo için yaklaşık ilçe merkezleri)
 CREATE TABLE districts (
     name  TEXT PRIMARY KEY,

@@ -44,7 +44,7 @@ try:
         t = p.inner_text()
         check("topuğundaki yara" in t or "Topukta" in t, "rapor sunucudan geldi ve hastaya özet gösterildi")
         # Talebi gönder → sağlık çalışanı raporu yeni alanlarla görür
-        p.locator("[data-act=options]").click(); p.locator("[data-pick]").first.click(); p.locator("[data-act=confirm]").click()
+        p.locator("[data-act=options]").click(); pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)"); p.locator("details.klasik [data-pick]").first.click(); p.locator("[data-act=confirm]").click()
         pg.locator("#demoCtl").get_by_role("button", name="Onaylandı — demo").click()
         h = pg.locator("#hScreen"); h.get_by_role("button", name="Panele git").click()
         if h.locator("[data-act=haccept]").count() == 0:

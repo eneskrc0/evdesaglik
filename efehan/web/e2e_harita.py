@@ -31,7 +31,7 @@ with sync_playwright() as pw:
         pg.wait_for_timeout(700)
         if p.locator("[data-act=options]").count(): break
         if p.locator("[data-quick]").count(): p.locator("[data-quick]").first.click()
-    p.locator("[data-act=options]").click(); p.locator("[data-pick]").first.click(); p.locator("[data-act=confirm]").click()
+    p.locator("[data-act=options]").click(); pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)"); p.locator("details.klasik [data-pick]").first.click(); p.locator("[data-act=confirm]").click()
     pg.locator("#demoCtl").get_by_role("button", name="Onaylandı — demo").click()
     h.get_by_role("button", name="Panele git").click()
     if h.locator("[data-act=haccept]").count() == 0:

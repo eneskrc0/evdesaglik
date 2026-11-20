@@ -23,7 +23,10 @@ PREFS = [(1, 1, 1), (5, 1, 1), (1, 5, 1), (1, 1, 5)]
 SERVICES = ["basi_yarasi_bakimi", "kan_alma", "iv_serum", "fizyoterapi_seansi",
             "tele_muayene", "ev_muayene", "tele_hemsire_destekli", "odyolojik_tarama"]
 EXTRA_TEXTS = ["Göğsümde YANMA var reflü sanırım", "IŞIK gözümü acıtıyor", "en sonda kaldık",
-               "kateter", "nöbetçi eczane nerede", "İğne yaptırmam lazım", "ateşli havale geçirdi"]
+               "kateter", "nöbetçi eczane nerede", "İğne yaptırmam lazım", "ateşli havale geçirdi",
+               "hemşire çağırmak istiyorum", "fizik tedavici gelsin dizim ameliyatlı", "odyolog istiyorum",
+               "yaram var doktor gelsin", "doktorla görüntülü görüşmek istiyorum", "lohusayım ebe lazım",
+               "pansuman için hemşire", "diyetisyen istiyorum şekerim var", "psikolog gelsin"]
 
 
 def python_side() -> dict:
@@ -34,7 +37,7 @@ def python_side() -> dict:
     texts += [(t, b, p) for t in EXTRA_TEXTS for b in (False, True) for p in (False, True)]
     for text, bed, plan in texts:
         t = triage(repo, text, Patient("X", "Bornova", 38.46, 27.22, bed, plan))
-        out["triage"].append([text, bed, plan, t.level, t.route, t.red_flags, t.services, t.sources])
+        out["triage"].append([text, bed, plan, t.level, t.route, t.red_flags, t.services, t.sources, t.profession])
     for pid, p in repo.patients.items():
         pp = replace(p, has_physician_plan=True)
         for svc in SERVICES:
@@ -55,7 +58,7 @@ const req = JSON.parse(fs.readFileSync(0, 'utf8'));
 const out = {triage: [], match: []};
 for (const [text, bed, plan] of req.triage) {
   const t = C.triage(repo, text, {lat: 39.9, lon: 32.86, bedridden: bed, has_physician_plan: plan});
-  out.triage.push([text, bed, plan, t.level, t.route, t.red_flags, t.services, t.sources]);
+  out.triage.push([text, bed, plan, t.level, t.route, t.red_flags, t.services, t.sources, t.profession]);
 }
 for (const [pid, svc, pr] of req.match) {
   const p = {...repo.patients[pid], has_physician_plan: true};

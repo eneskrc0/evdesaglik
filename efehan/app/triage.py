@@ -38,6 +38,72 @@ LEVEL_TEXT = {
 }
 # Yatağa bağımlı hastada bile uzaktan kalabilecek işler (ölçüm gerekmez)
 REMOTE_OK_ROUTES = {"CR_RECETE", "CR_PSIKO"}
+PHYSICIANS = {"hekim", "uzman_hekim"}
+
+
+def requested_profession(repo: Repo, text: str):
+    """Kullanıcı belirli bir meslek istiyor mu? (profession_intents, öncelik sırasıyla). text normalize edilmiş."""
+    for it in repo.intents:
+        m = match(it["parsed"], text)
+        if m:
+            return it, m
+    return None, None
+
+
+def _intent_only(repo: Repo, it: dict, m: str, patient: Patient) -> TriageResult:
+    """Şikâyet kalıbı yok ama meslek isteği var: istenen mesleğe yönlendir, plan kuralı (S08) korunur."""
+    prof, svc = it["profession_code"], it["default_service"]
+    name = repo.professions[prof]["name_tr"]
+    reasons = [f"Meslek isteği '{name}' (eşleşen: {m})"]
+    plan = patient.has_physician_plan
+    if prof in PHYSICIANS:
+        level = "TELE" if svc == "tele_muayene" else "HEKIM_EV"
+        services = [svc]
+    elif plan:
+        level, services = "PLANLI", [svc]
+        reasons.append("Hekim planı/reçetesi var: istenen meslek atanabilir (S07, S08)")
+    elif prof == "hemsire":
+        level, services = "TELE_HEMSIRE", ["tele_hemsire_destekli"]
+        reasons.append("Hekim planı yok: hemşire evine gelir, hekim aynı anda görüntülü değerlendirir (S08, S14)")
+    else:
+        level = "HEKIM_EV" if patient.bedridden else "TELE"
+        services = [LEVEL_DEFAULT_SERVICE[level]]
+        reasons.append(f"Hekim planı yok: {name} ancak hekim planıyla gelebilir; önce hekim (S08)")
+    return TriageResult(
+        level=level, services=services, message=f"Önerilen: {LEVEL_TEXT[level]}. " + DISCLAIMER,
+        route=it["code"], reasons=reasons, profession=prof,
+        sources=sorted({it["source_id"], "S07", "S08"} if level == "PLANLI" else {it["source_id"], "S08"}),
+    )
+
+
+def _apply_intent(repo: Repo, res: TriageResult, it: dict, m: str) -> TriageResult:
+    """Şikâyet kalıbı bulundu ve kullanıcı ayrıca bir meslek istedi: mümkünse o mesleğe daralt."""
+    prof = it["profession_code"]
+    name = repo.professions[prof]["name_tr"]
+    res.profession = prof
+    res.reasons.append(f"Meslek isteği '{name}' (eşleşen: {m})")
+    if prof in PHYSICIANS:
+        svc = it["default_service"]
+        res.level = "TELE" if svc == "tele_muayene" else "HEKIM_EV"
+        res.services = [svc]
+        res.reasons.append("Kullanıcı doktor istedi: hekim hizmeti")
+        res.message = f"Önerilen: {LEVEL_TEXT[res.level]}. " + DISCLAIMER
+        return res
+    offered = repo.profession_services.get(prof, set())
+    if res.level == "PLANLI":
+        mine = [s for s in res.services if s in offered]
+        if mine:
+            res.services = mine
+        else:
+            res.profession = None
+            res.reasons.append(f"{name} bu hizmeti vermiyor; şikâyete uygun meslek önerildi")
+    elif prof == "hemsire" and res.level == "TELE":
+        res.level, res.services = "TELE_HEMSIRE", ["tele_hemsire_destekli"]
+        res.reasons.append("Hekim planı yok: hemşire evine gelir, hekim görüntülü bağlanır")
+        res.message = f"Önerilen: {LEVEL_TEXT[res.level]}. " + DISCLAIMER
+    else:
+        res.reasons.append(f"Hekim planı yok: {name} ancak hekim planıyla gelebilir (S08)")
+    return res
 
 
 @dataclass
@@ -50,6 +116,7 @@ class TriageResult:
     reasons: list[str] = field(default_factory=list)
     other_routes: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+    profession: str | None = None  # kullanıcının açıkça istediği meslek (ör. "hemşire istiyorum")
 
     @property
     def is_emergency(self) -> bool:
@@ -80,7 +147,10 @@ def triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
         )
 
     # 2) Acil olmayan yönlendirme
+    it, im = requested_profession(repo, text)
     matched = [(r, m) for r in repo.routes if (m := match(r["parsed"], text))]
+    if not matched and it:
+        return _intent_only(repo, it, im, patient)
     if not matched:
         level = "TELE_HEMSIRE" if patient.bedridden else "TELE"
         return TriageResult(
@@ -115,7 +185,7 @@ def triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
         else:
             services = [LEVEL_DEFAULT_SERVICE[level]]
 
-    return TriageResult(
+    res = TriageResult(
         level=level, services=services,
         message=f"Önerilen: {LEVEL_TEXT[level]}. " + DISCLAIMER,
         route=route["code"], reasons=reasons,
@@ -123,3 +193,4 @@ def triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
         sources=sorted({route["source_id"], "S08"} if level != "PLANLI"
                        else {route["source_id"], "S07", "S08"}),
     )
+    return _apply_intent(repo, res, it, im) if it else res

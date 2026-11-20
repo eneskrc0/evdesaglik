@@ -1,0 +1,12 @@
+code,profession_code,keywords,default_service,priority,note,source_id
+MI_HEKIM_TELE,hekim,görüntülü doktor|doktorla görüntülü|görüntülü görüş|video görüş|online doktor|uzaktan doktor|telefonla doktor,tele_muayene,100,Hekimle görüntülü görüşme isteği,S09
+MI_HEMSIRE,hemsire,hemşire|iğneci|sağlıkçı gelsin|sağlıkçı istiyorum|sağlık personeli,vital_takip,90,Hemşire hizmetleri hekim planı/reçetesiyle; plan yoksa hemşire evde + hekim videoda,S11
+MI_EBE,ebe,ebe hanım|ebe istiyorum|ebe çağır|ebe gelsin|ebe lazım|ebe gönder|ebeye,lohusa_izlem,88,Ebe serbest meslek kapsamında; hekim planıyla,S07
+MI_FIZYO,fizyoterapist,fizyoterapist|fizyoterapi|fizik tedavi|fizik tedavici|fizik terapist|fizik terapi,fizyoterapi_seansi,86,Hekim tanısı ve tedavi planı gerekli,S08
+MI_ODYOLOG,odyolog,odyolog|odyoloji|işitme uzman|işitme cihazcı|kulak cihazcı|işitme testi,odyolojik_tarama,86,Hekim tanısı ve tedavi planı gerekli,S07
+MI_DIYETISYEN,diyetisyen,diyetisyen|diyet uzman|beslenme uzman|diyetçi,beslenme_degerlendirme,84,Hekim tanısı ve tedavi planı gerekli,S07
+MI_DIL_KONUSMA,dil_konusma,dil ve konuşma|dil konuşma|konuşma terapist|logoped,yutma_degerlendirme,84,Hekim tanısı ve tedavi planı gerekli,S07
+MI_ERGO,ergoterapist,ergoterapist|ergoterapi|iş ve uğraşı|uğraşı terapist,ev_guvenligi_dusme,84,Hekim tanısı ve tedavi planı gerekli,S07
+MI_PSIKOLOG,klinik_psikolog,psikolog|psikoterap|psikolojik destek|psikolojik danış,psikolojik_destek,84,Hekim tanısı ve tedavi planı gerekli,S07
+MI_PODOLOG,podolog,podolog|ayak bakımcı|ayak bakım uzman,ayak_bakimi,84,Hekim tanısı ve tedavi planı gerekli,S07
+MI_HEKIM,hekim,doktor çağır|doktor istiyorum|doktor lazım|doktor gelsin|doktor gönder|doktora göster|doktora görün|doktor baksın|evde doktor|eve doktor|doktor muayene|bir doktor|hekim çağır|hekim istiyorum|hekim gelsin|hekim lazım|doktora yönlendir|hekime yönlendir|doktorla görüş|doktora bağla,ev_muayene,40,Hekim ev muayenesi isteği; meslek isteği yoksa doktor,S10

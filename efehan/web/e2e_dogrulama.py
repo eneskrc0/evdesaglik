@@ -166,7 +166,7 @@ with sync_playwright() as pw:
         p.locator("[data-quick]").first.click()
     pg.wait_for_selector("#pScreen [data-act=options]", timeout=5000)
     p.locator("[data-act=options]").click()
-    p.locator("[data-pick]").first.click()
+    pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)"); p.locator("details.klasik [data-pick]").first.click()
     p.locator("[data-act=confirm]").click()
     check("Talebin gönderildi" in p.inner_text(), "hasta randevu talebi gönderebiliyor")
     acc = h.locator("[data-act=haccept]")
