@@ -4,8 +4,8 @@ Talebin başı: hastanın anlattığını (yazı/ses/foto) güvenli bir hizmet s
 Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birleştirme ayrıca yapılacak.
 
 ## Yapı
-- `data/` — SQLite şema + kaynaklı tohum CSV'leri (meslekler, hizmetler, 15 kırmızı bayrak, 22 şikâyet rotası; her tıbbi satırın `sources.csv`'de kaynağı var) ve sentetik İzmir verisi: konumlar Enes'in temiz havuzundan gerçek yol noktaları (`data/seed/izmir_yol.json`, `python data/build_izmir.py` ile enes/ verisinden üretilir, numpy ister). `python data/build_db.py`.
-- `app/triage.py` — hibrit triyaj: kural tabanlı kırmızı bayrak (112/114) → seviye (TELE, TELE_HEMSIRE, HEKIM_EV, PLANLI).
+- `data/` — SQLite şema + kaynaklı tohum CSV'leri (meslekler, hizmetler, 15 kırmızı bayrak, 25 şikâyet rotası, 11 meslek isteği kalıbı (`profession_intents.csv`: "hemşire istiyorum", "fizik tedavici", "kulak cihazcı"…); her tıbbi satırın `sources.csv`'de kaynağı var) ve sentetik İzmir verisi: konumlar Enes'in temiz havuzundan gerçek yol noktaları (`data/seed/izmir_yol.json`, `python data/build_izmir.py` ile enes/ verisinden üretilir, numpy ister). `python data/build_db.py`.
+- `app/triage.py` — hibrit triyaj: kural tabanlı kırmızı bayrak (112/114) → seviye (TELE, TELE_HEMSIRE, HEKIM_EV, PLANLI). Kullanıcı belirli bir meslek isterse (`profession` alanı) plan varsa o mesleğe (PLANLI), plan yoksa hemşire için TELE_HEMSIRE, diğerleri için önce hekim (S08). Arayüz adayları istenen mesleğe göre süzer ve mesleğin hizmetlerini seçtirir. Ek sağlayıcılar (20.11) ayrı rastgele diziyle eklendi; eski veriler değişmedi. Prova: `python web/e2e_meslek.py`.
 - `app/routing.py` — ziyaret paylaşımı (en ucuz ekleme), tasarruf %50 hasta / %30 çalışan / %20 platform. Varış süresi `travel()`: İzmir yol paketindeki OSM rota süresi × TomTom 2025 saatlik trafik + 6 dk park (Enes'in `enes/sim/geo.py` izmir_tam modeli); yol maliyeti hâlâ kuş uçuşu × 1,3 km.
 - `app/matching.py` — yetkinlik/fiyat/hız ağırlıklı, açıklanabilir sıralama.
 - `web/core.js` — Python mantığının JS kopyası; `web/parity_test.py` eşitliği dener. `web/kapida.html` hasta+çalışan arayüzü (YZ sohbeti, foto, çalışana rapor). `python web/build_web.py` → `web/dist/`.
@@ -26,12 +26,12 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - Hemşire ve diğer meslekler yalnız hekim planıyla hizmet verir (S08).
 - Yeni tıbbi kural eklerken kaynağını `sources.csv`'ye yaz; `data/eval/triage_cases.csv`'ye vaka ekle.
 - Python ve JS mantığı aynı kalmalı: değişiklikten sonra `python web/parity_test.py`.
-- Testler: `python -m pytest -q tests && python eval_triage.py` (48 vaka bizim yazdığımız, bağımsız test değil).
+- Testler: `python -m pytest -q tests && python eval_triage.py` (62 vaka bizim yazdığımız, bağımsız test değil).
 
 - YZ teşhis koymaz, tedavi önermez; görevi hastanın şikâyetini sağlık çalışanına en iyi biçimde raporlamaktır (ekip kararı 17.11). Hizmet önerisi yalnızca öneridir, kararı hekim/sağlık çalışanı verir.
 - Güvenli Ziyaret: konum yalnızca ziyaret penceresinde (yolda + ziyarette) kaydedilir; risk notu hastayı damgalamaz, yalnızca beyana dayanır. Demo/simülasyonda gerçek arama yapılmaz; yalnızca kullanıcının bastığı 112/113 düğmeleri gerçek tel: bağlantısıdır.
 - API anahtarı hiçbir dosyaya yazılmaz; yalnızca Cloudflare'de Secret olarak durur.
-- Sohbet en fazla 3 soru sorar; kullanıcı "direkt doktora yönlendir" derse ya da sohbetteki düğmeye basarsa sorular atlanır, hekim ev muayenesine gidilir (acil kontrolü her zaman önce).
+- Sohbet en fazla 3 soru sorar; kullanıcı "direkt doktora yönlendir" derse ya da sohbetteki düğmeye basarsa sorular atlanır. Belirli bir meslek istediyse ("hemşire çağırmak istiyorum", "direkt fizyoterapiste yönlendir") o mesleğe, istemediyse hekim ev muayenesine gidilir (acil kontrolü her zaman önce).
 - YZ fotoğrafı yalnızca dışarıdan görünen cilt durumları için ister (yara, kızarıklık, şişlik…); boğaz/ağız içi, ağrı, ateş vb. için istemez (istemler.js).
 - Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 

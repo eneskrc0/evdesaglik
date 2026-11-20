@@ -15,7 +15,7 @@ CASES = ROOT / "data" / "eval" / "triage_cases.csv"
 OUT = Path(__file__).resolve().parent / "data.json"
 
 TABLES = ["sources", "professions", "services", "profession_services", "red_flags",
-          "complaint_routes", "districts", "providers", "provider_services",
+          "complaint_routes", "profession_intents", "districts", "providers", "provider_services",
           "availability", "scheduled_visits", "patients"]
 
 
@@ -24,7 +24,7 @@ def main() -> None:
     conn.row_factory = sqlite3.Row
     data = {}
     for t in TABLES:
-        order = " ORDER BY priority DESC" if t == "complaint_routes" else ""
+        order = " ORDER BY priority DESC" if t in ("complaint_routes", "profession_intents") else ""
         if t == "scheduled_visits":
             order = " ORDER BY start_min"
         data[t] = [dict(r) for r in conn.execute(f"SELECT * FROM {t}{order}")]

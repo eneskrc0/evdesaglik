@@ -47,3 +47,17 @@ T45,ishal ve kusma var,0,0,TELE,CR_AKUT_HAFIF,
 T46,Nefes darlığım var,0,0,TELE,CR_NEFES,
 T47,Babamın nefesi daralıyor,1,0,TELE_HEMSIRE,CR_NEFES,
 T48,Elimde kaşıntı var,0,0,TELE,,bilinmeyen kalıp -> hekim
+T49,hemşire çağırmak istiyorum,0,0,TELE_HEMSIRE,MI_HEMSIRE,meslek isteği; plan yok → hemşire evde + hekim videoda (20.11 demo hatası)
+T50,hemşire çağırmak istiyorum,0,1,PLANLI,MI_HEMSIRE,meslek isteği; plan var → hemşire
+T51,annem için fizik tedavici gelsin diz ameliyatı oldu,0,1,PLANLI,CR_FIZYO,ağız: fizik tedavici
+T52,fizyoterapist istiyorum,0,0,TELE,CR_FIZYO,plan yok → önce hekim (S08)
+T53,odyolog istiyorum babam için,0,1,PLANLI,MI_ODYOLOG,meslek isteği
+T54,babamın kulağı ağır işitiyor,0,1,PLANLI,CR_ISITME,
+T55,lohusayım ebe lazım,0,1,PLANLI,CR_LOHUSA,
+T56,yaram var ama doktor gelsin,0,1,HEKIM_EV,CR_YARA,kullanıcı doktor istedi
+T57,doktorla görüntülü görüşmek istiyorum,0,0,TELE,MI_HEKIM_TELE,
+T58,pansuman için hemşire istiyorum,0,1,PLANLI,CR_YARA,
+T59,dedem tek başına giyinemiyor banyo yapamıyor,0,1,PLANLI,CR_GUNLUK_YASAM,ergoterapist
+T60,iğneci kız gelsin reçetem var,0,1,PLANLI,CR_IGNE,ağız: iğneci → iğne hizmeti (hemşire)
+T61,annemin konuşması aniden bozuldu,0,0,ACIL_112,RF_INME,kırmızı bayrak meslek isteğinden önce
+T62,hemşire istiyorum göğsümde baskı var,0,0,ACIL_112,RF_GOGUS,kırmızı bayrak meslek isteğinden önce

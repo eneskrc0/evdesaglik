@@ -236,6 +236,7 @@
 
   // ---------- sohbet akışı ----------
   function startChat(prefill) {
+    Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null });
     P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
     const hello = "Merhaba, ben Kapıda asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
@@ -260,7 +261,7 @@
     const t = C.triage(repo, P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". "), { bedridden: false, has_physician_plan: false });
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; renderP(); return; }
     // 1b) "Direkt doktora yönlendir" / "soru sorma": soruları geç, hekime yönlendir
-    if (DOKTOR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
+    if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
     // 2) YZ ya da demo
     if (P.mode === "ai") {
       P.turns.push({ role: "user", content: shown + (photos.length ? " [fotoğraf eklendi]" : "") });
@@ -271,11 +272,12 @@
         const reply = String((r && r.reply) || "Anladım. Biraz daha anlatır mısın?");
         P.turns.push({ role: "assistant", content: reply });
         if (r && r.photo_notes) P.photoNotes.push(String(r.photo_notes));
+        if (r && r.istenen_meslek && repo.professions[r.istenen_meslek]) P.info.yzMeslek = r.istenen_meslek;
         if (r && r.anlasilan) { const me = [...P.msgs].reverse().find((m) => m.who === "me"); if (me) me.understood = String(r.anlasilan).slice(0, 240); }
         if (r && r.red_flag) { P.emergency = { msg: reply, why: String(r.red_flag_reason || "Asistan acil belirti sezdi"), src: "Yapay zekâ" }; P.screen = "emergency"; renderP(); return; }
         P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
         speak(reply);
-        if (r && r.doktora_yonlendir) { P.info.doktor = true; await buildReport(); return; }
+        if (r && r.doktora_yonlendir) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
         // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
         const userTurns = P.turns.filter((x) => x.role === "user").length;
         if ((r && r.ready) || userTurns >= MAX_SORU + 1) { await buildReport(); return; }
@@ -328,10 +330,31 @@
     };
   }
   const MAX_SORU = 3;
+  // Meslek isteği: kural motoru (profession_intents) + YZ'nin anladığı istenen_meslek. Seviye kararını yine triyaj verir.
+  const HEKIMLER = new Set(["hekim", "uzman_hekim"]);
+  const kullaniciMetni = () => P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". ");
+  function istenenMeslek() {
+    const [it] = C.requestedProfession(repo, C.normalize(kullaniciMetni()));
+    if (it) return it.profession_code;
+    const yz = (P.report && P.report.istenen_meslek) || P.info.yzMeslek;
+    return yz && repo.professions[yz] ? yz : null;
+  }
+  const meslekAdi = (m) => (m ? repo.professions[m].name_tr.replace(/ \(.*\)$/, "") : "");
+  const tamlama = (a) => /terapisti$/.test(a); // "dil ve konuşma terapisti" → terapistine / terapistinden / terapistleri
+  const yonelme = (ad) => { if (tamlama(ad.toLocaleLowerCase("tr"))) return ad.toLocaleLowerCase("tr") + "ne"; const a = ad.toLocaleLowerCase("tr"), son = (a.match(/[aeıioöuü](?=[^aeıioöuü]*$)/) || ["e"])[0];
+    return a + (/[aeıioöuü]$/.test(a) ? "y" : "") + (/[aıou]/.test(son) ? "a" : "e"); }; // hemşire → hemşireye, fizyoterapist → fizyoterapiste
+  const kalin = (a) => /[aıou]/.test((a.match(/[aeıioöuü](?=[^aeıioöuü]*$)/) || ["e"])[0]);
+  const ayrilma = (ad) => { const a = ad.toLocaleLowerCase("tr"); if (tamlama(a)) return a + "nden"; return a + (/[çfhkpsşt]$/.test(a) ? "t" : "d") + (kalin(a) ? "an" : "en"); }; // hemşireden, fizyoterapistten
+  const cogul = (ad) => { const a = ad.toLocaleLowerCase("tr"); if (tamlama(a)) return a.slice(0, -1) + "leri"; return a + (kalin(a) ? "lar" : "ler"); };
+  const MESLEK_KELIME = "doktor|hekim|hemsire|ebe|fizyoterapist|fizik tedavici|odyolog|diyetisyen|psikolog|podolog|ergoterapist|konusma terapist";
+  const YONLENDIR_RE = new RegExp(`(direk|direkt|dogrudan|hemen|bir an once)\\s*(bir\\s*)?(${MESLEK_KELIME})|(${MESLEK_KELIME})(a|e|ya|ye)?\\s*(yonlendir|bagla|gonder)`);
   const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
   async function doktoraYonlendir() {
-    P.info.doktor = true;
-    const t = "Tamam, soruları geçiyorum. Anlattıklarını doktora ileteceğim; doktor gerekirse kendisi sorar.";
+    const m = istenenMeslek();
+    P.info.doktor = true; P.info.atlaMeslek = m && !HEKIMLER.has(m) ? m : null;
+    const t = P.info.atlaMeslek
+      ? `Tamam, soruları geçiyorum. Seni ${yonelme(meslekAdi(m))} yönlendireceğim. ${meslekAdi(m)} doktor planıyla gelebildiği için bir sonraki ekranda doktorunun planı ya da reçetesi olup olmadığını seçmen yeterli.`
+      : "Tamam, soruları geçiyorum. Anlattıklarını doktora ileteceğim; doktor gerekirse kendisi sorar.";
     P.msgs.push({ who: "ai", text: t }); speak(t);
     await buildReport();
   }
@@ -346,7 +369,14 @@
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
-    if (P.info.doktor) {
+    if (!repo.professions[rep.istenen_meslek]) rep.istenen_meslek = istenenMeslek() || "";
+    if (P.info.doktor && P.info.atlaMeslek) {
+      const ad = meslekAdi(P.info.atlaMeslek);
+      rep.istenen_meslek = P.info.atlaMeslek;
+      rep.oneri_gerekcesi = `Hasta/yakını soruları geçip doğrudan ${ad.toLocaleLowerCase("tr")} istedi.`;
+      rep.hasta_icin_ozet = `İsteğin üzerine seni ${yonelme(ad)} yönlendiriyoruz.` + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " İletilecek: " + rep.sikayet + "." : "");
+      rep.eksik_bilgiler = [`Ayrıntılar ${yonelme(ad)} ziyarette sorulacak (kullanıcı soruları geçti)`, ...(rep.eksik_bilgiler || [])];
+    } else if (P.info.doktor) {
       rep.hizmet_onerisi = "ev_muayene";
       rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
       rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
@@ -374,7 +404,7 @@
   // ziyaret paylaşımı ve İzmir yol süreleriyle). Her saat = o saatten itibaren gelebilecek en erken kişi.
   function uygunSaatler() {
     const { t, pt } = decide(), service = t.services[0];
-    const key = [service, pt.lat, pt.lon, P.info.bed].join("|");
+    const key = [service, pt.lat, pt.lon, P.info.bed, t.profession, t.level].join("|");
     if (P.saatler && P.saatler.key === key) return P.saatler.list;
     const LEAD = C.CFG.LEAD_TIME_MIN, list = [];
     // Bugün: şimdi (09:30) ve sonrası; yarın: 08:00'den itibaren
@@ -384,6 +414,7 @@
       for (const hedef of saatler) {
         const bas = Math.max(simdi, hedef - LEAD);
         const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
+        res.candidates = meslekSuz(t, res.candidates);
         if (!res.candidates.length) continue;
         const ilk = Math.min(...res.candidates.map((c) => c.arrival_min));
         if (gunList.some((x) => Math.abs(x.ilk - ilk) < 45)) continue; // birbirine çok yakın saatleri gösterme
@@ -410,7 +441,13 @@
   }
   function decide() {
     const pt = patientPoint();
-    const userText = P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". ") + ". " + (P.report.sikayet || "");
+    let userText = kullaniciMetni() + ". " + (P.report.sikayet || "");
+    // YZ meslek isteğini anladıysa ama kural sözlüğü yakalamadıysa (ör. yöresel ifade), sözlükteki ifadesini ekle: kararı yine kural verir
+    const mes = istenenMeslek();
+    if (mes && !C.requestedProfession(repo, C.normalize(userText))[0]) {
+      const it = repo.intents.find((x) => x.profession_code === mes && x.code !== "MI_HEKIM_TELE");
+      if (it) userText += ". " + it.keywords.split("|")[0].split(";").join(" ");
+    }
     let t = C.triage(repo, userText, pt);
     const sug = P.report.hizmet_onerisi;
     if (!t.is_emergency && !t.route && sug) {
@@ -423,14 +460,29 @@
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
     }
-    if (P.info.doktor && !t.is_emergency) {
-      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
+    if (P.info.doktor && !P.info.atlaMeslek && !t.is_emergency) {
+      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
+    }
+    // Plan varsa istenen mesleğin hizmetlerinden biri seçilebilir (ör. hemşire: iğne, pansuman, serum…)
+    if (!t.is_emergency && t.level === "PLANLI" && t.profession && !HEKIMLER.has(t.profession)) {
+      const h = meslekHizmetleri(t.profession);
+      if (P.info.hizmet && h.includes(P.info.hizmet)) t = { ...t, services: [P.info.hizmet] };
     }
     return { t, pt };
   }
+  const meslekHizmetleri = (m) => [...(repo.profession_services[m] || [])].filter((s) => svc(s).category !== "tele").sort((a, b) => svc(a).name_tr.localeCompare(svc(b).name_tr, "tr"));
+  // İstenen meslek varsa listede yalnızca o meslek (doktor isteğinde uzman hekim de); plan yoksa doktor adayları kalır
+  function meslekSuz(t, cands) {
+    const m = t && t.profession;
+    if (!m) return cands;
+    const ok = HEKIMLER.has(m) ? (p) => HEKIMLER.has(p) : t.level === "PLANLI" ? (p) => p === m : null;
+    if (!ok) return cands;
+    const f = cands.filter((c) => ok(repo.providers[c.provider_id].profession_code));
+    return f.length ? f : cands;
+  }
   const SORTS = { onerilen: ["Önerilen", { yetkinlik: 1, fiyat: 1, hiz: 1 }], ucuz: ["En uygun fiyat", { yetkinlik: 1, fiyat: 5, hiz: 1 }], erken: ["En erken", { yetkinlik: 1, fiyat: 1, hiz: 5 }], deneyim: ["En deneyimli", { yetkinlik: 5, fiyat: 1, hiz: 1 }] };
-  function levelCopy(level, service) {
-    const prof = (() => { const ps = [...repo.professionsFor(service)].filter((x) => x !== "hekim" && x !== "uzman_hekim"); return ps.length ? repo.professions[ps[0]].name_tr.toLowerCase() : "sağlık çalışanı"; })();
+  function levelCopy(level, service, istenen) {
+    const prof = istenen && !HEKIMLER.has(istenen) && level === "PLANLI" ? meslekAdi(istenen).toLocaleLowerCase("tr") : (() => { const ps = [...repo.professionsFor(service)].filter((x) => x !== "hekim" && x !== "uzman_hekim"); return ps.length ? repo.professions[ps[0]].name_tr.toLowerCase() : "sağlık çalışanı"; })();
     return {
       PLANLI: [ICO.home, `Bir ${prof} evine gelir`, "Doktorunun planı olduğu için doğrudan uygun sağlık çalışanını gönderebiliyoruz."],
       HEKIM_EV: [ICO.steth, "Önce bir doktor evine gelip baksın", "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
@@ -479,7 +531,7 @@
       <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>${m.understood ? `<div class="understood">Anladığım: ${esc(m.understood)}</div>` : ""}`).join("")}
         ${P.busy ? `<div class="msg ai"><span class="typing"><i></i><i></i><i></i></span></div>` : ""}</div>
       ${quick.length ? `<div class="quick">${quick.map((q) => `<button class="chip" type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
-      ${!P.busy && P.msgs.some((m) => m.who === "me") ? `<div class="skipdoc"><button class="btn ghost" type="button" data-act="skipdoc">Soruları geç, doktora yönlendir →</button></div>` : ""}
+      ${!P.busy && P.msgs.some((m) => m.who === "me") ? `<div class="skipdoc"><button class="btn ghost" type="button" data-act="skipdoc">Soruları geç, ${(() => { const m = istenenMeslek(); return m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"; })()} yönlendir →</button></div>` : ""}
       ${(P.pendingShow || []).length ? `<div class="thumbs">${P.pendingShow.map((p) => `<img src="${p.url}" alt="Gönderilecek fotoğraf">`).join("")}<span class="tiny muted">gönderince eklenir</span></div>` : ""}
       <form class="composer" id="pComposer">
         <label class="iconbtn" title="Fotoğraf ekle" style="cursor:pointer">${ICO.cam}<input type="file" accept="image/*" id="pPhoto" hidden></label>
@@ -502,7 +554,8 @@
       <button class="back" type="button" data-act="chat">${ICO.back} Sohbete dön</button>
       ${stepsBar(2)}
       <h2 style="font-size:22px">Seni doğru anladık mı?</h2>
-      <div class="card soft stack" style="gap:6px"><div class="small muted">Senin anlattığın</div><div>${esc(r.hasta_icin_ozet || r.sikayet)}</div></div>
+      <div class="card soft stack" style="gap:6px"><div class="small muted">Senin anlattığın</div><div>${esc(r.hasta_icin_ozet || r.sikayet)}</div>
+        ${(() => { const m = istenenMeslek(); return m && !HEKIMLER.has(m) ? `<div class="small"><b>İstediğin sağlık çalışanı: ${esc(meslekAdi(m))}</b></div>` : ""; })()}</div>
       ${P.photos.length ? `<div class="stack" style="gap:6px"><div class="small muted">Fotoğraflar</div><div class="photos">${P.photos.map((p) => `<img src="${p.url}" alt="Eklenen fotoğraf">`).join("")}</div></div>` : ""}
       <div class="card stack" style="gap:10px">
         <div class="stack" style="gap:6px"><b class="small">Doktorun planı ya da reçetesi var mı?</b>
@@ -522,20 +575,37 @@
       <div class="tiny muted" style="text-align:center">Bu bir teşhis değildir. Durum kötüleşirse 112'yi ara.</div>
     </div>`;
   }
+  // Kullanıcı belirli bir meslek istediyse: ne olacağını açıkla, plan varsa hizmeti seçtir, plan yoksa nedenini söyle
+  function meslekKarti(t) {
+    const m = t.profession;
+    if (!m || HEKIMLER.has(m)) return "";
+    const ad = meslekAdi(m);
+    if (t.level === "PLANLI") {
+      const h = meslekHizmetleri(m);
+      return `<div class="card stack meslek-kart" style="gap:8px"><div class="small"><b>İstediğin: ${esc(ad)}</b> · doktorunun planı olduğu için doğrudan ${esc(yonelme(ad))} yönlendiriyoruz. Aşağıda yalnızca ${esc(cogul(ad))} var.</div>
+        ${h.length > 1 ? `<div class="tiny muted">${esc(ayrilma(ad).replace(/^./, (c) => c.toLocaleUpperCase("tr")))} ne istiyorsun?</div><div class="seg">${h.map((x) => `<button class="chip" type="button" data-hizmet="${x}" aria-pressed="${t.services[0] === x}">${esc(svc(x).name_tr)}</button>`).join("")}</div>` : ""}</div>`;
+    }
+    const hemsire = m === "hemsire" && t.level === "TELE_HEMSIRE";
+    return `<div class="card stack meslek-kart" style="gap:8px"><div class="small"><b>İstediğin: ${esc(ad)}</b></div>
+      <div class="small">${hemsire ? "Doktor planı olmadığı için hemşire evine gelir, doktor da aynı anda görüntülü bağlanır. Böylece hemşire yasal olarak hizmet verebilir." : `${esc(ad)} yalnızca doktorun planıyla gelebilir (yönetmelik). Önce bir doktor bakar; plan yazarsa aynı uygulamadan ${esc(ad.toLocaleLowerCase("tr"))} çağırabilirsin.`}</div>
+      <button class="btn" type="button" data-plan="var" data-yenile="1">Doktorumun planı / reçetesi var</button>
+      <div class="tiny muted">Planı ziyarette ${esc(yonelme(ad))} göstermen gerekir.</div></div>`;
+  }
   function pOptions() {
     const { t, pt } = decide();
     P.triage = t;
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; return pEmergency(); }
     const service = t.services[0];
-    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 5);
-    P.cands = res.candidates; P.pt = pt;
-    const [ico, head, why] = levelCopy(t.level, service);
+    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60);
+    P.cands = meslekSuz(t, res.candidates).slice(0, 10); P.pt = pt; // YZ teklif katmanı bu 10 kişi arasından seçer
+    const [ico, head, why] = levelCopy(t.level, service, t.profession);
     const yz = TK && P.cands.length ? teklifPlani(service, pt) : null;
     return `<div class="pad stack">
       <button class="back" type="button" data-act="summary">${ICO.back} Özete dön</button>
       ${stepsBar(3)}
       <div class="levelcard"><span class="lv-ico">${ico}</span><div class="stack" style="gap:4px"><b>${esc(head)}</b><span class="small">${esc(why)}</span>
         <span class="small muted">Hizmet: ${esc(svc(service).name_tr)} · ${svc(service).duration_min} dk</span></div></div>
+      ${meslekKarti(t)}
       <div class="seg" role="group" aria-label="Sıralama">${Object.entries(SORTS).map(([k, [l]]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>
       ${yz ? teklifKarti(yz) : ""}
       ${yz ? `<details class="klasik" id="klasikListe"${P.klasikAcik || (teklifDurumu(yz).bitti && !teklifDurumu(yz).satirlar.some((r) => r.verir)) ? " open" : ""}><summary class="small">Tüm uygun kişiler (klasik liste, ${P.cands.length})</summary><div class="stack" style="gap:10px;margin-top:10px">` : ""}
@@ -749,20 +819,21 @@
   // ---------- hasta olayları ----------
   $("#pScreen").addEventListener("click", async (e) => {
     if (G.onClick(e, P.request)) { renderP(); renderH(); gzYenile(true); return; }
-    const t = e.target.closest("[data-act],[data-tile],[data-quick],[data-plan],[data-when],[data-sort],[data-pick]");
+    const t = e.target.closest("[data-act],[data-tile],[data-quick],[data-plan],[data-when],[data-sort],[data-pick],[data-hizmet]");
     if (!t) return;
     if (t.dataset.stop && !e.target.closest("[data-act]")) return;
     const a = t.dataset.act;
     if (t.dataset.tile !== undefined) { startChat(t.dataset.tile); return; }
     if (t.dataset.quick !== undefined) { send(t.dataset.quick); return; }
-    if (t.dataset.plan) { P.info.plan = t.dataset.plan; renderP(); return; }
+    if (t.dataset.plan) { P.info.plan = t.dataset.plan; P.info.hizmet = null; renderP(); return; }
+    if (t.dataset.hizmet) { P.info.hizmet = t.dataset.hizmet; P.saatler = null; renderP(); return; }
     if (t.dataset.when) { const [g, w] = t.dataset.when.split(":").map(Number); P.info.gun = g; P.info.when = w; renderP(); return; }
     if (t.dataset.sort) { P.sort = t.dataset.sort; P.sheet = null; renderP(); return; }
     if (t.dataset.pick !== undefined) { P.sheet = +t.dataset.pick; renderP(); return; }
     if (a === "start") startChat();
     else if (a === "home") { P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
-    else if (a === "skipdoc") { if (!P.busy) { P.msgs.push({ who: "me", text: "Soruları geç, doktora yönlendir." }); await doktoraYonlendir(); } }
+    else if (a === "skipdoc") { if (!P.busy) { const m = istenenMeslek(); P.msgs.push({ who: "me", text: `Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.` }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
     else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
     else if (a === "voice") { P.voice = !P.voice; renderP(); }

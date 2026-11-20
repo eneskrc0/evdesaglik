@@ -76,6 +76,10 @@ class Repo:
              "service_list": r["services"].split("|")}
             for r in q("SELECT * FROM complaint_routes ORDER BY priority DESC")
         ]
+        self.intents = [
+            {**dict(r), "parsed": parse_keywords(r["keywords"])}
+            for r in q("SELECT * FROM profession_intents ORDER BY priority DESC")
+        ]
         self.sources = {r["id"]: dict(r) for r in q("SELECT * FROM sources")}
 
         self.providers = {

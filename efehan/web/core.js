@@ -49,6 +49,7 @@
     this.routes = data.complaint_routes.map((r) => ({
       ...r, parsed: parseKeywords(r.keywords), service_list: r.services.split("|"),
     }));
+    this.intents = (data.profession_intents || []).map((r) => ({ ...r, parsed: parseKeywords(r.keywords) })); // öncelik sırasıyla (export)
     this.sources = {};
     for (const s of data.sources) this.sources[s.id] = s;
     this.providers = {};
@@ -79,6 +80,47 @@
     PLANLI: "Planlı ev hizmeti (hekim planına göre)",
   };
   const REMOTE_OK_ROUTES = new Set(["CR_RECETE", "CR_PSIKO"]);
+  const PHYSICIANS = new Set(["hekim", "uzman_hekim"]);
+  // Kullanıcı belirli bir meslek istiyor mu? (profession_intents; triage.py requested_profession)
+  function requestedProfession(repo, text) {
+    for (const it of repo.intents) { const m = match(it.parsed, text); if (m) return [it, m]; }
+    return [null, null];
+  }
+  function intentOnly(repo, it, m, patient) {
+    const prof = it.profession_code, svc = it.default_service, name = repo.professions[prof].name_tr;
+    const reasons = [`Meslek isteği '${name}' (eşleşen: ${m})`];
+    let level, services;
+    if (PHYSICIANS.has(prof)) { level = svc === "tele_muayene" ? "TELE" : "HEKIM_EV"; services = [svc]; }
+    else if (patient.has_physician_plan) { level = "PLANLI"; services = [svc]; reasons.push("Hekim planı/reçetesi var: istenen meslek atanabilir (S07, S08)"); }
+    else if (prof === "hemsire") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; reasons.push("Hekim planı yok: hemşire evine gelir, hekim aynı anda görüntülü değerlendirir (S08, S14)"); }
+    else { level = patient.bedridden ? "HEKIM_EV" : "TELE"; services = [LEVEL_DEFAULT_SERVICE[level]]; reasons.push(`Hekim planı yok: ${name} ancak hekim planıyla gelebilir; önce hekim (S08)`); }
+    const src = new Set([it.source_id, "S08"]); if (level === "PLANLI") src.add("S07");
+    return { level, services, message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER, red_flags: [], route: it.code, reasons,
+      other_routes: [], sources: [...src].sort(), is_emergency: false, profession: prof };
+  }
+  function applyIntent(repo, res, it, m) {
+    const prof = it.profession_code, name = repo.professions[prof].name_tr;
+    res.profession = prof;
+    res.reasons.push(`Meslek isteği '${name}' (eşleşen: ${m})`);
+    if (PHYSICIANS.has(prof)) {
+      const svc = it.default_service;
+      res.level = svc === "tele_muayene" ? "TELE" : "HEKIM_EV"; res.services = [svc];
+      res.reasons.push("Kullanıcı doktor istedi: hekim hizmeti");
+      res.message = `Önerilen: ${LEVEL_TEXT[res.level]}. ` + DISCLAIMER;
+      return res;
+    }
+    const offered = repo.profession_services[prof] || new Set();
+    if (res.level === "PLANLI") {
+      const mine = res.services.filter((s) => offered.has(s));
+      if (mine.length) res.services = mine;
+      else { res.profession = null; res.reasons.push(`${name} bu hizmeti vermiyor; şikâyete uygun meslek önerildi`); }
+    } else if (prof === "hemsire" && res.level === "TELE") {
+      res.level = "TELE_HEMSIRE"; res.services = ["tele_hemsire_destekli"];
+      res.reasons.push("Hekim planı yok: hemşire evine gelir, hekim görüntülü bağlanır");
+      res.message = `Önerilen: ${LEVEL_TEXT[res.level]}. ` + DISCLAIMER;
+    } else res.reasons.push(`Hekim planı yok: ${name} ancak hekim planıyla gelebilir (S08)`);
+    return res;
+  }
 
   function triage(repo, complaint, patient) {
     const text = normalize(complaint);
@@ -97,14 +139,16 @@
         level, services: [], message: msg, red_flags: hits.map((h) => h[0].code), route: null,
         reasons: hits.map((h) => `Kırmızı bayrak '${h[0].name_tr}' (eşleşen: ${h[1]})`),
         other_routes: [], sources: [...new Set(hits.map((h) => h[0].source_id))].sort(),
-        is_emergency: true,
+        is_emergency: true, profession: null,
       };
     }
+    const [it, im] = requestedProfession(repo, text);
     const matched = [];
     for (const r of repo.routes) {
       const m = match(r.parsed, text);
       if (m) matched.push([r, m]);
     }
+    if (!matched.length && it) return intentOnly(repo, it, im, patient);
     if (!matched.length) {
       const level = patient.bedridden ? "TELE_HEMSIRE" : "TELE";
       return {
@@ -112,7 +156,7 @@
         message: "Şikayetinizi bir hekimin değerlendirmesi en doğrusu. " + DISCLAIMER,
         red_flags: [], route: null,
         reasons: ["Bilinen bir şikayet kalıbı bulunamadı; güvenli varsayılan: hekim"],
-        other_routes: [], sources: ["S14"], is_emergency: false,
+        other_routes: [], sources: ["S14"], is_emergency: false, profession: null,
       };
     }
     const [route, m] = matched[0];
@@ -140,11 +184,12 @@
     }
     const src = new Set([route.source_id, "S08"]);
     if (level === "PLANLI") src.add("S07");
-    return {
+    const res = {
       level, services, message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER,
       red_flags: [], route: route.code, reasons,
-      other_routes: matched.slice(1).map((x) => x[0].code), sources: [...src].sort(), is_emergency: false,
+      other_routes: matched.slice(1).map((x) => x[0].code), sources: [...src].sort(), is_emergency: false, profession: null,
     };
+    return it ? applyIntent(repo, res, it, im) : res;
   }
 
   // ---------- routing.py ----------
@@ -334,7 +379,7 @@
   }
 
   const api = {
-    normalize, parseKeywords, match, Repo, triage, bestInsertion, priceVisit, findCandidates,
+    normalize, parseKeywords, match, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
     handleRequest, competenceScore, roadKm, travelMin, travel, trafikKatsayisi, yakinAcil, setYol, hhmm, LEVEL_TEXT, CFG,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
