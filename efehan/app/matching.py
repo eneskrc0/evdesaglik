@@ -103,7 +103,7 @@ def find_candidates(repo: Repo, service_code: str, patient: Patient, date: str,
                 elim["mesafe"] += 1
                 continue
             stops = repo.scheduled.get((p.id, date), [])
-            ins = best_insertion(home, window, stops, target, svc.duration_min, earliest)
+            ins = best_insertion(home, window, stops, target, svc.duration_min, earliest, p.transport)
             if ins is None:
                 elim["rota"] += 1
                 continue

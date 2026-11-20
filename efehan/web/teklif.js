@@ -63,7 +63,7 @@
       const enIyi = [...s].sort((x, y) => y.p - x.p).slice(0, N);
       let takas = 0;
       while (sec.length && basari(sec) < K.alpha * basari(enIyi) && takas < N) {
-        const dis = s.filter((a) => !sec.includes(a)).sort((x, y) => y.p - x.p)[0];
+        const dis = s.filter((a) => !sec.some((x) => x.pid === a.pid)).sort((x, y) => y.p - x.p)[0]; // kimliğe göre (kopya nesne aynı kişiyi iki kez eklemesin)
         if (!dis) break;
         const enDusuk = [...sec].sort((x, y) => x.p - y.p)[0];
         if (dis.p <= enDusuk.p) break;

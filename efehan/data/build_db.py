@@ -137,7 +137,8 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
         fee_mult = round(0.8 + 0.6 * (years / 25) + rng.uniform(-0.05, 0.05), 2)
         verified = 1 if rng.random() < 0.95 else 0
         conn.execute(
-            "INSERT INTO providers VALUES (?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO providers (id, display_name, profession_code, years_experience, rating, fee_multiplier,"
+            " home_district, home_lat, home_lon, licence_verified) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (pid, f"{PREFIX[prof]} {pid}", prof, years, rating, fee_mult,
              d_name, lat, lon, verified),
         )
@@ -179,6 +180,13 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
                     (vid, pid, DEMO_DATE, t, dur, vlat, vlon, svc),
                 )
                 t += dur + rng.randint(40, 120)
+
+    # Ulaşım: çalışanların ~%40'ının arabası yok, toplu taşımayla gider (Enes'in izmir_tam varsayımı).
+    # Ayrı rastgele dizi: önceki tüm veriler (konum, takvim, hasta) aynı kalır.
+    rng_ulasim = random.Random(seed + 4000)
+    for (pid,) in conn.execute("SELECT id FROM providers ORDER BY id").fetchall():
+        if rng_ulasim.random() < 0.4:
+            conn.execute("UPDATE providers SET transport='toplu' WHERE id=?", (pid,))
 
     rng = rng_main
     pick_district = lambda: rng.choices(d_names, weights=d_weights)[0]  # noqa: E731

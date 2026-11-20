@@ -34,6 +34,7 @@ class Provider:
     home_lat: float
     home_lon: float
     licence_verified: bool
+    transport: str = "araba"   # "toplu": arabası yok, toplu taşımayla gider
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,8 @@ class Repo:
             r["id"]: Provider(r["id"], r["display_name"], r["profession_code"],
                               r["years_experience"], r["rating"], r["fee_multiplier"],
                               r["home_district"], r["home_lat"], r["home_lon"],
-                              bool(r["licence_verified"]))
+                              bool(r["licence_verified"]),
+                              r["transport"] if "transport" in r.keys() else "araba")
             for r in q("SELECT * FROM providers")
         }
         self.provider_services: dict[str, dict[str, int]] = {}

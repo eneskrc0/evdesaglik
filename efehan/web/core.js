@@ -216,17 +216,31 @@
     const tt = new Uint16Array(u8.length / 2), dv = new DataView(u8.buffer);
     for (let i = 0; i < tt.length; i++) tt[i] = dv.getUint16(2 * i, true);
     const idx = new Map(p.noktalar.map(([a, b], i) => [noktaAnahtari(a, b), i]));
-    YOL = { n: p.noktalar.length, tt, tt10: p.trafik.tt10_dk, ff10: p.trafik.ff10_dk, park: p.trafik.park_dk, idx, paket: p };
+    let toplu = null;
+    if (p.toplu) { // Enes'in GTFS toplu taşıma süreleri: 4 dilim × n × n, tam dakika (uint8) — routing.py ile aynı
+      const tb = atob(p.toplu.dk_b64), dk = new Uint8Array(tb.length);
+      for (let i = 0; i < tb.length; i++) dk[i] = tb.charCodeAt(i);
+      toplu = { dk, bitis: p.toplu.dilim_bitis };
+    }
+    YOL = { n: p.noktalar.length, tt, tt10: p.trafik.tt10_dk, ff10: p.trafik.ff10_dk, park: p.trafik.park_dk, idx, paket: p, toplu };
   }
   function trafikKatsayisi(m) {
     const x = (((m / 60 - 0.5) % 24) + 24) % 24, i = Math.floor(x), f = x - i, t = YOL.tt10;
     return (t[i] * (1 - f) + t[(i + 1) % 24] * f) / YOL.ff10;
   }
-  function travel(a, b, depart) {
+  function topluDilim(m) {
+    m = ((m % 1440) + 1440) % 1440;
+    const e = YOL.toplu.bitis;
+    for (let i = 0; i < e.length - 1; i++) if (m < e[i]) return i;
+    return e.length - 1;
+  }
+  // mode "toplu": kapıdan kapıya toplu taşıma süresi (yürüme + bekleme + araç + aktarma + bina)
+  function travel(a, b, depart, mode) {
     if (YOL) {
       const ia = YOL.idx.get(noktaAnahtari(a[0], a[1])), ib = YOL.idx.get(noktaAnahtari(b[0], b[1]));
       if (ia !== undefined && ib !== undefined) {
         if (ia === ib) return 0;
+        if (mode === "toplu" && YOL.toplu) return YOL.toplu.dk[topluDilim(depart) * YOL.n * YOL.n + ia * YOL.n + ib];
         return Math.ceil(YOL.park + (YOL.tt[ia * YOL.n + ib] / 60) * trafikKatsayisi(depart));
       }
     }
@@ -241,7 +255,7 @@
   }
   const round2 = (x) => Math.round(x * 100) / 100;
 
-  function bestInsertion(home, window, stops, target, duration, earliest) {
+  function bestInsertion(home, window, stops, target, duration, earliest, mode) {
     const [start, end] = window;
     const points = [{ loc: home, ready: start }];
     for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
@@ -253,9 +267,9 @@
       const nxtLoc = nxt ? nxt.loc : home;
       const deadline = nxt ? nxt.start : end;
       const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
-      const arrival = Math.max(prev.ready + travel(prev.loc, target, prev.ready), earliest);
+      const arrival = Math.max(prev.ready + travel(prev.loc, target, prev.ready, mode), earliest);
       const finish = arrival + duration;
-      if (finish + travel(target, nxtLoc, finish) > deadline) continue;
+      if (finish + travel(target, nxtLoc, finish, mode) > deadline) continue;
       const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
       const cand = {
         arrival_min: arrival, added_km: round2(added), standalone_km: round2(standalone), position: i,
@@ -324,7 +338,7 @@
       } else {
         if (dist > maxKm) { elim.mesafe++; continue; }
         const stops = repo.scheduled[p.id + "|" + date] || [];
-        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest);
+        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest, p.transport);
         if (!ins) { elim.rota++; continue; }
         arrival = ins.arrival_min;
       }

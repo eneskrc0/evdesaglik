@@ -77,6 +77,14 @@ def main() -> None:
         "hastaneler": [{k: hosp[h][k] for k in ("ad", "turAd", "ilce", "lat", "lon")} for h in kullanilan],
         "en_yakin_acil": [[[yeni[h], s] for h, s in y] for y in yakin],
     }
+    # Toplu taşıma (Enes'in GTFS modeli: ESHOT + Metro + Tramvay + İZBAN + İZDENİZ; enes/sim/build_transit.py):
+    # kapıdan kapıya süre, tam dakika (enes/sim/geo.TRANSIT ile aynı yuvarlama), 4 saat dilimi × K × K uint8.
+    tz = ENES / "data" / "izmir" / "transit_orta.npz"
+    if tz.exists():
+        t = np.load(tz)
+        R = np.minimum(np.rint(t["tt_d"][:, secim][:, :, secim] / 10.0), 255).astype(np.uint8)
+        paket["toplu"] = {"dilim_bitis": [int(x[1]) for x in t["dilim"]], "dk_b64": base64.b64encode(R.tobytes()).decode(),
+                          "pay": 0.4, "aciklama": "Arabası olmayan çalışan payı %40 (enes/ izmir_tam varsayımı). Süre: yürüme + bekleme + araç + aktarma + 2 dk bina."}
     OUT.write_text(json.dumps(paket, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT} — {n} nokta, {len(kullanilan)} acil servis, {OUT.stat().st_size // 1024} KB")
 
