@@ -29,6 +29,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
   (çalışan başvurusu demo onaylı). Bağlantı #hasta | #calisan | #doktor | #ikisi (ya da ?rol=...) ile açılırsa giriş atlanır; ?rol=ham hesapsız
   ham görünüm (otomatik testler bunu kullanır; doğrulama akışı baştan). Yalnız hasta telefonunda talep 6 sn sonra demo olarak onaylanır.
   Gerçek kimlik doğrulama yok, şifre hiçbir yere gitmez. İki ayrı telefonda talep aktarımı için ortak veri (db) gerekir; açılmadı.
+- `web/sesli.js` — Sesli asistan (ChatGPT sesli modu gibi, el değmeden): asistan konuşur → mikrofon dinler → konuşmanın bittiğini sessizlikten anlar (VAD, ~1,1 sn) → yazıya çevirir → mesaj normal sohbet akışına gider (acil kuralı, en fazla 3 soru, meslek yönlendirmesi, fotoğraf, rapor aynen) → yanıt cümle cümle seslendirilir → tekrar dinler. Küreye dokununca konuşurken sözünü keser, dinlerken "bitirdim" olur. Ses → yazı: sunucu varsa Whisper (`/ses`, yöresel ağız), yoksa tarayıcının konuşma tanıması (tr-TR), Claude içinde dikte. Yazı → ses: telefonun en doğal Türkçe sesi (`sunucu.js telefonSesi`; 112 → "bir bir iki", TL → lira). Whisper'ın sessizlik uydurmaları ("Altyazı M.K.") elenir. Giriş: ana ekranda "Sesli asistanla konuş", sohbet başlığında dalga düğmesi. Provalar: `node web/test_sesli.mjs` (VAD, metin, döngü), `python web/e2e_sesli.py` (sahte mikrofonla gerçek VAD + MediaRecorder + /ses; sunucusuz yol; acil; sözünü kesme; izin yok).
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 
 - `web/istemler.js` — YZ istemlerinin TEK kaynağı (sohbet kuralları, rapor istemi, ses ipucu); Claude sürümü ve sunucu birlikte kullanır.
@@ -45,6 +46,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 - Güvenli Ziyaret: konum yalnızca ziyaret penceresinde (yolda + ziyarette) kaydedilir; risk notu hastayı damgalamaz, yalnızca beyana dayanır. Demo/simülasyonda gerçek arama yapılmaz; yalnızca kullanıcının bastığı 112/113 düğmeleri gerçek tel: bağlantısıdır.
 - API anahtarı hiçbir dosyaya yazılmaz; yalnızca Cloudflare'de Secret olarak durur.
 - Sohbet en fazla 3 soru sorar; kullanıcı "direkt doktora yönlendir" derse ya da sohbetteki düğmeye basarsa sorular atlanır. Belirli bir meslek istediyse ("hemşire çağırmak istiyorum", "direkt fizyoterapiste yönlendir") o mesleğe, istemediyse hekim ev muayenesine gidilir (acil kontrolü her zaman önce).
+- Sesli asistan aynı sohbet akışını kullanır; ayrı bir karar yolu yoktur. Acil durumda uyarı sesli okunur ve dinleme durur. Yanıtlar sesli okunacağı için istemde "SESLİ OKUNUR" kuralı var (kısa, işaretsiz).
 - YZ fotoğrafı yalnızca dışarıdan görünen cilt durumları için ister (yara, kızarıklık, şişlik…); boğaz/ağız içi, ağrı, ateş vb. için istemez (istemler.js).
 - Doğrulama metinlerinde "Bakanlık tarafından doğrulandı", "e-Devlet onaylı" gibi gerçekte yapılmayan ifadeler kullanılmaz; T.C. no, kimlik fotoğrafı, selfie, e-Devlet şifresi istenmez.
 

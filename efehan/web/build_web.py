@@ -36,6 +36,8 @@ def build(template: str, app: str, out_name: str) -> Path:
         html = html.replace("/*__DOGRULAMA__*/", (WEB / "dogrulama.js").read_text(encoding="utf-8"))
     if "/*__GUVENLIK__*/" in html:
         html = html.replace("/*__GUVENLIK__*/", (WEB / "guvenlik.js").read_text(encoding="utf-8"))
+    if "/*__SESLI__*/" in html:
+        html = html.replace("/*__SESLI__*/", (WEB / "sesli.js").read_text(encoding="utf-8"))
     if "/*__TOPLU__*/" in html:  # Enes'in toplu taşıma ağı (GTFS; enes/sim/build_transit.py) — yolculuk planı için
         tp = WEB.parents[1] / "enes" / "web" / "transit_izmir.json"
         html = html.replace("/*__TOPLU__*/", "window.KAPIDA_TOPLU = " + (tp.read_text(encoding="utf-8") if tp.exists() else "null") + ";\n" + (WEB / "toplu.js").read_text(encoding="utf-8"))

@@ -22,6 +22,7 @@
     cam: I('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'),
     send: I('<path d="M4 12l16-8-6 16-2-7z"/>'),
     back: I('<path d="M15 5l-7 7 7 7"/>'),
+    dalga: I('<path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/>'),
     speaker: I('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 0 1 0 6"/>'),
     bandage: I('<rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-35 12 12)"/><path d="M10 10l.01 0M14 14l.01 0M12 12l.01 0"/>'),
     drop: I('<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'),
@@ -87,6 +88,66 @@
   const REQ = []; // tüm talepler (yerel + ortak)
   const CAP = { sample: null, server: null, images: false, dictation: null, tts: null, db: null, uid: null };
 
+  // ---------- sesli asistan (sesli.js) ----------
+  // Sesli mod mevcut sohbet akışını kullanır: konuşma → yazı → send() (acil kuralı, 3 soru, meslek, rapor aynen) → yanıt seslendirilir.
+  const SV = window.KapidaSesli.create({ dinleyici: null, tts: null, gonder: sesliGonder,
+    ciz: () => { if (P.screen === "chat") renderP(); } });
+  function sesliKur() {
+    const S = window.KapidaSesli;
+    let d = null;
+    if (CAP.server && CAP.server.yaziyaCevir) d = S.whisperDinleyici((b, u) => CAP.server.yaziyaCevir(b, u));
+    if (!d) d = S.tarayiciDinleyici();
+    if (!d && CAP.dictation && !CAP.server) d = S.claudeDinleyici(CAP.dictation);
+    SV.dinleyiciDegistir(d); SV.ttsDegistir(S.konusucu(CAP.tts));
+  }
+  async function sesliGonder(text) {
+    await send(text);
+    await new Promise((res) => { const t0 = Date.now(); const i = setInterval(() => { if ((!P.busy && P.screen !== "building") || Date.now() - t0 > 90000) { clearInterval(i); res(); } }, 80); });
+    if (P.screen === "emergency") return { tur: "acil", metin: ((P.emergency && P.emergency.msg) || "Bu durum acil olabilir.") + " Ekrandaki düğmeyle hemen 112'yi arayabilirsin." };
+    if (P.screen !== "chat") return { tur: "bitti", metin: "Anlattıklarını özetledim. Ekranda kontrol edip onaylayabilirsin." };
+    const last = P.msgs[P.msgs.length - 1];
+    return { tur: "devam", metin: last && last.who === "ai" ? last.text : "" };
+  }
+  const SESLI_SELAM = "Merhaba, ben Kapıda asistanı. Seni dinliyorum. Ne olduğunu kendi cümlelerinle anlat; konuşman bitince kısa bir an beklemen yeterli.";
+  function sesliBaslat(yeni) {
+    if (!SV.var()) return;
+    if (yeni) {
+      startChat();
+      P.msgs[0].text = P.mode === "ai" ? SESLI_SELAM : SESLI_SELAM + "\n\n" + DEMO_Q[0][0];
+      SV.ac(P.mode === "ai" ? SESLI_SELAM : SESLI_SELAM + " " + DEMO_Q[0][0]);
+    } else {
+      const last = P.msgs[P.msgs.length - 1];
+      SV.ac(last && last.who === "ai" && !P.msgs.some((m) => m.who === "me") ? last.text : "Sesli moddayız. Seni dinliyorum.");
+    }
+    renderP();
+  }
+  const SV_DURUM = { hazir: "Hazırlanıyor…", konusuyor: "Konuşuyorum · sözümü kesmek için küreye dokun", isleniyor: "Sesini yazıya çeviriyorum…", dusunuyor: "Düşünüyorum…",
+    beklemede: "Mikrofon kapalı · konuşmak için küreye dokun", kapali: "" };
+  function pSesli() {
+    const st = SV.st;
+    const lastAi = [...P.msgs].reverse().find((m) => m.who === "ai");
+    const lastMe = [...P.msgs].reverse().find((m) => m.who === "me");
+    const quick = st.durum !== "dusunuyor" && st.durum !== "isleniyor" && lastAi && lastAi.quick && lastAi.quick.length && P.msgs[P.msgs.length - 1] === lastAi ? lastAi.quick : [];
+    const durum = st.durum === "dinliyor" ? (SV.tur() === "claude" ? "Dinliyorum · bitince küreye dokun" : "Dinliyorum · konuşman bitince kendim anlarım") : SV_DURUM[st.durum] || "";
+    const aria = { konusuyor: "Sözünü kes ve konuş", dinliyor: "Konuşmamı bitirdim", beklemede: "Dinlemeye başla" }[st.durum] || "Sesli asistan";
+    const m = istenenMeslek();
+    return `<div class="sesli durum-${st.durum}" role="region" aria-label="Sesli asistan">
+      <div class="sv-ust"><button class="back" type="button" data-sv="kapat">${ICO.back} Yazıya dön</button><span class="pill good">${ICO.dalga} Sesli asistan</span></div>
+      <div class="sv-asistan" aria-live="polite">${esc(st.asistan || (lastAi && lastAi.text) || "")}</div>
+      <button class="sv-orb" id="svOrb" type="button" data-sv="dokun" aria-label="${aria}"><span class="sv-halka"></span><span class="sv-cekirdek"></span></button>
+      <div class="sv-durum" id="svDurum" role="status">${esc(durum)}</div>
+      <div class="sv-sen" id="svSen" ${st.ara ? "" : "hidden"}>${st.ara ? "Sen: " + esc(st.ara) : ""}</div>
+      ${!st.ara && lastMe ? `<div class="sv-son">Sen: ${esc(lastMe.text)}</div>${lastMe.understood ? `<div class="understood">Anladığım: ${esc(lastMe.understood)}</div>` : ""}` : ""}
+      ${st.hata ? `<div class="lockmsg" role="alert">${esc(st.hata)}</div>` : ""}
+      ${quick.length ? `<div class="quick" style="justify-content:center">${quick.map((q) => `<button class="chip" type="button" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
+      <div class="sv-alt">
+        <button class="btn" type="button" data-sv="duraklat" aria-pressed="${st.durum === "beklemede"}">${st.durum === "beklemede" ? "Mikrofonu aç" : "Mikrofonu kapat"}</button>
+        <label class="btn" style="cursor:pointer">${ICO.cam} Fotoğraf<input type="file" accept="image/*" id="pPhoto" hidden></label>
+        ${P.msgs.some((x) => x.who === "me") ? `<button class="btn ghost" type="button" data-act="skipdoc">Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir</button>` : ""}
+      </div>
+      <div class="tiny muted" style="text-align:center">Teşhis koymaz. Acil bir durumda 112'yi ara. Konuşmaların yazısı sohbette kalır.</div></div>`;
+  }
+
   // ---------- yetenekler ----------
   async function initCaps() {
     const use = window.claude && typeof window.claude.use === "function" ? window.claude.use.bind(window.claude) : null;
@@ -98,6 +159,7 @@
     if (dict) bindDictation(dict);
     if (user) { try { CAP.uid = await user.id(); } catch (e) { /* yok */ } }
     if (db) subscribeDb();
+    sesliKur();
     renderP(); renderH();
   }
   // Claude dışında (GitHub Pages, telefon): Cloudflare sunucusu varsa gerçek YZ, yoksa demo soruları.
@@ -112,6 +174,7 @@
         if (CAP.dictation) bindDictation(CAP.dictation);
       } else { P.mode = "demo"; P.toast = "Yapay zekâ sunucusuna ulaşılamadı; demo sorularıyla devam ediyoruz."; }
     } else P.mode = "demo";
+    sesliKur();
     renderP(); renderH();
   }
   function bindDictation(dict) {
@@ -395,7 +458,7 @@
     P.screen = "summary"; renderP();
   }
   function speak(text) {
-    if (!P.voice || !CAP.tts) return;
+    if (!P.voice || !CAP.tts || SV.acik) return; // sesli modda seslendirmeyi sesli asistan yapar
     CAP.tts.speak(String(text).slice(0, 1900)).catch(() => { /* sessiz */ });
   }
 
@@ -504,6 +567,7 @@
       <div class="steplabel">Adım ${n}/4 · ${labels[n - 1]}</div></div>`;
   }
   function renderP() {
+    if (SV.acik && !["chat", "building", "summary", "emergency"].includes(P.screen)) SV.kapat();
     const el = $("#pScreen");
     const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency }[P.screen] || pHome;
     el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
@@ -518,6 +582,7 @@
         <h1>Ne olduğunu anlat,<br>gerisini biz ayarlayalım.</h1>
         <div class="small" style="opacity:.9">Konuşarak ya da yazarak anlat. Fotoğraf ekleyebilirsin. Fiyatı seçmeden önce görürsün.</div>
         <button class="talk" type="button" data-act="start"><span class="mic">${ICO.mic}</span><span>Anlatmaya başla<br><span class="small muted" style="font-weight:500">yaklaşık 2 dakika</span></span></button>
+        ${SV.var() ? `<button class="talk sesli-gir" type="button" data-act="sesli"><span class="mic">${ICO.dalga}</span><span>Sesli asistanla konuş<br><span class="small muted" style="font-weight:500">el değmeden, telefonda konuşur gibi</span></span></button>` : ""}
       </div>
       <div class="how"><div><span class="n">1</span>Anlat</div><div><span class="n">2</span>Fiyatı gör, seç</div><div><span class="n">3</span>Kapında</div></div>
       <div class="stack" style="gap:8px"><div class="row between"><h3 style="font-size:16px">Sık istenenler</h3><span class="tiny muted">başlangıç fiyatları</span></div>
@@ -527,11 +592,13 @@
     </div>`;
   }
   function pChat() {
+    if (SV.acik) return pSesli();
     const last = P.msgs[P.msgs.length - 1];
     const quick = !P.busy && last && last.who === "ai" && last.quick && last.quick.length ? last.quick : [];
     return `<div class="chatwrap">
       <div class="chathead"><button class="back" type="button" data-act="home" aria-label="Geri">${ICO.back}</button><div class="bot">K</div>
         <div style="flex:1"><b>Kapıda asistanı</b><div class="tiny muted">${P.mode === "ai" ? (CAP.server ? "Yapay zekâ (sunucu) · teşhis koymaz" : "Yapay zekâ · teşhis koymaz") : "Demo soruları · teşhis koymaz"}</div></div>
+        ${SV.var() ? `<button class="iconbtn" type="button" data-act="sesliac" title="Sesli asistan (el değmeden konuş)" aria-label="Sesli asistanı aç">${ICO.dalga}</button>` : ""}
         ${CAP.tts ? `<button class="iconbtn" type="button" data-act="voice" aria-pressed="${P.voice}" title="Yanıtları sesli oku" style="${P.voice ? "background:var(--brand-soft)" : ""}">${ICO.speaker}</button>` : ""}</div>
       <div class="pad" style="padding:10px 16px 0">${stepsBar(1)}</div>
       <div class="msgs" id="pMsgs">${P.msgs.map((m) => `<div class="msg ${m.who}">${esc(m.text)}${(m.photo || []).map((u) => `<img src="${u}" alt="Eklenen fotoğraf">`).join("")}</div>${m.understood ? `<div class="understood">Anladığım: ${esc(m.understood)}</div>` : ""}`).join("")}
@@ -832,20 +899,29 @@
   // ---------- hasta olayları ----------
   $("#pScreen").addEventListener("click", async (e) => {
     if (G.onClick(e, P.request)) { renderP(); renderH(); gzYenile(true); return; }
+    const sv = e.target.closest("[data-sv]");
+    if (sv) {
+      const k = sv.dataset.sv;
+      if (k === "kapat") { SV.kapat(); renderP(); } else if (k === "dokun") SV.dokun(); else if (k === "duraklat") SV.duraklat();
+      return;
+    }
     const t = e.target.closest("[data-act],[data-tile],[data-quick],[data-plan],[data-when],[data-sort],[data-pick],[data-hizmet]");
     if (!t) return;
     if (t.dataset.stop && !e.target.closest("[data-act]")) return;
     const a = t.dataset.act;
     if (t.dataset.tile !== undefined) { startChat(t.dataset.tile); return; }
-    if (t.dataset.quick !== undefined) { send(t.dataset.quick); return; }
+    if (t.dataset.quick !== undefined) { if (SV.acik) SV.hizli(t.dataset.quick); else send(t.dataset.quick); return; }
     if (t.dataset.plan) { P.info.plan = t.dataset.plan; P.info.hizmet = null; renderP(); return; }
     if (t.dataset.hizmet) { P.info.hizmet = t.dataset.hizmet; P.saatler = null; renderP(); return; }
     if (t.dataset.when) { const [g, w] = t.dataset.when.split(":").map(Number); P.info.gun = g; P.info.when = w; renderP(); return; }
     if (t.dataset.sort) { P.sort = t.dataset.sort; P.sheet = null; renderP(); return; }
     if (t.dataset.pick !== undefined) { P.sheet = +t.dataset.pick; renderP(); return; }
     if (a === "start") startChat();
+    else if (a === "sesli") sesliBaslat(true);
+    else if (a === "sesliac") sesliBaslat(false);
     else if (a === "home") { P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
+    else if (a === "skipdoc" && SV.acik) { const m = istenenMeslek(); SV.hizli(`Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.`); }
     else if (a === "skipdoc") { if (!P.busy) { const m = istenenMeslek(); P.msgs.push({ who: "me", text: `Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.` }); await doktoraYonlendir(); } }
     else if (a === "summary") { P.screen = "summary"; renderP(); }
     else if (a === "options") { P.screen = "options"; P.sheet = null; renderP(); }
@@ -884,6 +960,7 @@
         const big = await compress(e.target.files[0], 1200), small = await compress(e.target.files[0], 480);
         const ph = { blob: big.blob, url: small.url };
         P.photos.push(ph); P.pendingPhotos.push(ph); (P.pendingShow ||= []).push(ph);
+        if (SV.acik) { SV.hizli("Fotoğraf ekledim."); return; }
       } catch (err) { P.toast = "Bu fotoğraf açılamadı; başka bir fotoğraf dene."; }
       renderP();
     }
