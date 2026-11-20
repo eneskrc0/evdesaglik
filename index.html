@@ -3,31 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Evde Sağlık — Gazi AI Tech 2026 demoları</title>
+<title>Kapıda — evde sağlık eşleştirme · Gazi AI Tech 2026</title>
 <style>
   :root { --ink: #102a2c; --muted: #5b7072; --line: #dce6e4; --brand: #0d5c63; --bg: #f1f6f4; }
   * { box-sizing: border-box; }
   body { margin: 0; font: 18px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
   main { max-width: 760px; margin: 0 auto; padding: 32px 20px 48px; display: flex; flex-direction: column; gap: 16px; }
   h1 { margin: 0; font-size: 28px; }
+  h2 { margin: 12px 0 0; font-size: 16px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
   p { margin: 0; color: var(--muted); }
   a.card { display: flex; flex-direction: column; gap: 4px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px; color: inherit; text-decoration: none; }
+  a.card.ana { border: 2px solid var(--brand); }
   a.card:hover, a.card:focus-visible { border-color: var(--brand); outline: none; box-shadow: 0 0 0 2px var(--brand) inset; }
   a.card b { font-size: 20px; color: var(--brand); }
   .who { font-size: 14px; color: var(--muted); }
+  .sayi { display: flex; gap: 12px; flex-wrap: wrap; }
+  .sayi div { flex: 1 1 150px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .sayi b { display: block; font-size: 26px; color: var(--brand); }
   small { color: var(--muted); font-size: 14px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Evde sağlık — demolar</h1>
-  <p>Gazi AI Tech 2026 ekip deposu. Sayfalar tarayıcıda çalışır; tüm veriler sentetiktir. Gerçek sağlık bilgisi ya da kişisel belge girmeyin.</p>
-  <a class="card" href="ortak/dist/izmir.html"><b>Birleşik demo · İzmir</b><span>Triyaj → yapay zekâ bildirim seçimi → fiyat önerisi → teklif → canlı takip</span><span class="who">ortak/</span></a>
-  <a class="card" href="efehan/web/dist/kapida.html"><b>Kapıda · hasta ve sağlık çalışanı uygulaması</b><span>Asistanla konuşarak talep, YZ teklif akışı (Enes'in modeli), canlı takip, çalışana durum raporu, mesleki doğrulama</span><span class="who">efehan/</span></a>
-  <a class="card" href="enes/web/dist/izmir.html"><b>Simülasyon demosu · İzmir</b><span>11 ilçe, gerçek yol ağı, hastane katmanı, canlı takip</span><span class="who">enes/</span></a>
-  <a class="card" href="enes/web/dist/bornova.html"><b>Simülasyon demosu · Bornova (pilot)</b><span>Deney seti ve model gelişimi</span><span class="who">enes/</span></a>
-  <a class="card" href="efehan/web/dist/index.html"><b>Veritabanı test prototipi</b><span>Triyaj kuralları, eşleştirme ve fiyat senaryolarını tek tek deneme</span><span class="who">efehan/</span></a>
-  <small>Kapıda burada gerçek yapay zekâyla çalışır (Cloudflare sunucusu + Groq: sesle konuşma, şive, fotoğraf tarifi, sağlık çalışanına rapor); sunucuya ulaşılamazsa hazır sorulu demo moduna geçer. Telefonda: Chrome'da “Ana ekrana ekle”, iPhone'da Safari → Paylaş → “Ana Ekrana Ekle”. Harita: © OpenStreetMap katkıcıları.</small>
+  <h1>Kapıda — evde sağlık eşleştirme</h1>
+  <p>Hasta derdini anlatır; yapay zekâ bunu güvenli bir talebe çevirir, talebi teklif verme olasılığı en yüksek 3 sağlık çalışanına gönderir, fiyat önerir, varış saatini İzmir'in gerçek yol, trafik ve toplu taşıma verisiyle hesaplar ve çalışanı kapıya kadar izletir. Tüm kişiler ve talepler sentetiktir; gerçek sağlık bilgisi ya da kişisel belge girmeyin.</p>
+  <div class="sayi">
+    <div><b>%70</b><small>hastaya 5 dk içinde uygun teklif (yapay zekâ, ayrılmış test günleri)</small></div>
+    <div><b>%52</b><small>aynı günlerde "en yakına gönder" kuralı</small></div>
+    <div><b>+18 puan</b><small>yapay zekâ farkı; 9 meslek, 155 çalışan, günde 195 talep</small></div>
+  </div>
+
+  <h2>Uygulama</h2>
+  <a class="card ana" href="efehan/web/dist/kapida.html"><b>Kapıda · hasta ve sağlık çalışanı uygulaması</b>
+    <span>Asistanla konuşarak talep (yazı, ses, fotoğraf) → acil kontrolü → adres arama → yapay zekâ 3 kişiye bildirim gönderir ve fiyat önerir → teklif → canlı takip (arabayla ya da toplu taşımayla, yolculuk planıyla) → Güvenli Ziyaret (kapı kodu, kontrol zamanlayıcısı, SOS) → çalışana rapor</span>
+    <span class="who">efehan/ · bildirim modeli, yol, trafik, toplu taşıma, adres ve hastane verisi enes/'ten</span></a>
+
+  <h2>Kanıt: simülasyon ve deney</h2>
+  <a class="card" href="enes/web/dist/izmir_site/index.html"><b>Simülasyon · Merkez İzmir</b>
+    <span>11 ilçe, gerçek yol ağı (OSM), TomTom saatlik trafik, ESHOT + Metro + Tramvay + İZBAN + vapur, hastaneler; yönetici / hasta / çalışan gözüyle harita, zaman çubuğu, deney seti ve model gelişimi (v1 → v5)</span>
+    <span class="who">enes/</span></a>
+  <a class="card" href="enes/web/dist/bornova.html"><b>Simülasyon · Bornova (pilot)</b><span>İlk deneme: 100 hastada 58 yerine 87 eşleşme</span><span class="who">enes/</span></a>
+  <a class="card" href="efehan/web/dist/index.html"><b>Kural ve veritabanı test prototipi</b><span>Triyaj kuralları, eşleştirme ve fiyat senaryolarını tek tek deneme</span><span class="who">efehan/</span></a>
+
+  <small>Kapıda gerçek yapay zekâyla çalışır (Cloudflare sunucusu + Groq: sesle konuşma, şive, fotoğraf tarifi, rapor); sunucuya ulaşılamazsa hazır sorulu demo moduna geçer. Telefonda: Chrome'da "Ana ekrana ekle", iPhone'da Safari → Paylaş → "Ana Ekrana Ekle". Harita ve adresler © OpenStreetMap katkıcıları; toplu taşıma İzmir Büyükşehir açık veri (GTFS); trafik TomTom Trafik Endeksi 2025.</small>
 </main>
 </body>
 </html>

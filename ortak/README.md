@@ -1,3 +1,7 @@
+> **Arşiv (20.11.2026):** Bu birleşik demo, Kapıda hazır olmadan önceki geçici çözümdü. Uçtan uca akışın tamamı artık
+> **Kapıda**'da (`efehan/web/dist/kapida.html`): Enes'in bildirim modeli, fiyat önerisi, yol/trafik, toplu taşıma, adres arama,
+> canlı takip ve Güvenli Ziyaret. Bu klasör yalnızca kayıt için duruyor; giriş sayfasından kaldırıldı.
+
 # Birleşik demo (Enes + Efehan)
 
 Tek sayfada uçtan uca akış, gerçek İzmir yol ağı üzerinde:

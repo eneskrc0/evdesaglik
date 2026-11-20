@@ -60,8 +60,12 @@ def _yol_yukle(path: Path) -> dict | None:
     import sys
     if sys.byteorder == "big":
         tt.byteswap()
+    toplu = None
+    if "toplu" in p:  # Enes'in GTFS toplu taşıma süreleri: 4 saat dilimi × n × n, tam dakika (uint8)
+        toplu = {"dk": base64.b64decode(p["toplu"]["dk_b64"]), "bitis": p["toplu"]["dilim_bitis"]}
     return {"n": len(p["noktalar"]), "tt": tt, "tt10": p["trafik"]["tt10_dk"], "ff10": p["trafik"]["ff10_dk"],
-            "park": p["trafik"]["park_dk"], "idx": {nokta_anahtari(a, b): i for i, (a, b, _) in enumerate(p["noktalar"])}}
+            "park": p["trafik"]["park_dk"], "idx": {nokta_anahtari(a, b): i for i, (a, b, _) in enumerate(p["noktalar"])},
+            "toplu": toplu}
 
 
 def nokta_anahtari(lat: float, lon: float) -> str:
@@ -80,13 +84,27 @@ def trafik_katsayisi(minute_of_day: float) -> float:
     return (t[i] * (1 - f) + t[(i + 1) % 24] * f) / YOL["ff10"]
 
 
-def travel(a: tuple[float, float], b: tuple[float, float], depart_min: float) -> int:
-    """a'dan b'ye yol süresi (dk). İki nokta da yol paketindeyse gerçek rota süresi × saatlik trafik + park."""
+def toplu_dilim(minute_of_day: float) -> int:
+    """Toplu taşıma saat dilimi: sabah (<10), gündüz (<16), akşam (<20), gece (enes/sim/geo._transit_slot)."""
+    m = minute_of_day % 1440
+    bitis = YOL["toplu"]["bitis"]
+    for i, e in enumerate(bitis[:-1]):
+        if m < e:
+            return i
+    return len(bitis) - 1
+
+
+def travel(a: tuple[float, float], b: tuple[float, float], depart_min: float, mode: str = "araba") -> int:
+    """a'dan b'ye yol süresi (dk). İki nokta da yol paketindeyse gerçek rota süresi × saatlik trafik + park.
+    mode="toplu": kapıdan kapıya toplu taşıma süresi (yürüme + bekleme + araç + aktarma + bina)."""
     if YOL is not None:
         ia, ib = YOL["idx"].get(nokta_anahtari(*a)), YOL["idx"].get(nokta_anahtari(*b))
         if ia is not None and ib is not None:
             if ia == ib:
                 return 0
+            if mode == "toplu" and YOL["toplu"] is not None:
+                n = YOL["n"]
+                return YOL["toplu"]["dk"][toplu_dilim(depart_min) * n * n + ia * n + ib]
             return math.ceil(YOL["park"] + YOL["tt"][ia * YOL["n"] + ib] / 60.0 * trafik_katsayisi(depart_min))
     return travel_min(road_km(a, b))
 
@@ -105,7 +123,7 @@ class Insertion:
 
 
 def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: list[dict],
-                   target: tuple[float, float], duration: int, earliest: int) -> Insertion | None:
+                   target: tuple[float, float], duration: int, earliest: int, mode: str = "araba") -> Insertion | None:
     """stops: [{'lat','lon','start_min','duration_min'}] saat sırasıyla.
 
     Rota: ev (window[0]'da çıkış) -> ziyaretler -> ev (window[1]'e kadar dönüş).
@@ -125,9 +143,9 @@ def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: li
 
         d1 = road_km(prev["loc"], target)
         d2 = road_km(target, nxt_loc)
-        arrival = max(prev["ready"] + travel(prev["loc"], target, prev["ready"]), earliest)
+        arrival = max(prev["ready"] + travel(prev["loc"], target, prev["ready"], mode), earliest)
         finish = arrival + duration
-        if finish + travel(target, nxt_loc, finish) > nxt_deadline:
+        if finish + travel(target, nxt_loc, finish, mode) > nxt_deadline:
             continue
         added = d1 + d2 - road_km(prev["loc"], nxt_loc)
         cand = Insertion(arrival, round(added, 2), round(standalone, 2), i,

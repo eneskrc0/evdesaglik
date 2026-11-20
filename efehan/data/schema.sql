@@ -97,7 +97,8 @@ CREATE TABLE providers (
     home_district      TEXT NOT NULL REFERENCES districts(name),
     home_lat           REAL NOT NULL,
     home_lon           REAL NOT NULL,
-    licence_verified   INTEGER NOT NULL CHECK (licence_verified IN (0,1))
+    licence_verified   INTEGER NOT NULL CHECK (licence_verified IN (0,1)),
+    transport          TEXT NOT NULL DEFAULT 'araba' CHECK (transport IN ('araba','toplu'))  -- toplu: arabası yok, toplu taşımayla gider (Enes'in GTFS modeli)
 );
 
 CREATE TABLE provider_services (

@@ -221,3 +221,10 @@ python -m pytest -q tests
   adres). Artifact bu klasörden yayınlanır (publish_files, 6 dosya). Tek dosya izmir.html (12 MB) GitHub/çevrimdışı için duruyor.
 - Sonuçlar (tam dakika; geliştirme / ayrılmış), %40 toplu baz: kural 54,4 / 52,2 · v1 73,1 / 70,6 · seçilen 71,9 / 70,0;
   ayrılmış seçilen − kural +17,8 ± 1,2. Kayıtlı model: AUC 0,816, sabit model %68,7.
+
+## Kapıda ile birleşme (2026-11-20)
+- Kapıda (efehan/) tek uygulama; enes/ veri ve model kaynağı. Akış ve dosya tablosu: kök README.md "Birleşme".
+- Kapıda'ya eklenenler: toplu taşıma (sağlayıcıların %40'ı, yol paketinde `toplu` matrisi, transit_orta.npz'den, tam dakika), yolculuk planı
+  (transit_izmir.json), adres arama (adres_izmir.json), son kayıtlı model. teklif.js garanti adımında kopya nesne yüzünden aynı kişinin
+  iki kez seçilebildiği hata düzeltildi; `efehan/web/model_parity.py` model/özellik/v5 seçimini simülasyonla karşılaştırır (hepsi aynı).
+- ortak/ arşiv. Giriş sayfası (kök index.html): Kapıda + simülasyon (izmir_site) + Bornova + kural prototipi.
