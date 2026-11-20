@@ -85,7 +85,7 @@ with sync_playwright() as pw:
     h.locator("[data-act=haccept]").click()
     h.locator("[data-tab=rota]").click()
     once = h.inner_text()
-    kazanc = lambda t: int(re.sub(r"\D", "", re.search(r"([\d.]+) TL\s*bugünkü kazanç", t).group(1)))
+    kazanc = lambda t: int(re.sub(r"\D", "", re.search(r"([\d.]+) TL\s*kazanç", t).group(1)))
     k1 = kazanc(once)
     check(sec[1].split(" ")[0] in once, f"kabul edilen ziyaret ({sec[1]}) çalışanın rotasında, kazanç {k1} TL")
     p.locator("[data-act=cancel]").click()
