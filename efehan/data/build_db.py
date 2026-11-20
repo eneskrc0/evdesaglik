@@ -18,7 +18,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SEED_DIR = HERE / "seed"
 SCHEMA = HERE / "schema.sql"
-DEMO_DATE = "2026-11-16"  # Pazartesi
+DEMO_DATE = "2026-11-16"  # Pazartesi ("bugün")
+DEMO_DATE2 = "2026-11-17"  # Salı ("yarın") — ayrı rastgele diziyle; bugünün verisi değişmez
 
 # Seed tabloları, yüklenme sırasıyla (yabancı anahtarlar yüzünden sıra önemli)
 SEED_TABLES = [
@@ -104,6 +105,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
     d_names, d_weights, d_points = izmir_noktalari()
     pick_district = lambda: rng.choices(d_names, weights=d_weights)[0]
     pick_point = lambda d: rng.choice(d_points[d])
+    prov_info: list[tuple[str, str, list[str]]] = []
     prof_services: dict[str, list[str]] = {}
     for p, s in conn.execute("SELECT profession_code, service_code FROM profession_services"):
         prof_services.setdefault(p, []).append(s)
@@ -130,6 +132,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
                 chosen = [s for s in services if rng.random() < 0.7] or services[:3]
             else:
                 chosen = services
+            prov_info.append((pid, d_name, chosen))
             for s in chosen:
                 visits = int(rng.paretovariate(1.5) * years * 2)
                 conn.execute("INSERT INTO provider_services VALUES (?,?,?)", (pid, s, visits))
@@ -155,6 +158,26 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
                         (f"V{visit_no:03d}", pid, DEMO_DATE, t, dur, vlat, vlon, svc),
                     )
                     t += dur + rng.randint(40, 120)
+
+    # Yarın: aynı çalışanlar, ayrı rastgele dizi (bugünün verisi ve hasta listesi aynı kalsın)
+    rng2 = random.Random(seed + 1000)
+    for pid, d_name, chosen in prov_info:
+        if rng2.random() < 0.15:  # bazıları yarın çalışmıyor
+            continue
+        start, end = rng2.choice([(540, 780), (780, 1200), (540, 1020), (600, 1140), (480, 960)])
+        conn.execute("INSERT INTO availability VALUES (?,?,?,?)", (pid, DEMO_DATE2, start, end))
+        if rng2.random() < 0.6:
+            t = start + rng2.randint(0, 60)
+            for _ in range(rng2.randint(1, 3)):
+                svc = rng2.choice(chosen)
+                dur = conn.execute("SELECT duration_min FROM services WHERE code=?", (svc,)).fetchone()[0]
+                if t + dur > end - 30:
+                    break
+                vlat, vlon = rng2.choice(d_points[d_name])
+                visit_no += 1
+                conn.execute("INSERT INTO scheduled_visits VALUES (?,?,?,?,?,?,?,?)",
+                             (f"V{visit_no:03d}", pid, DEMO_DATE2, t, dur, vlat, vlon, svc))
+                t += dur + rng2.randint(40, 120)
 
     for i in range(1, 61):
         d_name = pick_district()

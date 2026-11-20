@@ -14,6 +14,7 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
 
 - `web/harita.js` — gerçek İzmir haritası (Enes'in yol çizimi), yol grafiğinde Dijkstra ile sokak rotası, hastada canlı takip (kabulden sonra; 1 sn ≈ 1 dk canlandırma), çalışanın 'Rotam' sekmesinde günlük rota. Veri `data/seed/harita_izmir.json` (build_izmir.py, ~2 MB, build_web.py yalnızca kapida.html'e gömer). Prova: `python web/e2e_harita.py`.
 - `web/teklif.js` — YZ teklif katmanı: Enes'in kayıtlı bildirim modeli (`enes/data/izmir/model_v5_demo_lr.json`, build_web.py gömer; p = sigmoid(b + Σw(x−mu)/sd), 12 özellik) ile v5 kuralı → 3 kişiye bildirim (+2. tur), YZ fiyat önerisi (ortak/ek.js aiPrice) ve ±%10 teklif bandı. Hasta teklifi kabul edince randevu kesin. Yanıtlar p ile canlandırılır (1 sn ≈ 1 dk); çalışan geçmişi sentetik (modelin meslek dağılımından). Prova: `python web/e2e_teklif.py`.
+- İki demo günü: bugün 2026-11-16 (Pzt, şimdi = 09:30) ve yarın 2026-11-17 (Salı; build_db.py ayrı rastgele diziyle, bugünün verisi değişmez). 'Ne zaman gelsin?' iki günün gerçekten uygun saatlerini gösterir (findCandidates, tüm adaylar); yarınki randevuda canlı takip yok, çalışanın rotası yalnızca bugünü gösterir.
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 
 - `web/istemler.js` — YZ istemlerinin TEK kaynağı (sohbet kuralları, rapor istemi, ses ipucu); Claude sürümü ve sunucu birlikte kullanır.
