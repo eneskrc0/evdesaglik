@@ -337,6 +337,19 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .randevu-satir { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--phone); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 52px; cursor: pointer; }
 .randevu-satir > span:first-child { display: flex; flex-direction: column; gap: 2px; }
 .randevularim summary { cursor: pointer; padding: 6px 0; }
+/* Hasta ekranı okunabilirlik (yaşlı kullanıcılar): ana metin ~17px, yardımcı ~15-16px, düğmeler ≥48px */
+#pScreen { font-size: 17px; line-height: 1.45; }
+#pScreen .small { font-size: 15.5px; } #pScreen .tiny { font-size: 14px; }
+#pScreen .chip { font-size: 15px; min-height: 44px; padding: 9px 14px; }
+#pScreen .btn.ghost { min-height: 44px; }
+#pScreen .when { font-size: 16px; } #pScreen .msg { font-size: 17px; }
+#pScreen .yz-satir { flex-wrap: wrap; row-gap: 8px; }
+#pScreen .yz-satir > .teklif-btn, #pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { flex-basis: 100%; }
+#pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { text-align: center; }
+#pScreen .teklif-btn { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; row-gap: 0; padding: 10px 14px; }
+#pScreen .teklif-btn .tiny { flex-basis: 100%; text-align: left; opacity: .85; }
+#pScreen .teklif-toplam { font-size: 18px; font-weight: 800; }
+.model-panel summary { cursor: pointer; color: var(--brand); font-weight: 700; padding: 4px 0; min-height: 36px; }
 </style>
 </head>
 <body>
@@ -3597,30 +3610,38 @@ YANIT yalnızca şu JSON olsun:
     const pr = c.price, fark = fiyat - pr.service_fee, kom = C.CFG.COMMISSION;
     return { ...pr, service_fee: fiyat, patient_pays: pr.patient_pays + fark, provider_gets: pr.provider_gets + fark * (1 - kom), platform_gets: (pr.platform_gets || 0) + fark * kom };
   }
+  // Teklif kartı: hastanın karşılaştıracağı bilgiler (meslek, deneyim, geliş saati, TOPLAM ücret) öne;
+  // modelin sayıları (AUC, olasılıklar, v5) jüri için "Model nasıl çalışıyor?" panelinde.
   function teklifKarti(yz) {
     const pl = yz.plan, o = pl.oneri, d = teklifDurumu(yz), yuzde = (x) => Math.round(100 * x) + "%";
     const satir = (r) => {
-      const c = P.cands[r.a.idx], pp = person(r.pid), p = r.a.p;
+      const c = P.cands[r.a.idx], pp = person(r.pid), pv = repo.providers[r.pid];
       let sag;
-      if (!r.geldi) sag = `<span class="pill sun">Teklif bekleniyor…</span>`;
-      else if (!r.verir) sag = `<span class="tiny muted">${r.nedenYok === "yanıt vermedi" ? "Yanıt vermedi" : "Fiyatı bandın üstünde, teklif vermedi"}</span>`;
+      if (!r.geldi) sag = `<span class="pill sun">Yanıt bekleniyor…</span>`;
+      else if (!r.verir) sag = `<span class="small muted">${r.nedenYok === "yanıt vermedi" ? "Yanıt vermedi" : "Uygun teklif vermedi"}</span>`;
       else {
         const tc = yz.teklifler[r.pid] || (yz.teklifler[r.pid] = { ...c, price: teklifFiyati(c, r.fiyat), teklif: { fiyat: r.fiyat, oneri: o.fiyat } });
         const i = P.cands.indexOf(c); P.cands[i] = tc;
-        sag = `<button class="btn primary teklif-btn" type="button" data-pick="${i}"><span>Teklif ${tl(r.fiyat)} TL</span><span class="tiny">toplam ${tl(tc.price.patient_pays)} TL · ${C.hhmm(c.arrival_min)}</span></button>`;
+        const yol = tc.price.patient_pays - r.fiyat;
+        sag = `<button class="btn primary teklif-btn" type="button" data-pick="${i}"><span class="teklif-toplam">Toplam ${tl(tc.price.patient_pays)} TL</span>
+          <span class="small">${gunEki({ gun: P.info.gun })}${C.hhmm(c.arrival_min)} · Seç</span>${yol > 0 ? `<span class="tiny">hizmet ${tl(r.fiyat)} + yol ${tl(yol)} TL</span>` : `<span class="tiny">yol dahil</span>`}</button>`;
       }
-      const f = r.a.ozellik.ham;
       return `<div class="yz-satir"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1;min-width:0"><b>${esc(pp.full)}</b>
-        <div class="tiny muted">${esc(pp.prof)} · teklif olasılığı ${yuzde(p)}${r.a.garanti ? " · garanti için eklendi" : ""}${r.a.ozellik.gecmis.yeni ? " · yeni çalışan" : ""}</div>
-        <div class="tiny muted">${f.yol_suresi ? `${Math.round(f.yol_suresi)} dk yol (${r.a.toplu ? "🚌 toplu taşıma" : "🚗"}) · ` : ""}hızlı yanıt ${yuzde(f.gecmis_hizli_yanit_orani)}${f.ziyarette ? " · şu an ziyarette" : ""}</div></div>${sag}</div>`;
+        <div class="small muted">${esc(pp.prof)} · ${pv.years_experience} yıl deneyim · bu hizmette ${c.visits} ziyaret</div>
+        <div class="small muted">${r.a.ozellik.ham.yol_suresi ? `~${Math.round(r.a.ozellik.ham.yol_suresi)} dk yolda (${r.a.toplu ? "toplu taşıma" : "araçla"})` : "Görüntülü"}</div></div>${sag}</div>`;
     };
+    const model = (r) => `<li>${esc(person(r.pid).full)}: teklif olasılığı ${yuzde(r.a.p)}${r.a.garanti ? " (garanti için eklendi)" : ""}${r.a.ozellik.gecmis.yeni ? " · yeni çalışan" : ""} · hızlı yanıt ${yuzde(r.a.ozellik.ham.gecmis_hizli_yanit_orani)}${r.a.ozellik.ham.ziyarette ? " · şu an ziyarette" : ""}</li>`;
     return `<div class="card stack yz-teklif" style="gap:10px">
-      <div class="row between"><b>Yapay zekâ talebini ${pl.secilen.length} kişiye gönderdi</b><span class="pill">model isabeti (AUC) ${pl.model.auc.toFixed(2).replace(".", ",")}</span></div>
-      <div class="small">Önerilen fiyat <b>${tl(o.fiyat)} TL</b> (liste ${tl(o.taban)} TL) · teklifler ${tl(o.alt)}–${tl(o.ust)} TL arasında olur · en az bir teklif olasılığı ${yuzde(o.basari)}</div>
+      <div><b>${pl.secilen.length} sağlık çalışanına sorduk</b><div class="small muted">Teklifler birkaç dakika içinde gelir. Beklenen ücret ${tl(o.alt)}–${tl(o.ust)} TL.</div></div>
       ${d.satirlar.filter((r) => r.tur === 1).map(satir).join("")}
-      ${d.ikinci ? `<div class="tiny muted">İlk 5 dakikada teklif gelmedi; sıradaki ${pl.tur2.secilen.length} kişiye gönderildi.</div>${d.satirlar.filter((r) => r.tur === 2).map(satir).join("")}` : ""}
-      ${d.bitti && !d.satirlar.some((r) => r.verir) ? `<div class="note small">Şu an teklif gelmedi. Aşağıdaki listeden doğrudan birini seçebilir ya da "Ne zaman?" seçimini değiştirebilirsin.</div>` : ""}
-      <div class="tiny muted">Kime bildirim gideceğini Enes'in modeli seçti: her aday için "5 dk içinde uygun teklif verir mi" olasılığı, yol ve iş yükü cezası (v5). Simülasyonda bu yöntem hastaların %${String(pl.model.v5).replace(".", ",")}'üne 5 dk içinde uygun teklif buldu; en yakına gönderme kuralı %${String(pl.model.klasik).replace(".", ",")}. Prototip: yanıtlar modelin olasılığıyla canlandırılır (1 sn ≈ 1 dk).</div>
+      ${d.ikinci ? `<div class="small muted">İlk 5 dakikada teklif gelmedi; ${pl.tur2.secilen.length} kişiye daha soruldu.</div>${d.satirlar.filter((r) => r.tur === 2).map(satir).join("")}` : ""}
+      ${d.bitti && !d.satirlar.some((r) => r.verir) ? `<div class="note small">Şu an teklif gelmedi. Aşağıdaki listeden doğrudan birini seçebilir ya da saati değiştirebilirsin.</div>` : ""}
+      <details class="model-panel"><summary class="small">Model nasıl çalışıyor? <span class="muted">(jüri için)</span></summary>
+        <div class="small stack" style="gap:6px;margin-top:6px">
+          <div>Kime soracağımızı Enes'in modeli seçti: her aday için "5 dk içinde uygun teklif verir mi" olasılığı, yol ve iş yükü cezası (v5). Model isabeti AUC ${pl.model.auc.toFixed(2).replace(".", ",")}.</div>
+          <div>YZ fiyat önerisi ${tl(o.fiyat)} TL (liste ${tl(o.taban)} TL), teklif bandı ±%10, en az bir teklif olasılığı ${yuzde(o.basari)}.</div>
+          <ul style="margin:0;padding-left:18px">${d.satirlar.map(model).join("")}</ul>
+          <div class="muted">Simülasyonda bu yöntem hastaların %${String(pl.model.v5).replace(".", ",")}'üne 5 dk içinde uygun teklif buldu; en yakına gönderme kuralı %${String(pl.model.klasik).replace(".", ",")}. Prototip: yanıtlar modelin olasılığıyla canlandırılır (1 sn ≈ 1 dk).</div></div></details>
     </div>`;
   }
   setInterval(() => {

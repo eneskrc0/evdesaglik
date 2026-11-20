@@ -337,6 +337,19 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .randevu-satir { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--phone); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 52px; cursor: pointer; }
 .randevu-satir > span:first-child { display: flex; flex-direction: column; gap: 2px; }
 .randevularim summary { cursor: pointer; padding: 6px 0; }
+/* Hasta ekranı okunabilirlik (yaşlı kullanıcılar): ana metin ~17px, yardımcı ~15-16px, düğmeler ≥48px */
+#pScreen { font-size: 17px; line-height: 1.45; }
+#pScreen .small { font-size: 15.5px; } #pScreen .tiny { font-size: 14px; }
+#pScreen .chip { font-size: 15px; min-height: 44px; padding: 9px 14px; }
+#pScreen .btn.ghost { min-height: 44px; }
+#pScreen .when { font-size: 16px; } #pScreen .msg { font-size: 17px; }
+#pScreen .yz-satir { flex-wrap: wrap; row-gap: 8px; }
+#pScreen .yz-satir > .teklif-btn, #pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { flex-basis: 100%; }
+#pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { text-align: center; }
+#pScreen .teklif-btn { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; row-gap: 0; padding: 10px 14px; }
+#pScreen .teklif-btn .tiny { flex-basis: 100%; text-align: left; opacity: .85; }
+#pScreen .teklif-toplam { font-size: 18px; font-weight: 800; }
+.model-panel summary { cursor: pointer; color: var(--brand); font-weight: 700; padding: 4px 0; min-height: 36px; }
 </style>
 </head>
 <body>

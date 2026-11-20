@@ -35,7 +35,10 @@ with sync_playwright() as pw:
         saat.click()
         p.locator("[data-act=options]").click()
         t = p.locator(".yz-teklif").inner_text()
-        check("kişiye gönderdi" in t and "Önerilen fiyat" in t and "teklif olasılığı" in t, f"[{when}] YZ 3 kişi seçti, fiyat önerdi, olasılıkları gösterdi")
+        check("sağlık çalışanına sorduk" in t and "Beklenen ücret" in t and "yıl deneyim" in t and "AUC" not in t, f"[{when}] YZ kişileri seçti; hastaya ücret aralığı ve deneyim görünüyor, model sayıları gizli")
+        pg.evaluate("document.querySelector('.model-panel').open = true")
+        t = p.locator(".yz-teklif").inner_text()
+        check("AUC" in t and "teklif olasılığı" in t and "YZ fiyat önerisi" in t, f"[{when}] 'Model nasıl çalışıyor?' panelinde AUC, olasılıklar ve fiyat önerisi")
         for _ in range(30):
             pg.wait_for_timeout(500)
             if p.locator(".yz-teklif [data-pick]").count(): teklif = p.locator(".yz-teklif [data-pick]").first; break
@@ -43,7 +46,7 @@ with sync_playwright() as pw:
         if teklif: break
         check(p.locator("details.klasik[open]").count() == 1, f"[{when}] teklif gelmeyince klasik liste açılıyor")
     check(teklif is not None, "en az bir saatte teklif geldi")
-    fiyat = teklif.inner_text().split("toplam ")[1]
+    fiyat = teklif.inner_text().split("Toplam ")[1]
     teklif.click(); p.locator("[data-act=confirm]").click()
     t = p.inner_text()
     check("Randevun kesinleşti" in t and p.locator("#takip").count() == 1, "teklifi kabul edince randevu kesinleşti, canlı takip başladı")
