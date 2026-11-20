@@ -38,6 +38,18 @@
     check: I('<path d="M5 12l5 5 9-10"/>'),
     alert: I('<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17v.01"/>'),
     route: I('<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>'),
+    kisi: I('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
+    ayar: I('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    kilit: I('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+    kalkan: I('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+    soru: I('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>'),
+    bilgi: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'),
+    kart: I('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>'),
+    gorunum: I('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/>'),
+    grup: I('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.5 1.3 5.5 4"/>'),
+    telefon: I('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
+    cikis: I('<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/>'),
+    yildiz: I('<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/>'),
     zil: I('<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/>'),
     ileri: I('<path d="M9 5l7 7-7 7"/>'),
     takvim: I('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M10 15.5l2-1.5v4"/>'),
@@ -49,7 +61,9 @@
   // Genel sağlık çalışanı avatarı (fotoğraf yerine; gerçek kişi değil)
   const AVATAR = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 17.5c0-6 5-9.5 11-9.5s11 3.5 11 9.5"/><path d="M16.5 17.5h23l-1 4h-21z"/><path d="M28 10.5v5M25.5 13h5" stroke="var(--brand)" stroke-width="2.2"/><path d="M18 22c0 7 4.5 12 10 12s10-5 10-12"/><path d="M8 52c1.5-8.5 9-13 20-13s18.5 4.5 20 13"/></svg>`;
   const MARKA = `<span class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</span>`;
-  const appbar = () => `<div class="appbar">${MARKA}<button class="zil" type="button" aria-label="Bildirimler">${ICO.zil}<i></i></button></div>`;
+  const appbar = (taraf = "p") => { const bas = taraf === "h" ? person(H.pid).initials : ((PR.h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr") || "");
+    return `<div class="appbar">${MARKA}<span class="row" style="gap:2px;flex-wrap:nowrap"><button class="zil" type="button" aria-label="Bildirimler">${ICO.zil}<i></i></button>
+      <button class="profil-dugme" type="button" data-act="${taraf === "h" ? "hprofil" : "profil"}" aria-label="Profil ve ayarlar">${bas ? esc(bas) : ICO.kisi}</button></span></div>`; };
   const svcIcon = (code) => {
     const s = svc(code) || {};
     if (/bas|yara|pansuman/.test(code)) return ICO.yarabandi;
@@ -123,6 +137,40 @@
     P.info.adresYazi = a.adres || ""; P.info.tarif = tarifMetni(a); P.saatler = null;
   }
   const seciliAdres = () => AB.liste.find((a) => a.id === AB.secili) || null;
+
+  // ---------- Profil ve ayarlar (hasta + sağlık çalışanı) ----------
+  // Bu tarayıcıda, hesaba göre localStorage'da (prototip; sunucuya gitmez). Sağlık bilgisi, T.C. no, kart/banka numarası tutulmaz.
+  const yerel = { oku: (k, v) => { try { const x = JSON.parse(localStorage.getItem(k) || "null"); return x == null ? v : x; } catch (e) { return v; } },
+    yaz: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* gizli sekme: bellekte kalır */ } } };
+  const GORUNUM = Object.assign({ tema: "sistem", yazi: "normal" }, yerel.oku("anindasaglik_gorunum", {}));
+  function gorunumUygula() {
+    const r = document.documentElement;
+    if (GORUNUM.tema === "sistem") delete r.dataset.theme; else r.dataset.theme = GORUNUM.tema === "koyu" ? "dark" : "light";
+    if (GORUNUM.yazi === "normal") delete r.dataset.yazi; else r.dataset.yazi = GORUNUM.yazi;
+  }
+  gorunumUygula();
+  const hastaVarsayilan = () => ({ ad: "", telefon: "", eposta: "", yakinlar: [], odeme: "kart_kapida",
+    bildirim: { hatirlatma: true, yolda: true, puan: true, kampanyaSms: false, kampanyaEposta: false }, acil: { ad: "", telefon: "", yakinlik: "" }, destek: [] });
+  const PR = { hesap: null, h: hastaVarsayilan() };
+  function hastaProfiliYukle(hesap, ornek) {
+    PR.hesap = hesap;
+    const k = yerel.oku("anindasaglik_profil_" + hesap, null);
+    PR.h = Object.assign(hastaVarsayilan(), k || (ornek ? { ad: ornek.ad, telefon: "0532 000 00 00", yakinlar: [{ ad: "Fatma", yakinlik: "Annem" }, { ad: "Ahmet", yakinlik: "Babam" }] } : {}));
+    PR.h.bildirim = Object.assign(hastaVarsayilan().bildirim, PR.h.bildirim || {}); PR.h.acil = Object.assign(hastaVarsayilan().acil, PR.h.acil || {});
+  }
+  const hastaProfiliYaz = () => yerel.yaz("anindasaglik_profil_" + PR.hesap, PR.h);
+  const calisanVarsayilan = () => ({ cevrimici: true, kapaliHizmet: [], pin: "", baskiPin: "", acil: { ad: "", telefon: "", yakinlik: "" },
+    bildirim: { yeniTalep: true, ses: true, rota: true, puan: true }, destek: [] });
+  const CP = {};
+  function calisanProfili(pid) {
+    if (!pid) return calisanVarsayilan();
+    if (!CP[pid]) { const k = yerel.oku("anindasaglik_calisan_" + pid, {}); CP[pid] = Object.assign(calisanVarsayilan(), k); CP[pid].bildirim = Object.assign(calisanVarsayilan().bildirim, CP[pid].bildirim || {}); }
+    return CP[pid];
+  }
+  const calisanProfiliYaz = (pid) => yerel.yaz("anindasaglik_calisan_" + pid, calisanProfili(pid));
+  // Eşleştirme: çevrimdışı çalışan ya da kapattığı hizmet hastaya önerilmez
+  const calisiyor = (c) => { const cp = CP[c.provider_id]; return !cp || (cp.cevrimici && !cp.kapaliHizmet.includes(c.service)); };
+  const telGecerli = (t) => /^0?5\d{9}$/.test(String(t).replace(/\D/g, "").replace(/^90/, ""));
   const ulasim = (pid) => (repo.providers[pid] && repo.providers[pid].transport) || "araba";
   const ulasimEtiket = (pid) => (ulasim(pid) === "toplu" ? "🚌 toplu taşıma" : "🚗 araba");
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
@@ -133,7 +181,7 @@
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
-  const G = window.KapidaGuvenlik.create({ esc, hhmm: C.hhmm, kisi: person, hizmet: svc, tarih: "16.11.2026", konum: calisanKonumu,
+  const G = window.KapidaGuvenlik.create({ esc, hhmm: C.hhmm, kisi: person, pinler: () => { const c = calisanProfili(H.pid); return c.pin ? { pin: c.pin, baski: c.baskiPin } : null; }, hizmet: svc, tarih: "16.11.2026", konum: calisanKonumu,
     metin: (r) => (P.request && r.id === P.request.id ? transcriptText() : ""), bildir: (taraf, m) => { if (taraf === "p") P.toast = m; else H.toast = m; } });
   const gzR = () => (P.request && P.request.provider_id === H.pid ? P.request : null); // çalışan ekranındaki aktif ziyaret
   const REQ = []; // tüm talepler (yerel + ortak)
@@ -381,7 +429,7 @@
     P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
     const hello = "Merhaba, ben anında sağlık asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
-      P.msgs.push({ who: "ai", text: hello, quick: ["Annem için", "Babam için", "Kendim için"] });
+      P.msgs.push({ who: "ai", text: hello, quick: PR.h.yakinlar.length ? [...PR.h.yakinlar.slice(0, 3).map((y) => `${y.yakinlik} için`), "Kendim için"] : ["Annem için", "Babam için", "Kendim için"] });
     } else {
       P.msgs.push({ who: "ai", text: hello + "\n\n" + DEMO_Q[0][0], quick: DEMO_Q[0][1] });
     }
@@ -689,6 +737,7 @@
   const meslekHizmetleri = (m) => [...(repo.profession_services[m] || [])].filter((s) => svc(s).category !== "tele").sort((a, b) => svc(a).name_tr.localeCompare(svc(b).name_tr, "tr"));
   // İstenen meslek varsa listede yalnızca o meslek (doktor isteğinde uzman hekim de); plan yoksa doktor adayları kalır
   function meslekSuz(t, cands) {
+    cands = cands.filter(calisiyor);
     const m = t && t.profession;
     if (!m) return cands;
     const ok = HEKIMLER.has(m) ? (p) => HEKIMLER.has(p) : t.level === "PLANLI" ? (p) => p === m : null;
@@ -714,9 +763,10 @@
       <div class="steplabel">Adım ${n}/4 · ${labels[n - 1]}</div></div>`;
   }
   function renderP() {
+    { const odak = document.activeElement; if (["profil", "adresForm"].includes(P.screen) && odak && $("#pScreen").contains(odak) && /INPUT|TEXTAREA/.test(odak.tagName) && !P.zorla) return; }
     if (SV.acik && !["chat", "building", "summary", "emergency"].includes(P.screen)) SV.kapat();
     const el = $("#pScreen");
-    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency, adresForm: pAdresForm }[P.screen] || pHome;
+    const scr = { home: pHome, chat: pChat, building: pBuilding, summary: pSummary, options: pOptions, done: pDone, emergency: pEmergency, adresForm: pAdresForm, profil: pProfil }[P.screen] || pHome;
     el.innerHTML = scr() + (P.sheet !== null && P.screen === "options" ? pSheet() : "") + (P.adresSec ? pAdresSec() : "") + (P.toast ? `<div class="toast" role="status">${esc(P.toast)}</div>` : "");
     if (P.toast) { const t = P.toast; setTimeout(() => { if (P.toast === t) { P.toast = ""; const n = $("#pScreen .toast"); if (n) n.remove(); } }, 3800); }
     if (P.screen === "chat") { const m = $("#pMsgs"); if (m) m.scrollTop = m.scrollHeight; }
@@ -754,7 +804,7 @@
       <span class="ac-metin">${a ? `<b>${esc(a.baslik)} <span class="ac-ok">▾</span></b><span>${esc([a.adres, a.ilce && !String(a.adres).includes(a.ilce) ? a.ilce : ""].filter(Boolean).join(", "))}</span>` : `<b>Adres ekle <span class="ac-ok">▾</span></b><span>Bir kez kaydet, her seferinde yazma</span>`}</span></button>`;
   }
   function pHome() {
-    const ad = window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : "";
+    const ad = PR.h.ad ? " " + PR.h.ad.trim().split(/\s+/)[0] : "";
     return `${appbar()}${ADR ? `<div style="padding:0 18px">${adresCubugu()}</div>` : ""}<div class="pad stack" style="gap:16px;padding-top:10px">
       <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
       ${randevuKartlari()}
@@ -770,6 +820,135 @@
           <span class="sk-ico">${svcIcon(code)}</span><span class="ayrac"></span><span class="sk-metin"><b>${esc(name)}</b><span>${esc(aciklama)} · <span class="num">${tl(fromPrice(code))} TL</span>'den</span></span><span class="sk-ok">${ICO.ileri}</span></button>`).join("")}</div>
       <div class="sos">${ICO.alert}<span>Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi acil durumlarda beklemeyin: <b>112</b></span></div>
     </div>`;
+  }
+  // ---------- Profil ekranları (ortak parçalar) ----------
+  const anahtar = (id, acik, etiket, alt = "") => `<div class="ayar-satir"><span class="as-metin"><b>${esc(etiket)}</b>${alt ? `<span>${esc(alt)}</span>` : ""}</span>
+    <button class="anahtar" type="button" role="switch" aria-checked="${!!acik}" aria-label="${esc(etiket)}" data-anahtar="${id}"><i></i></button></div>`;
+  const menuSatir = (ico, baslik, alt, veri) => `<button class="menu-satir" type="button" ${veri}><span class="ms-ico">${ico}</span><span class="as-metin"><b>${esc(baslik)}</b>${alt ? `<span>${esc(alt)}</span>` : ""}</span><span class="sk-ok">${ICO.ileri}</span></button>`;
+  const grup = (baslik, ic) => `<section class="ayar-grup"><h3>${esc(baslik)}</h3><div class="ag-kutu">${ic}</div></section>`;
+  const secenek = (ad, deger, secenekler) => `<div class="seg">${secenekler.map(([v, l]) => `<button class="chip" type="button" data-secim="${ad}" data-deger="${v}" aria-pressed="${deger === v}">${esc(l)}</button>`).join("")}</div>`;
+  function gorunumHtml() {
+    return `<div class="stack" style="gap:14px"><div class="stack small" style="gap:6px"><b>Yazı boyutu</b>${secenek("yazi", GORUNUM.yazi, [["normal", "Normal"], ["buyuk", "Büyük"], ["cokbuyuk", "Çok büyük"]])}<span class="tiny muted">Okumakta zorlanan yakınların için büyütebilirsin.</span></div>
+      <div class="stack small" style="gap:6px"><b>Tema</b>${secenek("tema", GORUNUM.tema, [["sistem", "Telefonla aynı"], ["acik", "Açık"], ["koyu", "Koyu"]])}</div></div>`;
+  }
+  const SSS = [["Teşhis koyuyor musunuz?", "Hayır. Asistan yalnızca anlattıklarını toplar ve sağlık çalışanına rapor olarak iletir; kararı sağlık çalışanı verir."],
+    ["Acil bir durumda ne yapmalıyım?", "Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi durumlarda beklemeden 112'yi ara. Uygulama acil durumda randevu vermez."],
+    ["Fiyat nasıl belirleniyor?", "Yapay zekâ bir fiyat önerir, sağlık çalışanı ±%10 içinde teklif verir. Seçmeden önce toplam tutarı görürsün; rotası uygun ziyaretlerde paylaşım indirimi sana yansır."],
+    ["Hemşire neden doktor planı istiyor?", "Hemşire, fizyoterapist gibi meslekler yönetmelik gereği hekimin planı ya da reçetesiyle hizmet verir."],
+    ["Kapıdaki kişinin doğru kişi olduğunu nasıl anlarım?", "Takip ekranındaki 4 haneli kapı kodunu ve fotoğrafı kapıdaki kişiyle karşılaştır. Eşleşmiyorsa kapıyı açma ve 'Sorun bildir'e bas."],
+    ["Verilerim nerede?", "Bu prototipte profil ve adreslerin yalnızca bu cihazda saklanır, sunucuya gönderilmez. 'Gizlilik ve verilerim' bölümünden indirebilir ya da silebilirsin."]];
+  function yardimHtml(taraf) {
+    const liste = taraf === "h" ? calisanProfili(H.pid).destek : PR.h.destek;
+    return `<div class="stack" style="gap:8px">${SSS.map(([q, a]) => `<details class="sss"><summary>${esc(q)}</summary><div class="small">${esc(a)}</div></details>`).join("")}</div>
+      <div class="stack small" style="gap:6px;margin-top:8px"><b>Destek ekibine yaz</b><textarea class="inp" id="${taraf}DestekMetin" rows="3" maxlength="600" placeholder="Sorununu ya da önerini yaz (sağlık bilgisi yazma)"></textarea>
+        <button class="btn primary" type="button" data-act="${taraf}destek">Gönder</button><span class="tiny muted">Prototip: mesaj bu cihazda saklanır, gerçek bir destek ekibine gitmez.</span>
+        ${liste.length ? `<div class="tiny muted">Gönderdiklerin: ${liste.length} mesaj · son: ${esc(liste[liste.length - 1].tarih)}</div>` : ""}</div>`;
+  }
+  const hakkindaHtml = () => `<div class="stack small" style="gap:8px"><div class="row" style="gap:10px">${MARKA}</div>
+    <div>Evde sağlık hizmetine hızlı ve güvenli ulaşım prototipi · GAZİ AI TECH 2026 · sürüm 0.21.11</div>
+    <div class="muted">Yapay zekâ teşhis koymaz, tedavi önermez; acil kararı kaynaklı kurallardan gelir. Veriler sentetiktir (İzmir).</div>
+    <div class="muted">Harita ve adresler © OpenStreetMap katkıcıları · trafik: TomTom 2025 · toplu taşıma: ESHOT/İZBAN açık verisi (GTFS) · bildirim modeli: ekip simülasyonu.</div></div>`;
+  const gizlilikHtml = (taraf) => `<div class="stack small" style="gap:10px">
+    <div class="note">Bu prototipte profilin, adreslerin ve ayarların yalnızca <b>bu cihazda</b> saklanır; sunucuya gönderilmez. Sohbet metni yalnızca yapay zekâ yanıtı için sunucudan geçer ve orada saklanmaz. ${taraf === "h" ? "Konumun yalnızca ziyaret penceresinde (yoldayken ve ziyarette) kaydedilir." : "T.C. kimlik no, kart ya da banka numarası istemeyiz."}</div>
+    <div class="muted">KVKK kapsamında verilerine erişme, düzeltme ve silme hakkın var. Gerçek uygulamada bu talepler hesap üzerinden işlenir.</div>
+    <button class="btn" type="button" data-act="${taraf}veriIndir">Verilerimi indir (JSON)</button>
+    ${taraf === "p" ? `<button class="btn" type="button" data-act="sohbetSil">Bu oturumdaki sohbeti sil</button>` : ""}
+    ${(taraf === "h" ? H.silOnay : P.silOnay) ? `<div class="card stack" style="gap:8px;border-color:var(--coral)"><b style="color:var(--coral)">Bu cihazdaki tüm verilerin silinsin mi?</b><span class="muted">Profil, ${taraf === "p" ? "adresler, " : ""}ayarlar silinir ve çıkış yapılır. Geri alınamaz.</span>
+      <div class="row"><button class="btn coral" type="button" data-act="${taraf}hesapSilEvet">Evet, sil</button><button class="btn" type="button" data-act="${taraf}hesapSilHayir">Vazgeç</button></div></div>`
+      : `<button class="btn" type="button" data-act="${taraf}hesapSil" style="color:var(--coral)">Hesabımı ve bu cihazdaki verilerimi sil</button>`}</div>`;
+  const altBaslik = (taraf, baslik) => `${appbar(taraf)}<div class="pad stack" style="gap:14px"><button class="back" type="button" data-act="${taraf}profilGeri">${ICO.back} Profil</button><h2 style="font-size:24px">${esc(baslik)}</h2>`;
+  const cikisDugmesi = (taraf) => window.KAPIDA_OTURUM ? `<button class="btn block cikis-btn" type="button" data-act="cikisYap">${ICO.cikis} Çıkış yap</button>` : `<div class="tiny muted" style="text-align:center">Demo hesabıyla girmedin (hesapsız görünüm).</div>`;
+
+  // ---------- Hasta profili ----------
+  function pProfil() {
+    const b = P.profilBolum, h = PR.h;
+    if (b === "kisisel") return `${altBaslik("p", "Kişisel bilgiler")}
+      <label class="stack small" style="gap:4px"><b>Ad soyad</b><input class="inp" id="prAd" maxlength="60" autocomplete="name" value="${esc(h.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Cep telefonu</b><input class="inp" id="prTel" type="tel" inputmode="tel" maxlength="16" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(h.telefon)}"><span class="tiny muted">Sağlık çalışanı seni bu numaradan arar; numaran ona gizli gösterilir.</span></label>
+      <label class="stack small" style="gap:4px"><b>E-posta</b> <span class="muted">(isteğe bağlı)</span><input class="inp" id="prEposta" type="email" maxlength="80" autocomplete="email" value="${esc(h.eposta)}"></label>
+      <div class="hata-metin" id="prHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="kisiselKaydet">Kaydet</button></div>`;
+    if (b === "yakinlar") return `${altBaslik("p", "Yakınlarım")}
+      <div class="small muted">Sık yardım istediğin kişiler. Sohbette "kimin için" sorusunda tek dokunuşla seçersin. Sağlık bilgisi kaydetmeyiz; her talepte o anki durumu anlatırsın.</div>
+      <div class="stack" style="gap:8px">${h.yakinlar.map((y, i) => `<div class="adres-satir"><span class="as-metin" style="flex:1;padding:6px 0"><b>${esc(y.yakinlik)}</b><span>${esc(y.ad || "")}</span></span><button class="btn ghost" type="button" data-yakin-sil="${i}" style="color:var(--muted)">Kaldır</button></div>`).join("") || `<div class="muted small">Henüz eklemedin.</div>`}</div>
+      <div class="card stack" style="gap:8px"><b class="small">Yakın ekle</b>${secenek("yakinlik", P.yakinTaslak || "Annem", [["Annem", "Annem"], ["Babam", "Babam"], ["Eşim", "Eşim"], ["Çocuğum", "Çocuğum"], ["Anneannem", "Anneannem"], ["Babaannem", "Babaannem"], ["Dedem", "Dedem"]])}
+        <input class="inp" id="prYakinAd" maxlength="40" placeholder="Adı (isteğe bağlı)"><button class="btn primary" type="button" data-act="yakinEkle">Ekle</button></div></div>`;
+    if (b === "odeme") return `${altBaslik("p", "Ödeme tercihi")}
+      <div class="stack" style="gap:8px">${[["kart_kapida", "Ziyarette kartla", "Sağlık çalışanının POS cihazıyla"], ["nakit", "Ziyarette nakit", "Tam tutarı hazırla"], ["uygulama", "Uygulamadan kartla", "Yakında · gerçek uygulamada güvenli ödeme altyapısıyla"]].map(([v, l, a]) =>
+        `<button class="adres-satir${h.odeme === v ? " secili" : ""}" type="button" data-secim="odeme" data-deger="${v}" ${v === "uygulama" ? "disabled" : ""} style="text-align:left;width:100%;background:none;${v === "uygulama" ? "opacity:.5" : ""}"><span class="as-radyo"></span><span class="as-metin" style="padding:6px 0"><b>${l}</b><span>${a}</span></span></button>`).join("")}</div>
+      <div class="tiny muted">Kart bilgisi bu prototipte istenmez ve saklanmaz.</div></div>`;
+    if (b === "bildirim") return `${altBaslik("p", "Bildirimler")}<div class="ag-kutu">
+      ${anahtar("p.hatirlatma", h.bildirim.hatirlatma, "Randevu hatırlatması", "Ziyaretten 1 saat ve 15 dk önce")}${anahtar("p.yolda", h.bildirim.yolda, "Sağlık çalışanı yola çıkınca", "Canlı takip bağlantısıyla")}
+      ${anahtar("p.puan", h.bildirim.puan, "Ziyaret sonrası puanlama")}${anahtar("p.kampanyaSms", h.bildirim.kampanyaSms, "Kampanya ve duyurular (SMS)", "İzin vermezsen gönderilmez")}${anahtar("p.kampanyaEposta", h.bildirim.kampanyaEposta, "Kampanya ve duyurular (e-posta)")}</div></div>`;
+    if (b === "gorunum") return `${altBaslik("p", "Görünüm ve erişilebilirlik")}${gorunumHtml()}<div class="ag-kutu">${anahtar("p.sesliOku", P.voice, "Asistanın yanıtlarını sesli oku", "Yazılı sohbette de")}</div></div>`;
+    if (b === "acil") return `${altBaslik("p", "Acil durum kişisi")}
+      <div class="small muted">Acil ekranında 112'nin yanında bu kişiyi tek dokunuşla arayabilirsin. Kimseye otomatik haber verilmez.</div>
+      <label class="stack small" style="gap:4px"><b>Adı</b><input class="inp" id="prAcilAd" maxlength="40" value="${esc(h.acil.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Yakınlığı</b><input class="inp" id="prAcilYakin" maxlength="30" placeholder="ör. Oğlum" value="${esc(h.acil.yakinlik)}"></label>
+      <label class="stack small" style="gap:4px"><b>Telefonu</b><input class="inp" id="prAcilTel" type="tel" inputmode="tel" maxlength="16" placeholder="05xx xxx xx xx" value="${esc(h.acil.telefon)}"></label>
+      <div class="hata-metin" id="prHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="acilKaydet">Kaydet</button></div>`;
+    if (b === "randevular") { const liste = (P.randevular || []).map((id) => (P.request && P.request.id === id ? P.request : REQ.find((x) => x.id === id))).filter(Boolean);
+      return `${altBaslik("p", "Randevularım")}<div class="stack" style="gap:6px">${liste.length ? liste.map((r) => `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}"><span><b>${esc(svc(r.service).name_tr)}</b><span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)} · ${tl(r.price.patient_pays)} TL</span></span><span class="pill ${randevuDurumu(r)[1]}">${esc(r.puan ? randevuDurumu(r)[0] + " · " + "★".repeat(r.puan.yildiz) : randevuDurumu(r)[0])}</span></button>`).join("") : `<div class="muted small">Henüz randevun yok.</div>`}</div></div>`; }
+    if (b === "gizlilik") return `${altBaslik("p", "Gizlilik ve verilerim")}${gizlilikHtml("p")}</div>`;
+    if (b === "yardim") return `${altBaslik("p", "Yardım ve destek")}${yardimHtml("p")}</div>`;
+    if (b === "hakkinda") return `${altBaslik("p", "Hakkında")}${hakkindaHtml()}</div>`;
+    const bas = (h.ad || "").trim().split(/\s+/).map((x) => x[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr");
+    const rs = (P.randevular || []).length;
+    return `${appbar()}<div class="pad stack" style="gap:16px">
+      <button class="back" type="button" data-act="home">${ICO.back} Ana sayfa</button>
+      <div class="profil"><div class="who"><span class="profil-foto bas-harf">${bas ? esc(bas) : ICO.kisi}</span><div style="min-width:0"><div class="profil-ad">${esc(h.ad || "Misafir")}</div>
+        <div class="small muted">${esc(h.telefon || "Telefon eklenmedi")}</div><button class="btn ghost" type="button" data-profil="kisisel" style="padding:4px 0">Bilgilerimi düzenle</button></div></div></div>
+      ${grup("Hesap", menuSatir(ICO.kisi, "Kişisel bilgiler", h.ad ? "Ad, telefon, e-posta" : "Adını ve telefonunu ekle", 'data-profil="kisisel"') + menuSatir(ICO.pin, "Adreslerim", AB.liste.length ? `${AB.liste.length} kayıtlı adres · ${seciliAdres() ? seciliAdres().baslik : ""}` : "Adres ekle", 'data-act="adresler"')
+        + menuSatir(ICO.grup, "Yakınlarım", h.yakinlar.length ? h.yakinlar.map((y) => y.yakinlik).join(", ") : "Sık yardım istediğin kişiler", 'data-profil="yakinlar"') + menuSatir(ICO.kart, "Ödeme tercihi", { kart_kapida: "Ziyarette kartla", nakit: "Ziyarette nakit", uygulama: "Uygulamadan kartla" }[h.odeme], 'data-profil="odeme"')
+        + menuSatir(ICO.takvim, "Randevularım", rs ? `${rs} randevu` : "Henüz randevu yok", 'data-profil="randevular"'))}
+      ${grup("Tercihler", menuSatir(ICO.zil, "Bildirimler", Object.values(h.bildirim).filter(Boolean).length + " bildirim açık", 'data-profil="bildirim"') + menuSatir(ICO.gorunum, "Görünüm ve erişilebilirlik", `Yazı: ${{ normal: "normal", buyuk: "büyük", cokbuyuk: "çok büyük" }[GORUNUM.yazi]} · tema: ${{ sistem: "telefonla aynı", acik: "açık", koyu: "koyu" }[GORUNUM.tema]}`, 'data-profil="gorunum"'))}
+      ${grup("Güvenlik", menuSatir(ICO.telefon, "Acil durum kişisi", h.acil.ad ? `${h.acil.ad}${h.acil.yakinlik ? " · " + h.acil.yakinlik : ""}` : "Eklenmedi", 'data-profil="acil"') + menuSatir(ICO.kalkan, "Gizlilik ve verilerim", "KVKK, verilerini indir ya da sil", 'data-profil="gizlilik"'))}
+      ${grup("Destek", menuSatir(ICO.soru, "Yardım ve destek", "Sık sorulanlar, bize yaz", 'data-profil="yardim"') + menuSatir(ICO.bilgi, "Hakkında", "Sürüm, veri kaynakları", 'data-profil="hakkinda"'))}
+      ${cikisDugmesi("p")}</div>`;
+  }
+
+  // ---------- Sağlık çalışanı profili ----------
+  function hProfil(p) {
+    const b = H.profilBolum, cp = calisanProfili(p.id), pp = person(p.id), po = puanOrtalama(p.id);
+    if (b === "hizmetler") { const ss = Object.keys(repo.provider_services[p.id] || {});
+      return `${altBaslik("h", "Hizmetlerim ve fiyatlarım")}<div class="small muted">Kapattığın hizmet hastalara önerilmez. Fiyat, hizmetin taban ücreti × senin katsayın (${String(p.fee_multiplier.toFixed(2)).replace(".", ",")}); teklifte ±%10 oynayabilirsin.</div>
+        <div class="ag-kutu">${ss.map((c) => anahtar("hz." + c, !cp.kapaliHizmet.includes(c), svc(c).name_tr, `${tl(svc(c).base_fee_tl * p.fee_multiplier)} TL · ${svc(c).duration_min} dk`)).join("")}</div></div>`; }
+    if (b === "mesleki") return `${altBaslik("h", "Mesleki bilgiler")}<div class="card stack small" style="gap:6px">
+      <div><span class="muted">Meslek:</span> <b>${esc(pp.prof)}</b></div><div><span class="muted">Deneyim:</span> <b>${p.years_experience} yıl</b></div>
+      <div><span class="muted">Bölge:</span> <b>${esc(p.home_district)}</b> · <span class="muted">ulaşım:</span> <b>${p.transport === "toplu" ? "toplu taşıma" : "araç"}</b></div>
+      <div><span class="muted">Başvuru durumu:</span> <b>${esc(DG.headerLabel())}</b></div></div>
+      <div class="tiny muted">Prototip: belgeler resmî sistemlerden doğrulanmaz.</div>
+      <button class="btn" type="button" data-act="hBasvuru">Mesleki başvuruyu aç</button></div>`;
+    if (b === "kazanc") { const g = REQ.filter((r) => r.provider_id === p.id && r.status === "kabul");
+      return `${altBaslik("h", "Kazançlarım")}<div class="stats" style="background:var(--soft)"><div>${ICO.takvim}<b class="num">${g.length}</b><span>kabul edilen</span></div><div>${ICO.para}<b class="num">${tl(g.reduce((a, r) => a + r.price.provider_gets, 0))} <small>TL</small></b><span>uygulamadan</span></div><div>${ICO.yildiz}<b class="num">${po.ort.toFixed(1).replace(".", ",")}</b><span>${po.sayi} değerlendirme</span></div></div>
+        <div class="note small">Ödemeler haftalık yapılır (prototip). Banka hesabı gerçek uygulamada kimlik doğrulamasıyla eklenir; bu prototipte hesap numarası istenmez ve saklanmaz.</div>
+        <div class="tiny muted">Platform payı %${Math.round(C.CFG.COMMISSION * 100)}; paylaşımlı ziyaret tasarrufunun %30'u sana.</div></div>`; }
+    if (b === "degerlendirme") return `${altBaslik("h", "Değerlendirmelerim")}${degerlendirmelerHtml(p.id)}</div>`;
+    if (b === "guvenlik") return `${altBaslik("h", "Güvenli Ziyaret ayarları")}
+      <div class="small muted">"Her şey yolunda mı?" kontrolüne PIN ile yanıt verirsin. Baskı PIN'i iptal ediyormuş gibi görünür ama güvenlik masasına sessiz alarm verir.</div>
+      <div class="row" style="gap:8px;flex-wrap:nowrap"><label class="stack small" style="gap:4px;flex:1"><b>Yeni PIN</b><input class="inp" id="hrPin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="${cp.pin ? "••••" : "2580"}"></label>
+        <label class="stack small" style="gap:4px;flex:1"><b>Baskı PIN'i</b><input class="inp" id="hrBaski" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="${cp.baskiPin ? "••••" : "0852"}"></label></div>
+      <label class="stack small" style="gap:4px"><b>Acil durum kişin</b><input class="inp" id="hrAcilAd" maxlength="40" placeholder="Adı" value="${esc(cp.acil.ad)}"></label>
+      <label class="stack small" style="gap:4px"><b>Telefonu</b><input class="inp" id="hrAcilTel" type="tel" inputmode="tel" maxlength="16" placeholder="05xx xxx xx xx" value="${esc(cp.acil.telefon)}"><span class="tiny muted">Kontrole yanıt vermezsen zincirin 4. adımında aranır (demoda simüle).</span></label>
+      <div class="hata-metin" id="hrHata" role="alert"></div>
+      <button class="ana-btn" type="button" data-act="hGuvenlikKaydet">Kaydet</button>${cp.pin ? `<button class="btn ghost" type="button" data-act="hPinSifirla">Demo PIN'lerine dön</button>` : ""}</div>`;
+    if (b === "bildirim") return `${altBaslik("h", "Bildirimler")}<div class="ag-kutu">${anahtar("h.yeniTalep", cp.bildirim.yeniTalep, "Yeni talep", "Rotana uyan talepler önce")}${anahtar("h.ses", cp.bildirim.ses, "Talep sesi")}${anahtar("h.rota", cp.bildirim.rota, "Yola çıkma hatırlatması", "Trafiğe göre zamanında")}${anahtar("h.puan", cp.bildirim.puan, "Yeni değerlendirme")}</div></div>`;
+    if (b === "gorunum") return `${altBaslik("h", "Görünüm ve erişilebilirlik")}${gorunumHtml()}</div>`;
+    if (b === "gizlilik") return `${altBaslik("h", "Gizlilik ve verilerim")}${gizlilikHtml("h")}</div>`;
+    if (b === "yardim") return `${altBaslik("h", "Yardım ve destek")}${yardimHtml("h")}</div>`;
+    if (b === "hakkinda") return `${altBaslik("h", "Hakkında")}${hakkindaHtml()}</div>`;
+    const acik = Object.keys(repo.provider_services[p.id] || {}).filter((c) => !cp.kapaliHizmet.includes(c)).length;
+    return `${appbar("h")}<div class="pad stack" style="gap:16px">
+      <button class="back" type="button" data-act="hprofilKapat">${ICO.back} Panel</button>
+      <div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(pp.full)}</div>
+        <div class="small muted">${esc(pp.prof)} · ${p.years_experience} yıl · ★ ${po.ort.toFixed(1).replace(".", ",")} (${po.sayi})</div></div></div>
+        ${anahtar("h.cevrimici", cp.cevrimici, cp.cevrimici ? "Çevrimiçi — talep alıyorsun" : "Çevrimdışı — talep almıyorsun", "Kapatınca hastalara önerilmezsin")}</div>
+      ${grup("Çalışma", menuSatir(ICO.bandage, "Hizmetlerim ve fiyatlarım", `${acik} hizmet açık`, 'data-hprofil="hizmetler"') + menuSatir(ICO.clock, "Çalışma saatlerim ve bölgem", "Saatlerim sekmesi", 'data-act="hSaatlerim"') + menuSatir(ICO.para, "Kazançlarım", "Ödemeler, platform payı", 'data-hprofil="kazanc"') + menuSatir(ICO.yildiz, "Değerlendirmelerim", `★ ${po.ort.toFixed(1).replace(".", ",")} · ${po.sayi} değerlendirme`, 'data-hprofil="degerlendirme"'))}
+      ${grup("Mesleki", menuSatir(ICO.steth, "Mesleki bilgiler ve başvuru", DG.headerLabel(), 'data-hprofil="mesleki"'))}
+      ${grup("Güvenlik ve tercihler", menuSatir(ICO.kalkan, "Güvenli Ziyaret", cp.pin ? "PIN'in ayarlı" : "Demo PIN'i kullanılıyor · acil kişi " + (cp.acil.ad ? "ekli" : "yok"), 'data-hprofil="guvenlik"') + menuSatir(ICO.zil, "Bildirimler", Object.values(cp.bildirim).filter(Boolean).length + " bildirim açık", 'data-hprofil="bildirim"') + menuSatir(ICO.gorunum, "Görünüm ve erişilebilirlik", "Yazı boyutu, tema", 'data-hprofil="gorunum"') + menuSatir(ICO.kilit, "Gizlilik ve verilerim", "Konum, KVKK, verilerini indir ya da sil", 'data-hprofil="gizlilik"'))}
+      ${grup("Destek", menuSatir(ICO.soru, "Yardım ve destek", "Sık sorulanlar, bize yaz", 'data-hprofil="yardim"') + menuSatir(ICO.bilgi, "Hakkında", "Sürüm, veri kaynakları", 'data-hprofil="hakkinda"'))}
+      ${cikisDugmesi("h")}</div>`;
   }
   function pAdresSec() {
     return `<div class="sheet-bg" data-act="adresKapat"><div class="sheet" role="dialog" aria-label="Kayıtlı adreslerim">
@@ -1230,6 +1409,7 @@
         <a class="btn block" href="tel:112" style="background:#fff;color:var(--coral);text-align:center;text-decoration:none">112'yi ara</a>
         <div class="tiny" style="opacity:.9">Bağlantı açılmazsa telefonundan 112'yi tuşla. Bu uygulama acil durumda randevu vermez.</div></div>
       <div class="card small"><b>Neden?</b> ${esc(e.why || "")}<div class="tiny muted">Algılayan: ${esc(e.src || "")}</div></div>
+      ${PR.h.acil.ad && telGecerli(PR.h.acil.telefon) ? `<a class="btn block" href="tel:${esc(String(PR.h.acil.telefon).replace(/\s/g, ""))}" style="text-align:center;text-decoration:none">${esc(PR.h.acil.ad)}${PR.h.acil.yakinlik ? ` (${esc(PR.h.acil.yakinlik)})` : ""} kişisini ara</a>` : ""}
       ${acilKarti()}
       <button class="btn block" type="button" data-act="chat">Yanlış anlaşıldı, sohbete dön</button>
     </div>`;
@@ -1473,8 +1653,14 @@
     if (!H.open) {
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
+    if (H.profil) {
+      // Arka plandaki yenilemeler (teklif, takip) yazılan formu silmesin
+      const odak = document.activeElement; if (odak && el.contains(odak) && /INPUT|TEXTAREA/.test(odak.tagName) && !H.profilZorla) return;
+      el.innerHTML = `<div style="min-height:100%">${hProfil(p)}</div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
+      if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
+      return; }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      ${appbar()}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici">Çevrimiçi</span>
+      ${appbar("h")}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici${calisanProfili(pid).cevrimici ? "" : " kapali"}">${calisanProfili(pid).cevrimici ? "Çevrimiçi" : "Çevrimdışı"}</span>
           <div class="tiny muted" style="margin-top:4px">${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
         <div class="stats"><div>${ICO.takvim}<b class="num">${stops.length}</b><span>ziyaret</span></div><div>${ICO.pin}<b class="num">${km.toFixed(1).replace(".", ",")} <small>km</small></b><span>toplam yol</span></div><div>${ICO.para}<b class="num">${tl(earn)} <small>TL</small></b><span>kazanç</span></div></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
@@ -1482,6 +1668,7 @@
     if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
   }
   function hInbox(box) {
+    if (!calisanProfili(H.pid).cevrimici) return `<div class="pad stack"><div class="card stack" style="gap:8px"><b>Çevrimdışısın</b><span class="small muted">Yeni talepler sana önerilmiyor. Kabul ettiğin ziyaretler Rotam'da duruyor.</span><button class="btn primary" type="button" data-act="hCevrimiciOl">Çevrimiçi ol</button></div></div>`;
     if (!box.length) return `<div class="pad muted">Şu an yeni talep yok. Saatlerini genişletirsen daha fazla talep gelir.</div>`;
     const km = (x) => String(x).replace(".", ",");
     return `<div class="pad stack">${box.map((r) => `<button class="req ${r.synthetic ? "" : "new"}" type="button" data-open="${esc(r.id)}">
@@ -1739,7 +1926,7 @@
     calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12", prof: "hemsire" },
     doktor: { kullanici: "doktor", sifre: "1234", ad: person("HEK-02").full, aciklama: "Pratisyen hekim · HEK-02 · Bayraklı · mesleki başvurusu onaylı (demo)", pid: "HEK-02", prof: "hekim", hekimType: "pratisyen" },
   };
-  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; adresDefteriYukle(HESAPLAR.hasta.kullanici, true); }
+  function hastaGir() { P.info.district = HESAPLAR.hasta.ilce; adresDefteriYukle(HESAPLAR.hasta.kullanici, true); hastaProfiliYukle(HESAPLAR.hasta.kullanici, { ad: HESAPLAR.hasta.ad }); }
   function calisanGir(h) {
     H.pid = h.pid;
     DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
@@ -1782,6 +1969,87 @@
     });
     document.body.appendChild(d);
   }
+  // ---------- Profil olayları ----------
+  function veriIndir(ad, veri) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(veri, null, 2)], { type: "application/json" }));
+    a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const cikisYap = () => $("#cikisBtn").click();
+  // Form hatası: ekranı yeniden çizmeden yaz (kullanıcının yazdıkları kaybolmasın)
+  const hataYaz = (sec, m) => { const el = $(sec); if (el) { el.textContent = m; el.scrollIntoView({ block: "nearest" }); } };
+  const tarihNow = () => new Date().toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+  function secimUygula(ad, deger, taraf) {
+    if (ad === "yazi" || ad === "tema") { GORUNUM[ad] = deger; yerel.yaz("anindasaglik_gorunum", GORUNUM); gorunumUygula(); }
+    else if (ad === "odeme") { PR.h.odeme = deger; hastaProfiliYaz(); }
+    else if (ad === "yakinlik") P.yakinTaslak = deger;
+    renderP(); renderH();
+  }
+  function anahtarUygula(id) {
+    const [k, alan] = id.split(/\.(.+)/);
+    if (k === "p") { if (alan === "sesliOku") P.voice = !P.voice; else { PR.h.bildirim[alan] = !PR.h.bildirim[alan]; hastaProfiliYaz(); } renderP(); return; }
+    const cp = calisanProfili(H.pid);
+    if (k === "h") { if (alan === "cevrimici") { cp.cevrimici = !cp.cevrimici; H.toast = cp.cevrimici ? "Çevrimiçisin; yeni talepler gelir." : "Çevrimdışısın; yeni talep almıyorsun."; } else cp.bildirim[alan] = !cp.bildirim[alan]; }
+    else if (k === "hz") { const i = cp.kapaliHizmet.indexOf(alan); if (i >= 0) cp.kapaliHizmet.splice(i, 1); else cp.kapaliHizmet.push(alan); }
+    calisanProfiliYaz(H.pid); P.saatler = null; renderH(); renderP();
+  }
+  $("#pScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-profil],[data-secim],[data-anahtar],[data-yakin-sil],[data-act]"); if (!t) return;
+    if (t.dataset.profil) { P.screen = "profil"; P.profilBolum = t.dataset.profil; P.profilHata = ""; renderP(); $("#pScreen").scrollTop = 0; return; }
+    if (t.dataset.secim) { secimUygula(t.dataset.secim, t.dataset.deger, "p"); return; }
+    if (t.dataset.anahtar) { anahtarUygula(t.dataset.anahtar); return; }
+    if (t.dataset.yakinSil) { PR.h.yakinlar.splice(+t.dataset.yakinSil, 1); hastaProfiliYaz(); renderP(); return; }
+    const a = t.dataset.act, v = (id) => (($("#" + id) || {}).value || "").trim();
+    if (a === "profil") { P.screen = "profil"; P.profilBolum = null; P.adresSec = false; P.silOnay = false; renderP(); $("#pScreen").scrollTop = 0; }
+    else if (a === "pprofilGeri") { P.profilBolum = null; P.profilHata = ""; P.silOnay = false; renderP(); }
+    else if (a === "kisiselKaydet") {
+      if (!v("prAd")) { hataYaz("#prHata", "Adını yaz."); return; }
+      if (v("prTel") && !telGecerli(v("prTel"))) { hataYaz("#prHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      if (v("prEposta") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("prEposta"))) { hataYaz("#prHata", "E-posta adresini kontrol et."); return; }
+      Object.assign(PR.h, { ad: v("prAd"), telefon: v("prTel"), eposta: v("prEposta") }); hastaProfiliYaz(); P.profilBolum = null; P.profilHata = ""; P.toast = "Bilgilerin kaydedildi."; renderP();
+    } else if (a === "yakinEkle") { PR.h.yakinlar.push({ yakinlik: P.yakinTaslak || "Annem", ad: v("prYakinAd") }); hastaProfiliYaz(); P.toast = "Yakının eklendi."; renderP(); }
+    else if (a === "acilKaydet") {
+      if (v("prAcilTel") && !telGecerli(v("prAcilTel"))) { hataYaz("#prHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      if (v("prAcilAd") && !v("prAcilTel")) { hataYaz("#prHata", "Acil durum kişisinin telefonunu da yaz."); return; }
+      PR.h.acil = { ad: v("prAcilAd"), yakinlik: v("prAcilYakin"), telefon: v("prAcilTel") }; hastaProfiliYaz(); P.profilBolum = null; P.profilHata = ""; P.toast = "Acil durum kişin kaydedildi."; renderP();
+    } else if (a === "pdestek") { if (!v("pDestekMetin")) return; PR.h.destek.push({ tarih: tarihNow(), metin: v("pDestekMetin").slice(0, 600) }); hastaProfiliYaz(); P.toast = "Mesajın alındı (prototip: bu cihazda saklandı)."; renderP(); }
+    else if (a === "pveriIndir") veriIndir("anindasaglik_verilerim.json", { profil: PR.h, adresler: AB.liste, gorunum: GORUNUM, randevular: (P.randevular || []).length });
+    else if (a === "sohbetSil") { P.msgs = []; P.turns = []; P.report = null; P.photos = []; P.toast = "Bu oturumdaki sohbet silindi."; renderP(); }
+    else if (a === "phesapSil") { P.silOnay = true; renderP(); }
+    else if (a === "phesapSilHayir") { P.silOnay = false; renderP(); }
+    else if (a === "phesapSilEvet") { try { localStorage.removeItem("anindasaglik_profil_" + PR.hesap); localStorage.removeItem(adresAnahtar()); } catch (er) { /**/ } cikisYap(); }
+    else if (a === "cikisYap") cikisYap();
+  });
+  $("#hScreen").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-hprofil],[data-secim],[data-anahtar],[data-act]"); if (!t) return;
+    if (t.dataset.hprofil) { H.profilBolum = t.dataset.hprofil; H.profilHata = ""; renderH(); $("#hScreen").scrollTop = 0; return; }
+    if (t.dataset.secim) { secimUygula(t.dataset.secim, t.dataset.deger, "h"); return; }
+    if (t.dataset.anahtar) { anahtarUygula(t.dataset.anahtar); return; }
+    const a = t.dataset.act, v = (id) => (($("#" + id) || {}).value || "").trim(), cp = calisanProfili(H.pid);
+    if (a === "hprofil") { H.profil = true; H.profilBolum = null; H.silOnay = false; renderH(); $("#hScreen").scrollTop = 0; }
+    else if (a === "hprofilKapat") { H.profil = false; renderH(); }
+    else if (a === "hprofilGeri") { H.profilBolum = null; H.profilHata = ""; H.silOnay = false; renderH(); }
+    else if (a === "hCevrimiciOl") { cp.cevrimici = true; calisanProfiliYaz(H.pid); renderH(); renderP(); }
+    else if (a === "hSaatlerim") { H.profil = false; H.tab = "saat"; H.open = null; renderH(); }
+    else if (a === "hBasvuru") { H.profil = false; DG.state.open = true; renderH(); }
+    else if (a === "hGuvenlikKaydet") {
+      const pin = v("hrPin"), baski = v("hrBaski");
+      if (pin || baski) {
+        if (!/^\d{4}$/.test(pin) || !/^\d{4}$/.test(baski)) { hataYaz("#hrHata", "PIN ve baskı PIN'i 4 rakam olmalı."); return; }
+        if (pin === baski) { hataYaz("#hrHata", "Baskı PIN'i normal PIN'den farklı olmalı."); return; }
+        if (/^(\d)\1{3}$|^(0123|1234|2345|3456|4567|5678|6789)$/.test(pin)) { hataYaz("#hrHata", "Tahmin edilmesi kolay bir PIN seçme (1111, 1234 gibi)."); return; }
+        cp.pin = pin; cp.baskiPin = baski;
+      }
+      if (v("hrAcilTel") && !telGecerli(v("hrAcilTel"))) { hataYaz("#hrHata", "Telefon 05 ile başlayan 11 haneli olmalı."); return; }
+      cp.acil = { ad: v("hrAcilAd"), telefon: v("hrAcilTel"), yakinlik: "" };
+      calisanProfiliYaz(H.pid); H.profilBolum = null; H.profilHata = ""; H.toast = "Güvenli Ziyaret ayarların kaydedildi."; renderH();
+    } else if (a === "hPinSifirla") { cp.pin = ""; cp.baskiPin = ""; calisanProfiliYaz(H.pid); H.toast = "Demo PIN'lerine dönüldü (2580 / 0852)."; renderH(); }
+    else if (a === "hdestek") { if (!v("hDestekMetin")) return; cp.destek.push({ tarih: tarihNow(), metin: v("hDestekMetin").slice(0, 600) }); calisanProfiliYaz(H.pid); H.toast = "Mesajın alındı (prototip: bu cihazda saklandı)."; renderH(); }
+    else if (a === "hveriIndir") { const kopya = JSON.parse(JSON.stringify(cp)); if (kopya.pin) kopya.pin = kopya.baskiPin = "(gizli)"; veriIndir("anindasaglik_calisan_verilerim.json", { profil: kopya, gorunum: GORUNUM }); }
+    else if (a === "hhesapSil") { H.silOnay = true; renderH(); }
+    else if (a === "hhesapSilHayir") { H.silOnay = false; renderH(); }
+    else if (a === "hhesapSilEvet") { try { localStorage.removeItem("anindasaglik_calisan_" + H.pid); } catch (er) { /**/ } cikisYap(); }
+    else if (a === "cikisYap") cikisYap();
+  });
   $("#cikisBtn").addEventListener("click", () => { history.replaceState(null, "", location.pathname + location.search.replace(/[?&]rol=[^&]*/, "")); location.reload(); });
   // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
   { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
@@ -1793,6 +2061,7 @@
     mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })),
     talep: () => (P.request ? JSON.parse(JSON.stringify(P.request.patient)) : null) };
   if (AB.hesap === "misafir" && !AB.liste.length) adresDefteriYukle("misafir", false); // hesapla girildiyse hastaGir yükledi
+  if (!PR.hesap) hastaProfiliYukle("misafir", null);
   renderP(); renderH();
   initCaps();
 })();
