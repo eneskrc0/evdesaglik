@@ -74,9 +74,7 @@ with sync_playwright() as pw:
     pg.locator("#kilitP .bld-kart", has_text="Ziyaret bitti").click(); pg.wait_for_timeout(300)
     check(p.locator("[data-gz=h-tamam]").count() == 1, "kilit ekranındaki 'Ziyaret bitti'ye dokununca takip ekranı açıldı")
     p.locator("[data-gz=h-tamam]").click(); p.locator(".puan-btn").nth(4).click(); p.locator("[data-act=puanGonder]").click(); pg.wait_for_timeout(1300)
-    check("Ödeme onaylandı" in tum(pg, "p") and "Yeni değerlendirme" in tum(pg, "h"), "onayda hastaya 'Ödeme onaylandı (demo)', puanda çalışana 'Yeni değerlendirme'")
-    pg.locator('[data-zil="h"]').click(); pg.locator("#panelH .bld-kart", has_text="Yeni değerlendirme").click(); pg.wait_for_timeout(200)
-    check(h.locator("[role=tab][aria-selected=true]").inner_text().startswith("Rotam") and h.locator(".puan-calisan").count() == 1, "çalışan listede bildirime dokununca Rotam'da değerlendirme")
+    check("Ödeme onaylandı" in tum(pg, "p") and "Yeni değerlendirme" not in tum(pg, "h") and "★" not in tum(pg, "h"), "onayda hastaya 'Ödeme onaylandı (demo)'; çalışana tek puan bildirilmiyor (hangi hastanın kaç yıldız verdiği gizli)")
     check(not errs, f"sayfa hatası yok {errs}")
     pg.close()
 
