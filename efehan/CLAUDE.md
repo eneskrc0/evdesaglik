@@ -23,6 +23,10 @@ Enes'in simülasyonundan (`enes/`) bağımsız çalışır; ortak kod yok, birle
   seçilen adres en yakın yol paketi noktasına yerleşir. Provalar: `python web/e2e_toplu.py`, `python web/model_parity.py`
   (teklif.js olasılık, özellik tanımları ve v5 seçimi = Enes'in simülasyonu; garanti adımında aynı kişinin iki kez seçilmesi hatası düzeltildi).
   Bilinen küçük fark: Kapıda yol süresini yukarı yuvarlar (Math.ceil), simülasyon yuvarlamaz (modelin yol özelliğinde ≤1 dk).
+- Giriş ve tek rol (20.11, Enes): açılışta demo giriş ekranı — hasta hesabı (hasta / 1234, Ayşe Demir, Bornova) ve sağlık çalışanı hesabı
+  (hemsire / 1234, HEM-12, mesleki başvurusu demo onaylı). Giriş o rolün tek telefonunu açar (#hasta / #calisan); "İkisi yan yana" eski
+  görünüm. Bağlantı #hasta, #calisan ya da ?rol=hasta|calisan|ikisi ile açılırsa giriş atlanır (testler ?rol=ikisi kullanır).
+  Gerçek kimlik doğrulama yok, şifre hiçbir yere gitmez. İki ayrı telefonda talep aktarımı için ortak veri (db) gerekir; açılmadı.
 - `HARITA_VERISI.md` — Enes'in İzmir yol ağı, süre matrisi, rota grafiği ve hastane verisinin biçimi, okunuşu ve Kapıda'ya ekleme planı. Harita/rota işine başlamadan önce oku.
 
 - `web/istemler.js` — YZ istemlerinin TEK kaynağı (sohbet kuralları, rapor istemi, ses ipucu); Claude sürümü ve sunucu birlikte kullanır.

@@ -1126,6 +1126,63 @@
     document.querySelectorAll(".switch button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   }));
 
+  // ---------- tek rol görünümü: #hasta ya da #calisan (ya da ?rol=hasta|calisan) — iki ayrı telefonda ayrı uygulama gibi ----------
+  function rolUygula() {
+    const q = new URLSearchParams(location.search).get("rol"), h = (location.hash || "").replace("#", "");
+    const rol = ["hasta", "calisan"].includes(h) ? h : ["hasta", "calisan"].includes(q) ? q : "";
+    document.body.classList.toggle("tek-rol", !!rol);
+    document.body.classList.toggle("rol-hasta", rol === "hasta");
+    document.body.classList.toggle("rol-calisan", rol === "calisan");
+    if (rol) { $("#colP").classList.toggle("hide-m", rol !== "hasta"); $("#colH").classList.toggle("hide-m", rol !== "calisan"); }
+  }
+  window.addEventListener("hashchange", rolUygula);
+  rolUygula();
+
+  // ---------- demo hesapları: hasta ve sağlık çalışanı (prototip; gerçek kimlik doğrulama yok, şifre sunucuya gitmez) ----------
+  const HESAPLAR = {
+    hasta: { kullanici: "hasta", sifre: "1234", ad: "Ayşe Demir", aciklama: "Hasta yakını · Bornova", ilce: "Bornova" },
+    calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12" },
+  };
+  function oturumAc(rol) {
+    const h = HESAPLAR[rol];
+    window.KAPIDA_OTURUM = { rol, ad: h.ad };
+    if (rol === "hasta") { P.info.district = h.ilce; P.info.forWhom = P.info.forWhom || ""; }
+    else {
+      H.pid = h.pid;
+      DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
+      DG.state.f.name = h.ad; DG.state.f.prof = "hemsire";
+    }
+    location.hash = rol;
+    $("#girisKatman").remove();
+    renderP(); renderH();
+  }
+  function girisEkrani() {
+    const kart = (rol, ikon, baslik) => { const h = HESAPLAR[rol];
+      return `<div class="giris-kart"><div class="giris-ust">${ikon} <b>${baslik}</b></div><div class="giris-ad">${esc(h.ad)}</div><div class="tiny muted">${esc(h.aciklama)}</div>
+        <label class="tiny muted">Kullanıcı adı<input class="inp" data-gk="${rol}" value="${h.kullanici}" autocomplete="off"></label>
+        <label class="tiny muted">Şifre<input class="inp" type="password" data-gs="${rol}" value="${h.sifre}" autocomplete="off"></label>
+        <button class="btn primary block" type="button" data-giris="${rol}">Giriş yap</button></div>`; };
+    const d = document.createElement("div");
+    d.id = "girisKatman";
+    d.innerHTML = `<div class="giris-kutu"><div class="logo">kapı<i>da</i></div><div class="small muted">Demo hesabıyla gir. Aynı telefonda ikisini yan yana görmek için "İkisi yan yana".</div>
+      <div class="giris-sira">${kart("hasta", "🧑", "Hasta hesabı")}${kart("calisan", "🩺", "Sağlık çalışanı hesabı")}</div>
+      <button class="btn block" type="button" data-giris="ikisi">İkisi yan yana (tek ekran demo)</button>
+      <div class="tiny muted">Prototip: hesaplar sentetiktir, şifre hiçbir yere gönderilmez. Gerçek uygulamada giriş e-posta/telefon doğrulamasıyla, sağlık çalışanı için mesleki doğrulamayla yapılır.</div>
+      <div class="tiny" id="girisHata" style="color:#b42318"></div></div>`;
+    d.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-giris]"); if (!b) return;
+      const rol = b.dataset.giris;
+      if (rol === "ikisi") { location.hash = "ikisi"; d.remove(); return; }
+      const h = HESAPLAR[rol], k = d.querySelector(`[data-gk="${rol}"]`).value.trim(), s = d.querySelector(`[data-gs="${rol}"]`).value;
+      if (k !== h.kullanici || s !== h.sifre) { d.querySelector("#girisHata").textContent = "Kullanıcı adı ya da şifre hatalı (demo: " + h.kullanici + " / " + h.sifre + ")."; return; }
+      oturumAc(rol);
+    });
+    document.body.appendChild(d);
+  }
+  // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
+  { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
+    if (h === "hasta" || h === "calisan") oturumAc(h); else if (h !== "ikisi") girisEkrani(); }
+
   renderP(); renderH();
   initCaps();
 })();
