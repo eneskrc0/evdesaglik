@@ -746,7 +746,7 @@
       ${r.report.malzeme && r.report.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Ziyaretten önce hazırla</b>${r.report.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
       ${st === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : G.durum(r) && G.durum(r).checkin ? "" : `<button class="btn block" type="button" data-act="cancel">Talebi iptal et</button>`}
       <button class="btn ghost" type="button" data-act="home">Ana sayfa</button>
-      ${!CAP.db ? `<div class="tiny muted" style="text-align:center">Bu görünümde talep yalnızca bu sayfadaki sağlık çalışanı ekranına gider.</div>` : `<div class="tiny muted" style="text-align:center">Talep ortak kayda yazıldı; başka cihazdaki sağlık çalışanı ekranı da görür.</div>`}
+      ${!CAP.db ? `<div class="tiny muted" style="text-align:center">${document.body.classList.contains("rol-hasta") ? "Demo: sağlık çalışanı birkaç saniye içinde onaylıyor (bu telefon tek başına; gerçek uygulamada onayı çalışan kendi telefonundan verir)." : "Bu görünümde talep yalnızca bu sayfadaki sağlık çalışanı ekranına gider."}</div>` : `<div class="tiny muted" style="text-align:center">Talep ortak kayda yazıldı; başka cihazdaki sağlık çalışanı ekranı da görür.</div>`}
     </div>`;
   }
   // ---- Canlı takip (Enes'in startTracking/trackState mantığı) ----
@@ -1138,6 +1138,20 @@
   }
   window.addEventListener("hashchange", rolUygula);
   rolUygula();
+  // Yalnız hasta telefonu açıkken (ortak veri yok): çalışan ekranı görünmediği için onayı demo olarak 6 sn sonra çalışan adına ver.
+  const otoOnay = {};
+  setInterval(() => {
+    if (!document.body.classList.contains("rol-hasta") || CAP.db) return;
+    const r = P.request;
+    if (!r || r.synthetic || r.status !== "bekliyor" || r.gun) return;
+    otoOnay[r.id] ||= Date.now();
+    if (Date.now() - otoOnay[r.id] < 6000) return;
+    const pid = r.provider_id;
+    (H.accepted[pid] ||= []).push({ reqId: r.id, date: r.date || DATE, lat: r.patient.lat, lon: r.patient.lon, start_min: r.arrival_min, duration_min: svc(r.service).duration_min, service_code: r.service, earn: r.price.provider_gets });
+    const upd = { ...r, status: "kabul", accepted_at: Date.now() };
+    putRequest(upd); P.request = upd; P.toast = `${person(pid).full} talebini onayladı (demo).`;
+    renderP(); renderH();
+  }, 1000);
 
   // ---------- demo hesapları: hasta ve sağlık çalışanı (prototip; gerçek kimlik doğrulama yok, şifre sunucuya gitmez) ----------
   const HESAPLAR = {
