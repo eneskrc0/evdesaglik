@@ -281,7 +281,7 @@
   };
 
   function transcriptText() {
-    return P.msgs.map((m) => `${m.who === "me" ? "Hasta/yakını" : "Asistan"}: ${m.text}${m.photo ? " [fotoğraf eklendi]" : ""}`).join("\n");
+    return P.msgs.filter((m) => !m.araLaf).map((m) => `${m.who === "me" ? "Hasta/yakını" : "Asistan"}: ${m.text}${m.photo ? " [fotoğraf eklendi]" : ""}`).join("\n");
   }
   async function aiReply() {
     if (CAP.server) {
@@ -328,6 +328,19 @@
     // 1) Kural motoru: her mesajda kırmızı bayrak
     const t = C.triage(repo, P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". "), { bedridden: false, has_physician_plan: false });
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; renderP(); return; }
+    // 1a) Ara laf ("beni duyuyor musun", "tekrar eder misin", "bir saniye", "merhaba"): yerel kısa cevap,
+    //     soru sayısına girmez, YZ'ye gitmez, demo sorusunu ilerletmez
+    const laf = !photos.length && window.KapidaSesli ? window.KapidaSesli.araLaf(shown) : null;
+    if (laf) {
+      const me = P.msgs[P.msgs.length - 1]; me.araLaf = true;
+      const onceki = [...P.msgs].reverse().find((m) => m.who === "ai" && !m.araLaf);
+      const icerikVar = P.msgs.some((m) => m.who === "me" && !m.araLaf);
+      const soru = !icerikVar ? "Ne olduğunu kendi cümlelerinle anlatır mısın?" : onceki ? (onceki.text.match(/[^.!?\n]*\?/g) || [onceki.text]).slice(-1)[0].trim() : "Devam edebilirsin.";
+      const bas = { duyma: "Evet, seni duyuyorum.", tekrar: "Tabii, tekrar ediyorum.", bekle: "Tabii, acele etme. Hazır olduğunda devam et.", selam: "Merhaba!" }[laf];
+      const cevap = laf === "bekle" ? bas : bas + " " + soru;
+      P.msgs.push({ who: "ai", text: cevap, quick: onceki && onceki.quick ? onceki.quick : [], araLaf: true });
+      speak(cevap); renderP(); return;
+    }
     // 1b) "Direkt doktora yönlendir" / "soru sorma": soruları geç, hekime yönlendir
     if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown))) { await doktoraYonlendir(); return; }
     // 2) YZ ya da demo
@@ -348,7 +361,9 @@
         if (r && r.doktora_yonlendir) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
         // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
         const userTurns = P.turns.filter((x) => x.role === "user").length;
-        if ((r && r.ready) || userTurns >= MAX_SORU + 1) { await buildReport(); return; }
+        // Şikâyet anlaşılmadan rapora geçme: YZ "hazır" dese de kullanıcı henüz derdini anlatmadıysa devam
+        const anlatti = P.turns.filter((x) => x.role === "user").map((x) => x.content).join(" ").trim().split(/\s+/).length >= 4;
+        if (((r && r.ready) && anlatti) || (userTurns >= MAX_SORU + 1 && anlatti)) { await buildReport(); return; }
         renderP();
       } catch (e) {
         P.busy = false;

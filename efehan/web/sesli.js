@@ -48,9 +48,33 @@
     return HALUSINASYON.some((r) => r.test(s));
   }
 
+  // ---------- ara laflar: sohbetin içeriği değil, konuşmanın kendisi hakkında ----------
+  // "Beni duyuyor musun?", "alo", "tekrar eder misin", "bir saniye", "merhaba" → yerel kısa cevap; soru sayısına girmez, YZ'ye gitmez.
+  const katla = (t) => String(t || "").replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase()
+    .replace(/[çğıöşü]/g, (c) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[c]).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const NEZAKET = "(?: (?:lutfen|acaba|kanka|abi|abla|hocam|kardesim|evladim|kizim|oglum|yavrum|beni|bi|bir|ya|peki|tamam))*";
+  const ARA_LAF = [
+    ["duyma", new RegExp("^(?:alo+ )*(?:beni |sesimi |bizi )?(?:duyuyor|duyabiliyor|duyuyo|isitiyor|duydun|duydunuz|duyabildin)(?: ?mu(?:sun|sunuz)?| ?mi(?:sin|siniz)?)?" + NEZAKET + "$")],
+    ["duyma", new RegExp("^(?:alo+ )*(?:sesim )?(?:geliyor|gidiyor|geliyo) ?mu" + NEZAKET + "$")],
+    ["duyma", new RegExp("^(?:alo+ )*(?:orada|orda|burada) ?m(?:i|isin|isiniz)" + NEZAKET + "$")],
+    ["duyma", /^(?:alo+ ?)+$/],
+    ["tekrar", new RegExp("^(?:(?:tekrar|bir daha|bi daha)(?: (?:eder|soyler|sorar|anlatir|okur))? ?(?:misin|misiniz|mi)?|anlamadim|duyamadim|ne dedin(?:iz)?|ne dediniz|efendim|pardon|nasil yani|ne|hi+|hm+|soruyu tekrarla(?:r misin)?)" + NEZAKET + "$")],
+    ["bekle", new RegExp("^(?:(?:bir|bi) (?:saniye|dakika|dakka|dk)(?: (?:bekle|bekler misin|bekleyin))?|dur(?: bekle)?|bekle|bekler misin|bekleyin|dusuneyim|bakayim|hatirlayayim)" + NEZAKET + "$")],
+    ["selam", new RegExp("^(?:alo )?(?:merhaba|merhabalar|selam|selamlar|iyi gunler|gunaydin|iyi aksamlar|selamun aleykum|selamin aleykum)(?: alo)?" + NEZAKET + "$")],
+  ];
+  function araLaf(t) {
+    const k = katla(t);
+    if (!k || k.split(" ").length > 7) return null;
+    for (const [tur, re] of ARA_LAF) if (re.test(k)) return tur;
+    return null;
+  }
+  // Cümle yarım mı kaldı? ("...ve", "...ama", "...şey") → gönderme, devamını bekle
+  const DEVAM = /(?:^| )(ve|ama|fakat|ancak|cunku|sey|yani|ile|ki|veya|yahut|bir de|bi de|sonra|hem|mesela|ozellikle)$/;
+  function yarimMi(t) { const k = katla(t); return k.split(" ").length >= 2 && DEVAM.test(k); }
+
   // ---------- VAD: ses seviyesinden konuşmanın başını ve sonunu bulur (saf durum makinesi) ----------
   function VAD(o) {
-    o = Object.assign({ minEsik: 0.012, carpan: 3.2, baslaMs: 250, sessizlikMs: 1100, minKonusmaMs: 350, beklemeMs: 9000, maksMs: 45000, kalibrasyonMs: 300 }, o || {});
+    o = Object.assign({ minEsik: 0.012, carpan: 3.2, baslaMs: 250, sessizlikMs: 1300, minKonusmaMs: 350, beklemeMs: 9000, maksMs: 45000, kalibrasyonMs: 300 }, o || {});
     let t0 = null, taban = 0, ornek = 0, ustte = 0, alttaSure = 0, konustu = false, basla = null, sonT = null, bitti = false;
     return {
       get konustu() { return konustu; },
@@ -107,11 +131,11 @@
     return {
       tur: "whisper", vadVar: true, konusurkenBirak: IOS,
       hazirla,
-      async baslat(cb) {
+      async baslat(cb, secenek) {
         const benim = ++oturum;
         await hazirla();
         if (benim !== oturum) return;
-        const parcalar = []; const vad = VAD(); let zorla = false, bitti = false;
+        const parcalar = []; const vad = VAD(secenek && secenek.beklemeMs ? { beklemeMs: secenek.beklemeMs } : null); let zorla = false, bitti = false;
         rec = tur ? new MediaRecorder(akim, { mimeType: tur }) : new MediaRecorder(akim);
         rec.ondataavailable = (e) => { if (e.data && e.data.size) parcalar.push(e.data); };
         const bitir = (z) => {
@@ -225,7 +249,7 @@
   // ---------- denetleyici ----------
   // o: { dinleyici, tts, gonder(metin) → Promise<{tur: "devam"|"acil"|"bitti"|"hata", metin}>, ciz(), dom(id) }
   function create(o) {
-    const st = { acik: false, durum: "kapali", seviye: 0, ara: "", sen: "", asistan: "", cumle: -1, hata: "", kulaklik: false, sessizSay: 0, bosSay: 0 };
+    const st = { acik: false, durum: "kapali", seviye: 0, ara: "", sen: "", asistan: "", cumle: -1, hata: "", kulaklik: false, sessizSay: 0, bosSay: 0, birikmis: "", parcaSay: 0 };
     let kes = 0; // her yeni adımda artar; eski geri çağrılar yok sayılır
     const ciz = () => { try { o.ciz(); } catch (e) { /* yok */ } };
     const dl = () => o.dinleyici;
@@ -248,10 +272,10 @@
       if (sonra === "dinle") dinle();
     }
 
-    async function dinle() {
+    async function dinle(secenek) {
       const D = dl(); if (!D || !st.acik) return;
       const benim = ++kes;
-      st.durum = "dinliyor"; st.ara = ""; st.seviye = 0; ciz();
+      st.durum = "dinliyor"; st.ara = st.birikmis; st.seviye = 0; ciz();
       try {
         await D.baslat({
           seviye: (v) => { if (benim === kes) seviyeYaz(v); },
@@ -261,11 +285,12 @@
           son: (t) => { if (benim === kes) isle(t, true); },
           sessiz: () => { if (benim === kes) sessizlik(); },
           hata: (k) => { if (benim === kes) hata(k); },
-        });
+        }, secenek);
       } catch (e) { if (benim === kes) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); }
     }
 
     function sessizlik() {
+      if (st.birikmis) { const m = st.birikmis; st.birikmis = ""; st.parcaSay = 0; isle(m, false); return; } // yarım cümleden sonra sustu: olduğu gibi gönder
       st.sessizSay++;
       if (st.sessizSay >= 2) { st.durum = "beklemede"; st.hata = ""; ciz(); return; }
       soyle("Seni dinliyorum. Hazır olduğunda konuşabilirsin.", "dinle");
@@ -282,6 +307,12 @@
       metin = String(metin || "").trim();
       if (sestenMi && halusinasyonMu(metin)) { st.bosSay++; araYaz(""); if (st.bosSay >= 3) { st.durum = "beklemede"; ciz(); return; } soyle("Seni tam duyamadım. Bir daha söyler misin?", "dinle"); return; }
       if (!metin) return;
+      // Yarım kalan cümle: gönderme, devamını dinle (en fazla 2 parça); sonra hepsini birleştirip gönder
+      if (sestenMi && yarimMi(metin) && st.parcaSay < 2) {
+        st.birikmis = (st.birikmis + " " + metin).trim(); st.parcaSay++;
+        dinle({ beklemeMs: 4000 }); araYaz(st.birikmis); return;
+      }
+      if (st.birikmis) { metin = (st.birikmis + " " + metin).trim(); st.birikmis = ""; st.parcaSay = 0; }
       const benim = ++kes;
       st.sessizSay = 0; st.bosSay = 0; st.sen = metin; st.ara = ""; st.durum = "dusunuyor"; ciz();
       let r;
@@ -305,7 +336,7 @@
       // Kullanıcı dokunuşuyla çağrılmalı (iOS ses ve mikrofon kilidi)
       ac(ilkMetin) {
         if (st.acik || !dl()) return;
-        Object.assign(st, { acik: true, durum: "hazir", ara: "", sen: "", hata: "", sessizSay: 0, bosSay: 0 });
+        Object.assign(st, { acik: true, durum: "hazir", ara: "", sen: "", hata: "", sessizSay: 0, bosSay: 0, birikmis: "", parcaSay: 0 });
         const T = tts(); if (T && T.kilidiAc) T.kilidiAc();
         const D = dl();
         const hazir = D.hazirla ? D.hazirla() : Promise.resolve(); // getUserMedia dokunuşun içinde başlasın
@@ -332,13 +363,13 @@
         kes++; if (tts()) tts().stop(); if (dl()) dl().iptal(); st.durum = "beklemede"; ciz();
       },
       // Hızlı yanıt çipi ya da fotoğraf: dinlemeyi bırakıp metni gönder
-      hizli(metin) { if (!st.acik) return; kes++; if (tts()) tts().stop(); if (dl()) dl().iptal(); isle(metin, false); },
+      hizli(metin) { if (!st.acik) return; kes++; if (tts()) tts().stop(); if (dl()) dl().iptal(); st.birikmis = ""; st.parcaSay = 0; isle(metin, false); },
       dinleyiciDegistir(d) { o.dinleyici = d; },
       ttsDegistir(t) { o.tts = t; },
     };
   }
 
-  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
+  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, araLaf, yarimMi, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KapidaSesli = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -44,6 +44,15 @@ check(c.every((x) => x.length <= 180), "hiçbir parça 180 karakteri aşmıyor")
 check(S.halusinasyonMu("Altyazı M.K.") && S.halusinasyonMu("İzlediğiniz için teşekkürler.") && S.halusinasyonMu("Hmm") && S.halusinasyonMu(""), "Whisper'ın sessizlik uydurmaları eleniyor");
 check(!S.halusinasyonMu("Annemin topuğunda yara var") && !S.halusinasyonMu("Teşekkürler.") && !S.halusinasyonMu("Evet"), "gerçek kısa yanıtlar ('Evet', 'Teşekkürler.') korunuyor");
 
+// ---- ara laflar: soru sayılmaz ----
+const LAF = { "Beni duyuyor musun?": "duyma", "Alo alo": "duyma", "Sesim geliyor mu?": "duyma", "Orada mısın?": "duyma", "Duyuyor musun kanka": "duyma",
+  "Tekrar eder misin?": "tekrar", "Anlamadım": "tekrar", "Ne dediniz?": "tekrar", "Bir saniye": "bekle", "Dur bekle": "bekle", "Merhaba": "selam", "İyi günler": "selam", "Alo, merhaba": "selam" };
+check(Object.entries(LAF).every(([t, k]) => S.araLaf(t) === k), "ara laflar tanınıyor (duyma, tekrar, bekle, selam)");
+const ICERIK = ["Beni duyuyor musun annemin yarası var", "Merhaba annem hasta", "Annem için", "Evet", "Hayır yok", "Bir haftadır", "Doktor istiyorum", "Duymuyor kulağı", "Babam duymuyor"];
+check(ICERIK.every((t) => S.araLaf(t) === null), "içerik taşıyan cümleler ara laf sayılmıyor ('Beni duyuyor musun annemin yarası var' gider)");
+check(S.yarimMi("Annemin bacağında yara var ve") && S.yarimMi("Ağrısı var ama") && S.yarimMi("Bir haftadır, şey"), "yarım kalan cümle (ve / ama / şey ile biten) tanınıyor");
+check(!S.yarimMi("Annem için") && !S.yarimMi("yara var") && !S.yarimMi("Kendim için de") && !S.yarimMi("şey"), "tam cümleler yarım sayılmıyor");
+
 // ---- denetleyici: sahte dinleyici + sahte ses ile tam döngü ----
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 function sahteDinleyici(senaryo) {
@@ -100,6 +109,16 @@ sv5.duraklat();
 check(sv5.st.durum === "beklemede", "duraklat: mikrofon kapandı");
 sv5.kapat();
 check(!sv5.acik && D.kapatildi, "kapat: oturum bitti, mikrofon bırakıldı");
+// yarım cümle: "…ve" ile biten parça gönderilmez, devamıyla birleşir
+D = dinleyici(["Annemin topuğunda yara var ve", "akıntı yapıyor"]); const gelen7 = [];
+const sv7 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, gonder: async (t) => { gelen7.push(t); return { tur: "dur" }; } });
+sv7.ac(); await bekle(200);
+check(gelen7.length === 1 && gelen7[0] === "Annemin topuğunda yara var ve akıntı yapıyor", "yarım cümle devamıyla birleştirilip tek mesaj olarak gönderildi");
+// yarım cümleden sonra susarsa olduğu gibi gönderilir
+D = dinleyici(["Babamın dizi ağrıyor ama", null]); const gelen8 = [];
+const sv8 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, gonder: async (t) => { gelen8.push(t); return { tur: "dur" }; } });
+sv8.ac(); await bekle(200);
+check(gelen8[0] === "Babamın dizi ağrıyor ama", "yarım cümleden sonra susunca beklemeden gönderildi");
 // hata üç kez → beklemede + açıklama
 D = dinleyici(["!", "!", "!"]); soylenen.length = 0;
 const sv6 = S.create({ dinleyici: D, tts: sahteSes, ciz() {}, gonder: async () => ({ tur: "devam", metin: "x" }) });
