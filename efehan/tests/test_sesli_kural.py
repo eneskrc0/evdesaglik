@@ -51,3 +51,11 @@ def test_saglik_icerigi():
     assert not deg("Bugün hava çok güzel")["saglik"]
     assert not deg("Hemşire istiyorum")["saglik"]  # meslek adı tek başına içerik değildir
     assert deg("Annemin bacağında yara var")["saglik"]
+
+
+def test_gizli_grupta_bulunan_kelime_aciklari():
+    # Gizli grubun ilk koşusunda kaçan ifadeler (20.11): artık acil
+    assert acil("Babam kıpırdamıyor, seslenince bakmıyor")
+    assert acil("Annemin bir yanı tutmuyor")
+    assert acil("Nefes darlığı yok. aslında var, şu an çok zorlanıyor")
+    assert not acil("Nefes darlığı yok ama yürürken çok zorlanıyor")

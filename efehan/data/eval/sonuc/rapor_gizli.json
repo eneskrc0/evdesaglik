@@ -1,0 +1,129 @@
+[
+ {
+  "id": "GZ-30",
+  "kategori": "L",
+  "onem": "kritik",
+  "gecti": true,
+  "hatalar": [],
+  "rapor": {
+   "kim_icin": "Babası",
+   "yas_araligi": "belirtilmedi",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "belirtilmedi",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "Hasta/yakını beyanı: babam için. ayağında yara var. Bilgiler doğrulanmadı.",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": "",
+   "_kaynak": {
+    "kim_icin": "beyan"
+   },
+   "_denetim": [
+    {
+     "alan": "yas_araligi",
+     "ne": "Söylenmeyen yaş çıkarıldı (75 yaş)"
+    },
+    {
+     "alan": "kronik_ilac_alerji",
+     "ne": "Söylenmeyen/belirsiz bilgi çıkarıldı (KOAH)"
+    }
+   ]
+  }
+ },
+ {
+  "id": "GZ-31",
+  "kategori": "L",
+  "onem": "kritik",
+  "gecti": true,
+  "hatalar": [],
+  "rapor": {
+   "kim_icin": "Kayınvalidesi",
+   "yas_araligi": "belirtilmedi",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "belirtilmedi",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "Hasta/yakını beyanı: annem için. yok pardon kayınvalidem için. dizi ağrıyor. Bilgiler doğrulanmadı.",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": "",
+   "_kaynak": {
+    "kim_icin": "beyan"
+   },
+   "_denetim": [
+    {
+     "alan": "kim_icin",
+     "ne": "Kullanıcının söylediği kişi: Kayınvalidesi (YZ: Annesi)"
+    }
+   ]
+  }
+ },
+ {
+  "id": "GZ-32",
+  "kategori": "L",
+  "onem": "kritik",
+  "gecti": true,
+  "hatalar": [],
+  "rapor": {
+   "kim_icin": "belirtilmedi",
+   "yas_araligi": "belirtilmedi",
+   "sikayet": "belirtilmedi",
+   "hastanin_kendi_sozleri": "belirtilmedi",
+   "baslangic": "belirtilmedi",
+   "seyir": "belirtilmedi",
+   "siddet_beyani": "belirtilmedi",
+   "yataga_bagimli": null,
+   "hekim_plani": "bilinmiyor",
+   "plan_detayi": "",
+   "kronik_ilac_alerji": "Alerji (son beyan): aslında aspirine alerjisi var",
+   "ihtiyaclar": [],
+   "malzeme": [],
+   "foto_ozeti": "",
+   "hizmet_onerisi": "ev_muayene",
+   "oneri_gerekcesi": "",
+   "saglikci_icin_ozet": "Hasta/yakını beyanı: alerjisi yok. aslında aspirine alerjisi var. Bilgiler doğrulanmadı.",
+   "hasta_icin_ozet": "",
+   "dikkat_edilecekler": [],
+   "eksik_bilgiler": [],
+   "guvenlik_notlari": [],
+   "istenen_meslek": "",
+   "tek_satir": "",
+   "_kaynak": {
+    "kronik_ilac_alerji": "beyan"
+   },
+   "_denetim": [
+    {
+     "alan": "kronik_ilac_alerji",
+     "ne": "Son alerji beyanı eklendi (düzeltme)"
+    }
+   ]
+  }
+ }
+]

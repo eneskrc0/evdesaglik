@@ -1,0 +1,26 @@
+[
+ {
+  "id": "GZ-40",
+  "kategori": "K",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "GZ-41",
+  "kategori": "K",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": true,
+  "beklenen": true
+ },
+ {
+  "id": "GZ-42",
+  "kategori": "K",
+  "onem": "yüksek",
+  "gecti": true,
+  "gercek": false,
+  "beklenen": false
+ }
+]

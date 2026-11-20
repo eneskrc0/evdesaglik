@@ -108,6 +108,8 @@ try:
                 time.sleep(1.0)
                 if post("/__ses_sayisi")["kalan"]:
                     notlar.append(f"{post('/__ses_sayisi')['kalan']} cümle sesle gönderilemedi")
+            else:
+                p.locator("[data-act=start]").click()
             for a in ([] if SES else k["girdi"]):
               try:
                 if isinstance(a, str):

@@ -95,7 +95,8 @@ const modelAdi = (env, ayar, ad) => env[ad] || (ayar.modeller && ayar.modeller[a
 
 const VARSAYILAN_KOKENLER = ["https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
 const GROQ = "https://api.groq.com/openai/v1";
-const VARSAYILAN_YEDEK = ["openai/gpt-oss-20b", "llama-3.3-70b-versatile"];
+// llama-3.3-70b-versatile Groq'da 16.08.2026'da kapatıldı (ücretsiz katman); yerine Groq listesindeki qwen/qwen3.8-27b (önizleme)
+const VARSAYILAN_YEDEK = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
 const VARSAYILAN = { MODEL: "openai/gpt-oss-120b", GORSEL_MODEL: "qwen/qwen3.8-27b", SES_MODEL: "whisper-large-v3" };
 const SINIR = { sesBayt: 10 * 1024 * 1024, tur: 40, turKarakter: 2000, transkript: 20000, resim: 3, resimKarakter: 1_600_000, istekPencereSn: 600, istekSayisi: 120 };
 
@@ -144,14 +145,19 @@ async function groqSohbet(env, ayar, mesajlar, resimler) {
   if (/gpt-oss/.test(model)) govde.reasoning_effort = (ayar.modeller && ayar.modeller.DUSUNME) || "low";
   // Kota dolarsa (429) ayrı kotası olan yedek modellere geç
   const yedekler = gorsel ? [] : ((ayar.modeller && Array.isArray(ayar.modeller.YEDEK) && ayar.modeller.YEDEK) || VARSAYILAN_YEDEK).filter((m) => m !== model);
+  let yogunGordu = false, sonra = 0;
+  const yedegeGec = () => { const y = yedekler.shift(); if (!y) return false; govde.model = y; if (/gpt-oss/.test(y)) govde.reasoning_effort = "low"; else delete govde.reasoning_effort; return true; };
   for (let deneme = 0; deneme < 2; deneme++) {
     const r = await fetch(GROQ + "/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + env.GROQ_API_KEY, "Content-Type": "application/json" }, body: JSON.stringify(govde) });
     if (r.status === 429 || r.status === 498 || r.status === 500 || r.status === 502 || r.status === 503) { // yoğun / kapasite dolu / geçici model hatası
-      const yedek = yedekler.shift();
-      if (yedek) { govde.model = yedek; if (/gpt-oss/.test(yedek)) govde.reasoning_effort = "low"; else delete govde.reasoning_effort; deneme--; continue; }
-      return { hata: "yogun", sonra: +r.headers.get("retry-after") || 0 };
+      yogunGordu = true; sonra = +r.headers.get("retry-after") || sonra;
+      if (yedegeGec()) { deneme--; continue; }
+      return { hata: "yogun", sonra };
     }
     const v = await r.json().catch(() => null);
+    // Yedek model kaldırılmış/erişilemiyorsa (model_not_found) sıradakine geç; hepsi bittiyse ve kota doluysa "yoğun" de
+    const yok = !r.ok && (r.status === 404 || /does not exist|not found|decommission|not have access/i.test((v && v.error && v.error.message) || ""));
+    if (yok) { if (yedegeGec()) { deneme--; continue; } if (yogunGordu) return { hata: "yogun", sonra }; }
     if (!r.ok) {
       // JSON kipi ya da görsel desteklenmiyorsa bir kez sade istekle dene
       if (deneme === 0 && r.status === 400) {

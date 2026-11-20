@@ -1,0 +1,478 @@
+[
+ {
+  "id": "GZ-01",
+  "kategori": "B",
+  "girdi": "Göğsümde ağrı falan yok, sadece biraz öksürüyorum",
+  "beklenen": {
+   "acil": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-02",
+  "kategori": "B",
+  "girdi": "Nefes almakta zorlanmıyor ama bilinci kapalı",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-03",
+  "kategori": "B",
+  "girdi": "Nefes darlığı yok değil",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": false,
+  "hatalar": [
+   "acil: beklenen True, gerçek False"
+  ],
+  "onem": "yüksek",
+  "uzman": true
+ },
+ {
+  "id": "GZ-04",
+  "kategori": "D",
+  "girdi": "Annemin değil, babamın dudakları morardı",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-05",
+  "kategori": "D",
+  "girdi": "Kızımın geçen hafta ateşi vardı şimdi yok, aşı için hemşire",
+  "beklenen": {
+   "acil": false,
+   "meslek": "hemsire"
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": "hemsire",
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-06",
+  "kategori": "D",
+  "girdi": "Üç sene önce bayılmıştı, şimdi gayet iyi, kan aldıracağız",
+  "beklenen": {
+   "acil": false,
+   "gecmis_sor": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-07",
+  "kategori": "E",
+  "girdi": "Göğsüm sıkışıyor, kolum uyuşuyor",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-08",
+  "kategori": "E",
+  "girdi": "Babam kıpırdamıyor, seslenince bakmıyor",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-09",
+  "kategori": "E",
+  "girdi": "Annemin bir yanı tutmuyor",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-10",
+  "kategori": "F",
+  "girdi": "göğüs ağrısı var yok",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-11",
+  "kategori": "F",
+  "girdi": "nefes ala mıyor",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-12",
+  "kategori": "F",
+  "girdi": "diyetis yen istiyorum",
+  "beklenen": {
+   "meslek": "diyetisyen"
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": "diyetisyen",
+   "gecmis_sor": false,
+   "saglik": false
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-13",
+  "kategori": "G",
+  "girdi": "Kediler uçabilir mi?",
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": false
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-14",
+  "kategori": "G",
+  "girdi": "Hava durumu nasıl yarın",
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": false
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-15",
+  "kategori": "C",
+  "girdi": "Fizyoterapist dedim ama aslında odyolog lazım",
+  "beklenen": {
+   "meslek": "odyolog"
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": "odyolog",
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-16",
+  "kategori": "C",
+  "girdi": "Hemşire, hayır pardon, doktor istiyorum",
+  "beklenen": {
+   "meslek": "hekim"
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": "hekim",
+   "gecmis_sor": false,
+   "saglik": false
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-17",
+  "kategori": "I",
+  "girdi": "Uzatma kanka, annemin yüzü bir tarafa kaydı",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-18",
+  "kategori": "A",
+  "girdi": "Şey, eşimin, nasıl anlatsam, sol tarafı uyuşuk, konuşması bozuldu birden",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-19",
+  "kategori": "H",
+  "girdi": "Galiba bayıldı ama emin değilim, şimdi uyanık",
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": true
+ },
+ {
+  "id": "GZ-20",
+  "kategori": "B",
+  "girdi": "Hiç kanaması olmadı, dikiş yerine pansuman",
+  "beklenen": {
+   "acil": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-21",
+  "kategori": "C",
+  "girdi": [
+   "Nefes darlığı yok",
+   "aslında var, şu an çok zorlanıyor"
+  ],
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-22",
+  "kategori": "C",
+  "girdi": [
+   "Odyolog lazım",
+   "yok yok fizyoterapist"
+  ],
+  "beklenen": {
+   "meslek": "fizyoterapist"
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": "fizyoterapist",
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-23",
+  "kategori": "D",
+  "girdi": [
+   "İki yıl önce kalp krizi geçirdi",
+   "şu an göğsü sıkışıyor"
+  ],
+  "beklenen": {
+   "acil": true
+  },
+  "gercek": {
+   "acil": true,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": true
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ },
+ {
+  "id": "GZ-24",
+  "kategori": "H",
+  "girdi": [
+   "Bilmiyorum",
+   "şaka yaptım",
+   "kedim kayboldu"
+  ],
+  "beklenen": {
+   "acil": false,
+   "saglik": false
+  },
+  "gercek": {
+   "acil": false,
+   "meslek": null,
+   "gecmis_sor": false,
+   "saglik": false
+  },
+  "js_ayni": true,
+  "gecti": true,
+  "hatalar": [],
+  "onem": "yüksek",
+  "uzman": false
+ }
+]
