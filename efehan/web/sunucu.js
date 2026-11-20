@@ -8,14 +8,25 @@
 
   function hataYap(kod, mesaj) { const e = new Error(mesaj || kod); e.code = kod; return e; }
 
+  // Groq'un ücretsiz dakikalık kotası dolunca sunucu 429 döner: kullanıcıya "yoğunum" demeden önce bekleyip yeniden dene
   async function istek(url, yol, govde, zamanAsimiMs) {
+    const beklemeler = [2500, 6000, 10000];
+    for (let i = 0; ; i++) {
+      try { return await istekTek(url, yol, govde, zamanAsimiMs); }
+      catch (e) {
+        if (e.code !== "rate_limited" || i >= beklemeler.length) throw e;
+        await new Promise((r) => setTimeout(r, e.sonra ? Math.min(15000, e.sonra * 1000) : beklemeler[i]));
+      }
+    }
+  }
+  async function istekTek(url, yol, govde, zamanAsimiMs) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), zamanAsimiMs || 45000);
     try {
       const r = await fetch(url + yol, govde instanceof FormData ? { method: "POST", body: govde, signal: ctl.signal }
         : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde), signal: ctl.signal });
       const v = await r.json().catch(() => null);
-      if (r.status === 429) throw hataYap("rate_limited", "yoğun");
+      if (r.status === 429) { const h = hataYap("rate_limited", "yoğun"); h.sonra = +(v && v.sonra) || +r.headers.get("Retry-After") || 0; throw h; }
       if (!r.ok || !v) throw hataYap("sunucu", (v && v.mesaj) || String(r.status));
       return v;
     } catch (e) {

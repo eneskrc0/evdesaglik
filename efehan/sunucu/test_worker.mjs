@@ -41,7 +41,17 @@ let k = 0; sahte = (u, i) => (k++ === 0 ? groqYanit("", 400) : groqYanit('{"repl
 cagrilar = []; r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = await r.json();
 assert.equal(v.yanit.reply, "ikinci deneme"); assert.equal(JSON.parse(cagrilar[1].init.body).response_format, undefined); ok("JSON kipi reddedilirse sade istekle yeniden deneniyor");
 
-sahte = () => groqYanit("", 429); r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 429); ok("Groq yoğunsa 429 iletiliyor");
+sahte = () => groqYanit("", 429); cagrilar = []; r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 429);
+assert.deepEqual(cagrilar.map((c) => JSON.parse(c.init.body).model), ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"]);
+ok("Groq yoğunsa önce iki yedek model denenir, hepsi doluysa 429 iletilir");
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model === "openai/gpt-oss-120b" ? groqYanit("", 429) : groqYanit('{"reply":"yedek modelden"}'));
+r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); v = await r.json();
+assert.equal(r.status, 200); assert.equal(v.yanit.reply, "yedek modelden"); assert.equal(v.model, "openai/gpt-oss-20b");
+ok("ana modelin kotası dolunca yedek modelle cevap veriliyor");
+assert.equal(JSON.parse(cagrilar[0].init.body).reasoning_effort, "low"); ok("gpt-oss kısa düşünüyor (reasoning_effort: low)");
+cagrilar = []; sahte = (u, i) => (JSON.parse(i.body).model !== "llama-3.3-70b-versatile" ? groqYanit("", 429) : groqYanit('{"reply":"llama"}'));
+r = await iste("/sohbet", { turlar: [{ role: "user", content: "a" }] }); assert.equal(r.status, 200);
+assert.equal(JSON.parse(cagrilar[2].init.body).reasoning_effort, undefined); ok("gpt-oss dışı yedek modele düşünme ayarı gönderilmiyor");
 
 sahte = () => groqYanit('{"reply":"foto"}'); cagrilar = [];
 const resim = "data:image/jpeg;base64," + "A".repeat(100);

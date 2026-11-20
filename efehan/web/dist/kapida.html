@@ -782,7 +782,7 @@ FOTOĞRAF İSTEME KURALI: Fotoğrafı YALNIZCA cildin dışında, telefonla kola
 AÇIKLAMA: Gerektiğinde bir sonraki adımı bir cümleyle açıkla (ör. "Bu bilgileri hemşireye ileteceğim, o da gelmeden önce okuyacak."). Hemşire, fizyoterapist gibi meslekler hekim planı olmadan hizmet veremez; plan yoksa önce hekim değerlendirmesi gerekeceğini sade biçimde söyle.
 ACİL: Acil belirti (göğüs ağrısı/baskısı, nefes alamama, bilinç kaybı, bayılma, inme belirtisi, nöbet, şiddetli kanama, zehirlenme, ani çok şiddetli baş ağrısı, kendine zarar düşüncesi, ateşle birlikte ense sertliği vb.) sezersen red_flag=true yap ve 112'yi aramasını söyle (zehirlenmede 114).
 FOTOĞRAF: Fotoğraf gelirse photo_notes alanına yalnızca NESNEL tarif yaz (vücut bölgesi, yaklaşık boyut, renk, akıntı ya da kabuk görünümü); evre ya da tanı söyleme.
-BİTİŞ: Ne olduğu ve ne zamandır sürdüğü belliyse (ya da 3 soru sorduysan) ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz.
+BİTİŞ: Ne olduğu ve ne zamandır sürdüğü belliyse (gerekiyorsa plan sorusu da cevaplandıysa ya da 3 soru sorduysan) ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz. "Hemşire gelsin ister misiniz?", "Yönlendireyim mi?" gibi ONAY SORUSU SORMA; seçimi kullanıcı bir sonraki ekranda kendisi yapar. Kullanıcı "duyuyor musun", "tekrar et" gibi ara bir şey derse bunu soru hakkından sayma.
 YANITIN yalnızca şu JSON olsun: {"reply": "kısa yanıt + tek soru", "quick_replies": ["en fazla 4 kısa hazır cevap"], "red_flag": false, "red_flag_reason": "", "photo_notes": "", "anlasilan": "kullanıcının son mesajından anladığın, tek cümle", "istenen_meslek": "", "doktora_yonlendir": false, "ready": false}`;
 
   // Rapor istemi şablonu: {{HIZMETLER}}, {{FOTO}}, {{TRANSKRIPT}} doldurulur (sunucu da aynı şablonu kullanır).
@@ -820,14 +820,25 @@ YANIT yalnızca şu JSON olsun:
 
   function hataYap(kod, mesaj) { const e = new Error(mesaj || kod); e.code = kod; return e; }
 
+  // Groq'un ücretsiz dakikalık kotası dolunca sunucu 429 döner: kullanıcıya "yoğunum" demeden önce bekleyip yeniden dene
   async function istek(url, yol, govde, zamanAsimiMs) {
+    const beklemeler = [2500, 6000, 10000];
+    for (let i = 0; ; i++) {
+      try { return await istekTek(url, yol, govde, zamanAsimiMs); }
+      catch (e) {
+        if (e.code !== "rate_limited" || i >= beklemeler.length) throw e;
+        await new Promise((r) => setTimeout(r, e.sonra ? Math.min(15000, e.sonra * 1000) : beklemeler[i]));
+      }
+    }
+  }
+  async function istekTek(url, yol, govde, zamanAsimiMs) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), zamanAsimiMs || 45000);
     try {
       const r = await fetch(url + yol, govde instanceof FormData ? { method: "POST", body: govde, signal: ctl.signal }
         : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde), signal: ctl.signal });
       const v = await r.json().catch(() => null);
-      if (r.status === 429) throw hataYap("rate_limited", "yoğun");
+      if (r.status === 429) { const h = hataYap("rate_limited", "yoğun"); h.sonra = +(v && v.sonra) || +r.headers.get("Retry-After") || 0; throw h; }
       if (!r.ok || !v) throw hataYap("sunucu", (v && v.mesaj) || String(r.status));
       return v;
     } catch (e) {

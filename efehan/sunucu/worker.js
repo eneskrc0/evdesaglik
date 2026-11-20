@@ -35,7 +35,7 @@ FOTOĞRAF İSTEME KURALI: Fotoğrafı YALNIZCA cildin dışında, telefonla kola
 AÇIKLAMA: Gerektiğinde bir sonraki adımı bir cümleyle açıkla (ör. "Bu bilgileri hemşireye ileteceğim, o da gelmeden önce okuyacak."). Hemşire, fizyoterapist gibi meslekler hekim planı olmadan hizmet veremez; plan yoksa önce hekim değerlendirmesi gerekeceğini sade biçimde söyle.
 ACİL: Acil belirti (göğüs ağrısı/baskısı, nefes alamama, bilinç kaybı, bayılma, inme belirtisi, nöbet, şiddetli kanama, zehirlenme, ani çok şiddetli baş ağrısı, kendine zarar düşüncesi, ateşle birlikte ense sertliği vb.) sezersen red_flag=true yap ve 112'yi aramasını söyle (zehirlenmede 114).
 FOTOĞRAF: Fotoğraf gelirse photo_notes alanına yalnızca NESNEL tarif yaz (vücut bölgesi, yaklaşık boyut, renk, akıntı ya da kabuk görünümü); evre ya da tanı söyleme.
-BİTİŞ: Ne olduğu ve ne zamandır sürdüğü belliyse (ya da 3 soru sorduysan) ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz.
+BİTİŞ: Ne olduğu ve ne zamandır sürdüğü belliyse (gerekiyorsa plan sorusu da cevaplandıysa ya da 3 soru sorduysan) ready=true yap ve neyin olacağını anlatan kısa bir kapanış cümlesi yaz. "Hemşire gelsin ister misiniz?", "Yönlendireyim mi?" gibi ONAY SORUSU SORMA; seçimi kullanıcı bir sonraki ekranda kendisi yapar. Kullanıcı "duyuyor musun", "tekrar et" gibi ara bir şey derse bunu soru hakkından sayma.
 YANITIN yalnızca şu JSON olsun: {"reply": "kısa yanıt + tek soru", "quick_replies": ["en fazla 4 kısa hazır cevap"], "red_flag": false, "red_flag_reason": "", "photo_notes": "", "anlasilan": "kullanıcının son mesajından anladığın, tek cümle", "istenen_meslek": "", "doktora_yonlendir": false, "ready": false}`;
 
   // Rapor istemi şablonu: {{HIZMETLER}}, {{FOTO}}, {{TRANSKRIPT}} doldurulur (sunucu da aynı şablonu kullanır).
@@ -93,6 +93,7 @@ const modelAdi = (env, ayar, ad) => env[ad] || (ayar.modeller && ayar.modeller[a
 
 const VARSAYILAN_KOKENLER = ["https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
 const GROQ = "https://api.groq.com/openai/v1";
+const VARSAYILAN_YEDEK = ["openai/gpt-oss-20b", "llama-3.3-70b-versatile"];
 const VARSAYILAN = { MODEL: "openai/gpt-oss-120b", GORSEL_MODEL: "qwen/qwen3.8-27b", SES_MODEL: "whisper-large-v3" };
 const SINIR = { sesBayt: 10 * 1024 * 1024, tur: 40, turKarakter: 2000, transkript: 20000, resim: 3, resimKarakter: 1_600_000, istekPencereSn: 600, istekSayisi: 60 };
 
@@ -137,9 +138,17 @@ async function groqSohbet(env, ayar, mesajlar, resimler) {
     son.content = [{ type: "text", text: son.content }, ...resimler.map((u) => ({ type: "image_url", image_url: { url: u } }))];
   }
   const govde = { model, messages: mesajlar, temperature: 0.3, max_completion_tokens: 1500, response_format: { type: "json_object" } };
+  // gpt-oss "düşünen" modeldir: kısa düşünsün (sesli sohbette hız ve ücretsiz dakikalık kota için)
+  if (/gpt-oss/.test(model)) govde.reasoning_effort = (ayar.modeller && ayar.modeller.DUSUNME) || "low";
+  // Kota dolarsa (429) ayrı kotası olan yedek modellere geç
+  const yedekler = gorsel ? [] : ((ayar.modeller && Array.isArray(ayar.modeller.YEDEK) && ayar.modeller.YEDEK) || VARSAYILAN_YEDEK).filter((m) => m !== model);
   for (let deneme = 0; deneme < 2; deneme++) {
     const r = await fetch(GROQ + "/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + env.GROQ_API_KEY, "Content-Type": "application/json" }, body: JSON.stringify(govde) });
-    if (r.status === 429) return { hata: "yogun" };
+    if (r.status === 429) {
+      const yedek = yedekler.shift();
+      if (yedek) { govde.model = yedek; if (/gpt-oss/.test(yedek)) govde.reasoning_effort = "low"; else delete govde.reasoning_effort; deneme--; continue; }
+      return { hata: "yogun", sonra: +r.headers.get("retry-after") || 0 };
+    }
     const v = await r.json().catch(() => null);
     if (!r.ok) {
       // JSON kipi ya da görsel desteklenmiyorsa bir kez sade istekle dene
@@ -174,7 +183,7 @@ async function sohbet(istek, env) {
   const ayar = await ayarlar(env);
   const sistem = ayar.sohbet_kurallari + (notlar.length ? `\nŞimdiye kadarki fotoğraf notları: ${notlar.join(" | ")}` : "");
   const r = await groqSohbet(env, ayar, [{ role: "system", content: sistem }, ...turlar], resimleriDenetle(g.resimler));
-  if (r.hata) return { durum: r.hata === "yogun" ? 429 : 502, veri: { hata: r.hata, mesaj: String(r.ayrinti || "") } };
+  if (r.hata) return { durum: r.hata === "yogun" ? 429 : 502, veri: { hata: r.hata, mesaj: String(r.ayrinti || ""), sonra: r.sonra || 0 } };
   return { durum: 200, veri: { yanit: r.sonuc, model: r.model } };
 }
 
