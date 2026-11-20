@@ -311,6 +311,45 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 @media (max-width:860px){.tek-rol .sub{display:none}}.rol-hasta #colH,.rol-calisan #colP{display:none!important}.tek-rol .foot-note{display:none}
 .rol-kapi{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:4px 0 0}.rol-kapi a{font-size:13px;color:var(--brand);font-weight:700;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:#fff}
 .toplu-plan{line-height:1.7}.toplu-simdi{background:var(--brand);color:#fff;border-radius:6px;padding:0 4px}.adres-oneri{justify-content:flex-start;white-space:normal}
+/* Sesli asistan */
+.hero .talk.sesli-gir { margin-top: 8px; background: rgba(255,255,255,.14); color: #fff; } .hero .talk.sesli-gir .muted { color: rgba(255,255,255,.8) !important; }
+.sesli { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 16px 16px; min-height: 100%; background: linear-gradient(180deg, var(--brand-soft), var(--phone) 65%); }
+.sv-ust { width: 100%; display: flex; justify-content: space-between; align-items: center; } .sv-ust .pill svg { width: 14px; height: 14px; vertical-align: -2px; }
+.sv-asistan { font-size: 19px; line-height: 1.45; font-weight: 600; text-align: center; min-height: 72px; max-height: 210px; overflow: auto; white-space: pre-line; }
+.sv-orb { --sv: 0; width: 148px; height: 148px; flex: none; border-radius: 50%; border: 0; position: relative; cursor: pointer; margin: 6px 0;
+  background: radial-gradient(circle at 35% 30%, #e9fff8 0, var(--brand) 52%, #0a4f40 100%); box-shadow: 0 12px 40px rgba(16,110,90,.35);
+  transform: scale(calc(1 + var(--sv) * .3)); transition: transform .08s linear; -webkit-tap-highlight-color: transparent; }
+.sv-orb:focus-visible { outline: 4px solid var(--saffron); outline-offset: 6px; }
+.sv-halka { position: absolute; inset: -12px; border-radius: 50%; border: 3px solid var(--brand); opacity: calc(.18 + var(--sv) * 1.2); transform: scale(calc(1 + var(--sv) * .45)); transition: transform .08s linear, opacity .08s linear; }
+.sv-cekirdek { position: absolute; inset: 34%; border-radius: 50%; background: rgba(255,255,255,.55); filter: blur(6px); }
+.durum-konusuyor .sv-orb { animation: svNefes 1.3s ease-in-out infinite; }
+.durum-dusunuyor .sv-orb, .durum-isleniyor .sv-orb, .durum-hazir .sv-orb { background: conic-gradient(from 0deg, var(--brand), #7fd6bf, var(--saffron), var(--brand)); animation: svDon 1.6s linear infinite; }
+.durum-beklemede .sv-orb, .durum-kapali .sv-orb { filter: grayscale(.85); opacity: .65; }
+@keyframes svNefes { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@keyframes svDon { to { transform: rotate(360deg); } }
+.sv-durum { font-weight: 700; color: var(--brand); text-align: center; min-height: 22px; }
+.sv-sen, .sv-son { font-size: 15px; text-align: center; background: var(--phone); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; max-width: 100%; }
+.sesli .understood { text-align: center; align-self: center; }
+.sv-alt { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: auto; }
+@media (prefers-reduced-motion: reduce) { .sv-orb, .sv-halka { animation: none !important; transition: none !important; } }
+/* Randevularım */
+.yaklasan { border: 2px solid var(--brand); background: var(--brand-soft); }
+.randevu-satir { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--phone); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 52px; cursor: pointer; }
+.randevu-satir > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.randevularim summary { cursor: pointer; padding: 6px 0; }
+/* Hasta ekranı okunabilirlik (yaşlı kullanıcılar): ana metin ~17px, yardımcı ~15-16px, düğmeler ≥48px */
+#pScreen { font-size: 17px; line-height: 1.45; }
+#pScreen .small { font-size: 15.5px; } #pScreen .tiny { font-size: 14px; }
+#pScreen .chip { font-size: 15px; min-height: 44px; padding: 9px 14px; }
+#pScreen .btn.ghost { min-height: 44px; }
+#pScreen .when { font-size: 16px; } #pScreen .msg { font-size: 17px; }
+#pScreen .yz-satir { flex-wrap: wrap; row-gap: 8px; }
+#pScreen .yz-satir > .teklif-btn, #pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { flex-basis: 100%; }
+#pScreen .yz-satir > .pill, #pScreen .yz-satir > span.small { text-align: center; }
+#pScreen .teklif-btn { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; column-gap: 10px; row-gap: 0; padding: 10px 14px; }
+#pScreen .teklif-btn .tiny { flex-basis: 100%; text-align: left; opacity: .85; }
+#pScreen .teklif-toplam { font-size: 18px; font-weight: 800; }
+.model-panel summary { cursor: pointer; color: var(--brand); font-weight: 700; padding: 4px 0; min-height: 36px; }
 </style>
 </head>
 <body>
@@ -348,6 +387,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 <script>/*__TEKLIF__*/</script>
 <script>/*__DOGRULAMA__*/</script>
 <script>/*__GUVENLIK__*/</script>
+<script>/*__SESLI__*/</script>
 <script>/*__TOPLU__*/</script>
 <script>/*__ADRES__*/</script>
 <script>/*__APP__*/</script>

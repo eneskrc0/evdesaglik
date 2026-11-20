@@ -8,14 +8,25 @@
 
   function hataYap(kod, mesaj) { const e = new Error(mesaj || kod); e.code = kod; return e; }
 
+  // Groq'un ücretsiz dakikalık kotası dolunca sunucu 429 döner: kullanıcıya "yoğunum" demeden önce bekleyip yeniden dene
   async function istek(url, yol, govde, zamanAsimiMs) {
+    const beklemeler = [2500, 6000, 10000];
+    for (let i = 0; ; i++) {
+      try { return await istekTek(url, yol, govde, zamanAsimiMs); }
+      catch (e) {
+        if (e.code !== "rate_limited" || i >= beklemeler.length) throw e;
+        await new Promise((r) => setTimeout(r, e.sonra ? Math.min(15000, e.sonra * 1000) : beklemeler[i]));
+      }
+    }
+  }
+  async function istekTek(url, yol, govde, zamanAsimiMs) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), zamanAsimiMs || 45000);
     try {
       const r = await fetch(url + yol, govde instanceof FormData ? { method: "POST", body: govde, signal: ctl.signal }
         : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde), signal: ctl.signal });
       const v = await r.json().catch(() => null);
-      if (r.status === 429) throw hataYap("rate_limited", "yoğun");
+      if (r.status === 429) { const h = hataYap("rate_limited", "yoğun"); h.sonra = +(v && v.sonra) || +r.headers.get("Retry-After") || 0; throw h; }
       if (!r.ok || !v) throw hataYap("sunucu", (v && v.mesaj) || String(r.status));
       return v;
     } catch (e) {
@@ -69,25 +80,51 @@
     };
   }
 
-  // Telefonun Türkçe sesi: varsa daha doğal sesleri tercih et
+  // Telefonun Türkçe sesi: en doğal Türkçe sesi seçer, metni cümle cümle okur (Chrome uzun metni yarıda keser),
+  // her cümlede geri çağırır, durdurulabilir. Sesli asistan (sesli.js) ve "yanıtları sesli oku" bunu kullanır.
   function telefonSesi() {
     if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance === "undefined") return null;
-    const sec = () => {
-      const tr = speechSynthesis.getVoices().filter((v) => /^tr/i.test(v.lang));
-      return tr.find((v) => /natural|neural|premium|enhanced|yelda|google/i.test(v.name)) || tr.find((v) => v.localService) || tr[0] || null;
-    };
+    const SS = window.speechSynthesis;
+    const puan = (v) => (/natural|neural|online/i.test(v.name) ? 40 : 0) + (/premium|enhanced|yüksek/i.test(v.name) ? 30 : 0)
+      + (/google/i.test(v.name) ? 20 : 0) + (/yelda|emel|ahmet|cem|filiz/i.test(v.name) ? 10 : 0) + (v.localService ? 2 : 0) + (/^tr[-_]TR/i.test(v.lang) ? 3 : 0);
+    let ses = null;
+    const sec = () => { const tr = SS.getVoices().filter((v) => /^tr/i.test(v.lang)); ses = tr.sort((a, b) => puan(b) - puan(a))[0] || null; return ses; };
+    sec(); try { SS.addEventListener("voiceschanged", sec); } catch (e) { /* eski tarayıcı */ }
+    const bol = (t) => (window.KapidaSesli ? window.KapidaSesli.cumleler(t) : String(t).match(/[^.!?]+[.!?]*/g) || [String(t)]);
+    const temizle = (t) => (window.KapidaSesli ? window.KapidaSesli.sesMetni(t) : String(t).replace(/[*_#>]/g, ""));
+    let kesildi = false, acildi = false, nesil = 0;
+    function tek(metin) {
+      return new Promise((res) => {
+        const u = new SpeechSynthesisUtterance(metin);
+        u.lang = "tr-TR"; u.rate = 1.0; u.pitch = 1.0;
+        const v = ses || sec(); if (v) u.voice = v;
+        let bitti = false; const son = () => { if (!bitti) { bitti = true; clearTimeout(emniyet); clearInterval(canli); res(); } };
+        u.onend = son; u.onerror = son;
+        // Bazı Android sürümlerinde onend gelmez: tahmini süre + pay sonra devam et
+        const emniyet = setTimeout(son, 2500 + metin.length * 110);
+        // Chrome masaüstü ~15 sn'de durur: arada duraklat/sürdür
+        const canli = setInterval(() => { if (SS.speaking && !SS.paused && !/Android/i.test(navigator.userAgent)) { SS.pause(); SS.resume(); } }, 9000);
+        SS.speak(u);
+      });
+    }
     return {
-      speak(metin) {
-        return new Promise((res) => {
-          speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(String(metin).replace(/[*_#>]/g, ""));
-          u.lang = "tr-TR"; u.rate = 0.97;
-          const v = sec(); if (v) u.voice = v;
-          u.onend = res; u.onerror = res;
-          speechSynthesis.speak(u);
-        });
+      cumleCumle: true,
+      kilidiAc() { // iOS: ilk konuşma bir dokunuşun içinde başlamalı
+        if (acildi) return; acildi = true;
+        try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; u.lang = "tr-TR"; SS.speak(u); } catch (e) { /* yok */ }
       },
-      stop() { speechSynthesis.cancel(); },
+      async speak(metin, o) {
+        const benim = ++nesil; kesildi = false;
+        SS.cancel();
+        const parca = bol(temizle(metin));
+        for (let i = 0; i < parca.length; i++) {
+          if (kesildi || benim !== nesil) return { kesildi: true };
+          o && o.onCumle && o.onCumle(i, parca[i]);
+          await tek(parca[i]);
+        }
+        return { kesildi: kesildi || benim !== nesil };
+      },
+      stop() { kesildi = true; nesil++; SS.cancel(); },
     };
   }
 
@@ -107,6 +144,13 @@
         return v.rapor;
       },
       dictation: kaydedici(url),
+      // Sesli asistan: tek bir konuşmayı yazıya çevir (Whisper)
+      async yaziyaCevir(blob, uzanti) {
+        const f = new FormData();
+        f.append("dosya", blob, "kayit." + (uzanti || "webm"));
+        const v = await istek(url, "/ses", f, 60000);
+        return v.metin || "";
+      },
     };
   }
 

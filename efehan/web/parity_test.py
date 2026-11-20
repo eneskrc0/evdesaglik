@@ -26,7 +26,7 @@ EXTRA_TEXTS = ["Göğsümde YANMA var reflü sanırım", "IŞIK gözümü acıt�
                "kateter", "nöbetçi eczane nerede", "İğne yaptırmam lazım", "ateşli havale geçirdi",
                "hemşire çağırmak istiyorum", "fizik tedavici gelsin dizim ameliyatlı", "odyolog istiyorum",
                "yaram var doktor gelsin", "doktorla görüntülü görüşmek istiyorum", "lohusayım ebe lazım",
-               "pansuman için hemşire", "diyetisyen istiyorum şekerim var", "psikolog gelsin"]
+               "pansuman için hemşire", "diyetisyen istiyorum şekerim var", "psikolog gelsin"] + [r["text"] for f in ("triage_zor.csv", "triage_gizli.csv") for r in __import__("csv").DictReader((Path(__file__).resolve().parents[1] / "data" / "eval" / f).open(encoding="utf-8"))]
 
 
 def python_side() -> dict:

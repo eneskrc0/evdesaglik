@@ -5,11 +5,45 @@
 
   // ---------- text.py ----------
   const FOLD = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "â": "a", "î": "i", "û": "u" };
+  // Konuşma dilinde -yor'un r'si düşer: "alamıyo", "durmuyo", "yapıyom" (text.py _AGIZ)
+  const AGIZ_EK = { "": "r", m: "rum", n: "rsun", z: "ruz", lar: "rlar" };
   function normalize(text) {
     let t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
     t = t.replace(/[çğıöşüâîû]/g, (c) => FOLD[c]);
     t = t.replace(/[^a-z0-9;|]+/g, " ").trim();
-    return " " + t + " ";
+    return (" " + t + " ").replace(/(iyo|uyo)(m|n|z|lar)?(?= )/g, (_, a, b) => a + AGIZ_EK[b || ""]);
+  }
+  // Olumsuzluk ve zaman (text.py clauses / match_live ile aynı)
+  const YAN = /[.!?;,\n]+|\s(?:ama|fakat|ancak|lakin|şimdi|simdi|şu an|su an|bugün|bugun)\s/;
+  const OLUMSUZ = new Set(["yok", "yoktu", "yoktur", "yokmus", "degil", "degildi", "degildir", "degilim", "olmadi", "olmamis",
+    "gecirmedi", "gecirmemis", "olmuyor", "hissetmiyor", "yasanmiyor", "yasamadi", "yasamamis", "bayilmadi", "kusmadi", "kanamadi", "zehirlenmedi"]);
+  const ESKI = / (gecen (yil|sene|ay)|(yil|yillar|sene|seneler|ay|aylar) once|eskiden|gecmiste|cocukken|gencken) /;
+  const YOKLUK_BELIRTI = / (bilinc\w*|nefes\w*|nabz\w*|nabiz\w*|solunum\w*|tepki\w*|kendinde|yerinde degil|hareket\w*) (yok|degil|kalmadi)/;
+  const SIMDI = / (simdi|su an|bugun|yine|tekrar|az once|demin|biraz once|hala) /;
+  const CELISKI = / (aslinda|yani|galiba|sanki|biraz) (\w+ )?var /;
+  function clauses(text) {
+    const t = String(text).replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
+    const out = [];
+    for (const c of t.split(YAN)) {
+      if (c === undefined) continue;
+      const n = normalize(c);
+      if (!n.trim()) continue;
+      const neg = (n.split(" ").some((w) => OLUMSUZ.has(w)) && !YOKLUK_BELIRTI.test(n)) || (ESKI.test(n) && !SIMDI.test(n));
+      out.push([n, neg]);
+    }
+    return out;
+  }
+  function matchLive(parsed, rawText) {
+    const full = normalize(rawText), cl = clauses(rawText), celiski = CELISKI.test(full);
+    for (const parts of parsed) {
+      if (!parts.every((p) => full.includes(" " + p))) continue;
+      if (celiski) return parts.join(" + ");
+      for (const p of parts) {
+        const yer = cl.filter(([n]) => n.includes(" " + p)).map(([, neg]) => neg);
+        if (!yer.length || !yer.every(Boolean)) return parts.join(" + ");
+      }
+    }
+    return null;
   }
   function parseKeywords(spec) {
     const alts = [];
@@ -126,7 +160,7 @@
     const text = normalize(complaint);
     const hits = [];
     for (const rf of repo.red_flags) {
-      const m = match(rf.parsed, text);
+      const m = matchLive(rf.parsed, complaint);
       if (m) hits.push([rf, m]);
     }
     if (hits.length) {
@@ -393,7 +427,7 @@
   }
 
   const api = {
-    normalize, parseKeywords, match, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
+    normalize, parseKeywords, match, matchLive, clauses, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
     handleRequest, competenceScore, roadKm, travelMin, travel, trafikKatsayisi, yakinAcil, setYol, hhmm, LEVEL_TEXT, CFG,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

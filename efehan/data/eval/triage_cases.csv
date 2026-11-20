@@ -61,3 +61,8 @@ T59,dedem tek başına giyinemiyor banyo yapamıyor,0,1,PLANLI,CR_GUNLUK_YASAM,e
 T60,iğneci kız gelsin reçetem var,0,1,PLANLI,CR_IGNE,ağız: iğneci → iğne hizmeti (hemşire)
 T61,annemin konuşması aniden bozuldu,0,0,ACIL_112,RF_INME,kırmızı bayrak meslek isteğinden önce
 T62,hemşire istiyorum göğsümde baskı var,0,0,ACIL_112,RF_GOGUS,kırmızı bayrak meslek isteğinden önce
+T63,Göğüs ağrım yok sadece öksürük var,0,0,TELE,CR_AKUT_HAFIF,olumsuz cümle acil değil (GPT testi)
+T64,"Hava yetmiyor, soluk alamıyorum",0,0,ACIL_112,RF_NEFES,ifade çeşitliliği (GPT testi)
+T65,Düştü kafasını çarptı kusuyor,0,0,ACIL_112,RF_KAFA,kafa travması + kusma (S15)
+T66,Geçen yıl kalp krizi geçirdi şimdi kontrol istiyoruz,0,0,TELE,,eski olay acil değil
+T67,Nöbet geçirmedi ama ateşi var,0,0,TELE,CR_AKUT_HAFIF,olumsuz fiil
