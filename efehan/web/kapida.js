@@ -1129,7 +1129,8 @@
   // ---------- tek rol görünümü: #hasta ya da #calisan (ya da ?rol=hasta|calisan) — iki ayrı telefonda ayrı uygulama gibi ----------
   function rolUygula() {
     const q = new URLSearchParams(location.search).get("rol"), h = (location.hash || "").replace("#", "");
-    const rol = ["hasta", "calisan"].includes(h) ? h : ["hasta", "calisan"].includes(q) ? q : "";
+    const r0 = ["hasta", "calisan", "doktor"].includes(h) ? h : ["hasta", "calisan", "doktor"].includes(q) ? q : "";
+    const rol = r0 === "doktor" ? "calisan" : r0; // doktor da sağlık çalışanı telefonunu kullanır
     document.body.classList.toggle("tek-rol", !!rol);
     document.body.classList.toggle("rol-hasta", rol === "hasta");
     document.body.classList.toggle("rol-calisan", rol === "calisan");
@@ -1141,7 +1142,8 @@
   // ---------- demo hesapları: hasta ve sağlık çalışanı (prototip; gerçek kimlik doğrulama yok, şifre sunucuya gitmez) ----------
   const HESAPLAR = {
     hasta: { kullanici: "hasta", sifre: "1234", ad: "Ayşe Demir", aciklama: "Hasta yakını · Bornova", ilce: "Bornova" },
-    calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12" },
+    calisan: { kullanici: "hemsire", sifre: "1234", ad: person("HEM-12").full, aciklama: "Hemşire · HEM-12 · mesleki başvurusu onaylı (demo)", pid: "HEM-12", prof: "hemsire" },
+    doktor: { kullanici: "doktor", sifre: "1234", ad: person("HEK-02").full, aciklama: "Pratisyen hekim · HEK-02 · Bayraklı · mesleki başvurusu onaylı (demo)", pid: "HEK-02", prof: "hekim", hekimType: "pratisyen" },
   };
   function oturumAc(rol) {
     const h = HESAPLAR[rol];
@@ -1150,7 +1152,7 @@
     else {
       H.pid = h.pid;
       DG.state.status = "onaylandi"; DG.state.open = false; DG.state.view = "status";
-      DG.state.f.name = h.ad; DG.state.f.prof = "hemsire";
+      DG.state.f.name = h.ad; DG.state.f.prof = h.prof; if (h.hekimType) DG.state.f.hekimType = h.hekimType;
     }
     location.hash = rol;
     $("#girisKatman").remove();
@@ -1165,7 +1167,7 @@
     const d = document.createElement("div");
     d.id = "girisKatman";
     d.innerHTML = `<div class="giris-kutu"><div class="logo">kapı<i>da</i></div><div class="small muted">Demo hesabıyla gir. Aynı telefonda ikisini yan yana görmek için "İkisi yan yana".</div>
-      <div class="giris-sira">${kart("hasta", "🧑", "Hasta hesabı")}${kart("calisan", "🩺", "Sağlık çalışanı hesabı")}</div>
+      <div class="giris-sira">${kart("hasta", "🧑", "Hasta hesabı")}${kart("calisan", "🩺", "Hemşire hesabı")}${kart("doktor", "👨‍⚕️", "Doktor hesabı")}</div>
       <button class="btn block" type="button" data-giris="ikisi">İkisi yan yana (tek ekran demo)</button>
       <div class="tiny muted">Prototip: hesaplar sentetiktir, şifre hiçbir yere gönderilmez. Gerçek uygulamada giriş e-posta/telefon doğrulamasıyla, sağlık çalışanı için mesleki doğrulamayla yapılır.</div>
       <div class="tiny" id="girisHata" style="color:#b42318"></div></div>`;
@@ -1181,7 +1183,7 @@
   }
   // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
   { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
-    if (h === "hasta" || h === "calisan") oturumAc(h); else if (h !== "ikisi") girisEkrani(); }
+    if (h === "hasta" || h === "calisan" || h === "doktor") oturumAc(h); else if (h !== "ikisi") girisEkrani(); }
 
   renderP(); renderH();
   initCaps();
