@@ -671,7 +671,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
   }
   const round2 = (x) => Math.round(x * 100) / 100;
 
-  function bestInsertion(home, window, stops, target, duration, earliest, mode) {
+  function bestInsertion(home, window, stops, target, duration, earliest, mode, cikis) {
     const [start, end] = window;
     const points = [{ loc: home, ready: start }];
     for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
@@ -683,7 +683,9 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
       const nxtLoc = nxt ? nxt.loc : home;
       const deadline = nxt ? nxt.start : end;
       const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
-      const arrival = Math.max(prev.ready + travel(prev.loc, target, prev.ready, mode), earliest);
+      // yola çıkış gerçek "şimdi"den önce olamaz (cikis; verilmezse earliest - LEAD_TIME_MIN); routing.py ile aynı
+      const dep = Math.max(prev.ready, cikis == null ? earliest - CFG.LEAD_TIME_MIN : cikis);
+      const arrival = Math.max(dep + travel(prev.loc, target, dep, mode), earliest);
       const finish = arrival + duration;
       if (finish + travel(target, nxtLoc, finish, mode) > deadline) continue;
       const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
@@ -726,7 +728,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
     return [p.yetkinlik / s, p.fiyat / s, p.hiz / s];
   }
 
-  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5) {
+  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5, gercekSimdi = null) {
     prefs = prefs || { yetkinlik: 1, fiyat: 1, hiz: 1 };
     const svc = repo.services[serviceCode];
     const notes = [];
@@ -754,7 +756,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
       } else {
         if (dist > maxKm) { elim.mesafe++; continue; }
         const stops = repo.scheduled[p.id + "|" + date] || [];
-        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest, p.transport);
+        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest, p.transport, gercekSimdi == null ? nowMin : gercekSimdi);
         if (!ins) { elim.rota++; continue; }
         arrival = ins.arrival_min;
       }
@@ -2391,11 +2393,22 @@ YANIT yalnızca şu JSON olsun:
     const tur = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
     const uzanti = /mp4/.test(tur) ? "m4a" : /ogg/.test(tur) ? "ogg" : "webm";
     let akim = null, ctx = null, analiz = null, kaynak = null, rec = null, saat = null, oturum = 0;
+    let nesil = 0, bekleyenIzin = null; // nesil: birak() her çağrıldığında artar; izin beklerken kapatılırsa gelen akış hemen kapatılır
     const tampon = new Float32Array(1024);
+    function izinAl() {
+      if (bekleyenIzin) return bekleyenIzin; // aynı anda iki getUserMedia açılmasın (iki akış, biri sahipsiz kalır)
+      const benim = nesil;
+      bekleyenIzin = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+        .then((s) => {
+          if (benim !== nesil) { s.getTracks().forEach((t) => t.stop()); const h = new Error("kapatıldı"); h.code = "iptal"; throw h; }
+          return s;
+        }, () => { const h = new Error("mikrofon izni yok"); h.code = "not_granted"; throw h; })
+        .finally(() => { bekleyenIzin = null; });
+      return bekleyenIzin;
+    }
     async function hazirla() {
       if (!akim || !akim.active) {
-        try { akim = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-        catch (e) { const h = new Error("mikrofon izni yok"); h.code = "not_granted"; throw h; }
+        akim = await izinAl();
         if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ }
         kaynak = null;
       }
@@ -2418,6 +2431,8 @@ YANIT yalnızca şu JSON olsun:
         const benim = ++oturum;
         await hazirla();
         if (benim !== oturum) return;
+        // önceki kayıt hâlâ sürüyorsa kapat (üst üste dokunmada iki kayıt ve iki zamanlayıcı kalmasın)
+        durdur(); if (rec && rec.state === "recording") { rec.onstop = null; try { rec.stop(); } catch (e) { /* yok */ } }
         const parcalar = []; const vad = VAD(secenek && secenek.beklemeMs ? { beklemeMs: secenek.beklemeMs } : null); let zorla = false, bitti = false;
         rec = tur ? new MediaRecorder(akim, { mimeType: tur }) : new MediaRecorder(akim);
         rec.ondataavailable = (e) => { if (e.data && e.data.size) parcalar.push(e.data); };
@@ -2445,7 +2460,7 @@ YANIT yalnızca şu JSON olsun:
       },
       bitir() { if (this._bitir) this._bitir(true); },
       iptal() { oturum++; durdur(); if (rec && rec.state === "recording") { rec.onstop = null; try { rec.stop(); } catch (e) { /* yok */ } } this._bitir = null; },
-      birak() { this.iptal(); if (akim) akim.getTracks().forEach((t) => t.stop()); akim = null; if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ } kaynak = null; },
+      birak() { this.iptal(); nesil++; if (akim) akim.getTracks().forEach((t) => t.stop()); akim = null; if (kaynak) try { kaynak.disconnect(); } catch (e) { /* yok */ } kaynak = null; },
       kapat() { this.birak(); if (ctx) { try { ctx.close(); } catch (e) { /* yok */ } ctx = null; } },
     };
   }
@@ -2530,12 +2545,13 @@ YANIT yalnızca şu JSON olsun:
   }
 
   // ---------- denetleyici ----------
-  // o: { dinleyici, tts, gonder(metin) → Promise<{tur: "devam"|"acil"|"bitti"|"hata", metin}>, ciz(), dom(id) }
+  // o: { dinleyici, tts, gonder(metin) → Promise<{tur: "devam"|"acil"|"bitti"|"hata", metin}>, acilMi(metin) → bool (kural motoru), ciz(), dom(id) }
   function create(o) {
     const st = { acik: false, durum: "kapali", seviye: 0, ara: "", sen: "", asistan: "", cumle: -1, hata: "", kulaklik: false, sessizSay: 0, bosSay: 0, birikmis: "", parcaSay: 0 };
     let kes = 0; // her yeni adımda artar; eski geri çağrılar yok sayılır
     const ciz = () => { try { o.ciz(); } catch (e) { /* yok */ } };
     const dl = () => o.dinleyici;
+    const acilMi = (t) => { try { return !!(o.acilMi && o.acilMi(t)); } catch (e) { return false; } };
     const tts = () => o.tts;
     function dom(id, f) { const el = typeof document !== "undefined" && document.getElementById(id); if (el) f(el); }
     function seviyeYaz(v) { st.seviye = st.seviye * 0.6 + v * 0.4; dom("svOrb", (el) => el.style.setProperty("--sv", st.seviye.toFixed(3))); }
@@ -2569,7 +2585,7 @@ YANIT yalnızca şu JSON olsun:
           sessiz: () => { if (benim === kes) sessizlik(); },
           hata: (k) => { if (benim === kes) hata(k); },
         }, secenek);
-      } catch (e) { if (benim === kes) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); }
+      } catch (e) { if (benim === kes && !(e && e.code === "iptal")) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); }
     }
 
     function sessizlik() {
@@ -2591,7 +2607,8 @@ YANIT yalnızca şu JSON olsun:
       if (sestenMi && halusinasyonMu(metin)) { st.bosSay++; araYaz(""); if (st.bosSay >= 3) { st.durum = "beklemede"; ciz(); return; } soyle("Seni tam duyamadım. Bir daha söyler misin?", "dinle"); return; }
       if (!metin) return;
       // Yarım kalan cümle: gönderme, devamını dinle (en fazla 2 parça); sonra hepsini birleştirip gönder
-      if (sestenMi && yarimMi(metin) && st.parcaSay < 2) {
+      // …ama yarım cümlede acil belirti varsa ("Babam nefes alamıyor ve") beklemeden gönder: acil kararı gecikmesin
+      if (sestenMi && yarimMi(metin) && st.parcaSay < 2 && !acilMi((st.birikmis + " " + metin).trim())) {
         st.birikmis = (st.birikmis + " " + metin).trim(); st.parcaSay++;
         dinle({ beklemeMs: 4000 }); araYaz(st.birikmis); return;
       }
@@ -2625,7 +2642,7 @@ YANIT yalnızca şu JSON olsun:
         const hazir = D.hazirla ? D.hazirla() : Promise.resolve(); // getUserMedia dokunuşun içinde başlasın
         ciz();
         hazir.then(() => { if (st.acik) ilkMetin ? soyle(ilkMetin, "dinle") : dinle(); })
-          .catch((e) => { if (st.acik) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); });
+          .catch((e) => { if (st.acik && !(e && e.code === "iptal")) hata(e && e.code === "not_granted" ? "izin" : "ceviri"); });
       },
       kapat(sustur) {
         if (!st.acik && st.durum === "kapali") { if (sustur !== false && tts()) tts().stop(); return; }
@@ -2902,6 +2919,8 @@ YANIT yalnızca şu JSON olsun:
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
   const TK = window.KapidaTeklif && window.KAPIDA_MODEL ? window.KapidaTeklif.create(window.KAPIDA_MODEL, C) : null;
   const SIMDI = 570; // demo saati 09:30 (üst çubuktaki saat)
+  // çalışan en erken ne zaman yola çıkabilir: bugün şimdi (09:30), yarın mesai başı (07:30'dan önce kimse başlamıyor)
+  const gercekSimdi = () => (P.info.gun ? 450 : SIMDI);
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
@@ -2914,6 +2933,7 @@ YANIT yalnızca şu JSON olsun:
   // ---------- sesli asistan (sesli.js) ----------
   // Sesli mod mevcut sohbet akışını kullanır: konuşma → yazı → send() (acil kuralı, 3 soru, meslek, rapor aynen) → yanıt seslendirilir.
   const SV = window.KapidaSesli.create({ dinleyici: null, tts: null, gonder: sesliGonder,
+    acilMi: (t) => C.triage(repo, [...P.msgs.filter((m) => m.who === "me").map((m) => m.text), t].join(". "), { bedridden: false, has_physician_plan: false }).is_emergency,
     ciz: () => { if (P.screen === "chat") renderP(); } });
   function sesliKur() {
     const S = window.KapidaSesli;
@@ -3346,7 +3366,7 @@ YANIT yalnızca şu JSON olsun:
       const gunList = [];
       for (const hedef of saatler) {
         const bas = Math.max(simdi, hedef - LEAD);
-        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
+        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60, simdi); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
         res.candidates = meslekSuz(t, res.candidates);
         if (!res.candidates.length) continue;
         const ilk = Math.min(...res.candidates.map((c) => c.arrival_min));
@@ -3556,7 +3576,7 @@ YANIT yalnızca şu JSON olsun:
     P.triage = t;
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; return pEmergency(); }
     const service = t.services[0];
-    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60);
+    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60, gercekSimdi());
     P.cands = meslekSuz(t, res.candidates).slice(0, 10); P.pt = pt; // YZ teklif katmanı bu 10 kişi arasından seçer
     const [ico, head, why] = levelCopy(t.level, service, t.profession);
     const yz = TK && P.cands.length ? teklifPlani(service, pt) : null;
@@ -3871,7 +3891,7 @@ YANIT yalnızca şu JSON olsun:
     const c = P.cands[P.sheet];
     // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
     if (!c.teklif) {
-      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500);
+      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500, gercekSimdi());
       const hala = kontrol.candidates.find((x) => x.provider_id === c.provider_id);
       if (!hala || hala.arrival_min !== c.arrival_min) {
         P.sheet = null; P.saatler = null;

@@ -21,7 +21,7 @@ from pathlib import Path
 CITY_SPEED_KMH = 25.0      # şehir içi ortalama hız (varsayım)
 PARKING_MIN = 5            # park + kapıya ulaşma (varsayım)
 ROAD_FACTOR = 1.3          # kuş uçuşu -> yol mesafesi (varsayım)
-LEAD_TIME_MIN = 30         # talepten sonra en erken yola çıkış (varsayım)
+LEAD_TIME_MIN = 30         # talepten sonra en erken varış payı (kabul + hazırlık; varsayım). Yola çıkış en erken talep anı.
 MIN_SAVED_KM = 1.0         # "ziyaret paylaşımı" sayılması için en az tasarruf (varsayım)
 
 TRAVEL_TL_PER_KM = 12.0    # yakıt + zaman maliyeti (varsayım)
@@ -123,7 +123,8 @@ class Insertion:
 
 
 def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: list[dict],
-                   target: tuple[float, float], duration: int, earliest: int, mode: str = "araba") -> Insertion | None:
+                   target: tuple[float, float], duration: int, earliest: int, mode: str = "araba",
+                   depart_min: int | None = None) -> Insertion | None:
     """stops: [{'lat','lon','start_min','duration_min'}] saat sırasıyla.
 
     Rota: ev (window[0]'da çıkış) -> ziyaretler -> ev (window[1]'e kadar dönüş).
@@ -143,7 +144,10 @@ def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: li
 
         d1 = road_km(prev["loc"], target)
         d2 = road_km(target, nxt_loc)
-        arrival = max(prev["ready"] + travel(prev["loc"], target, prev["ready"], mode), earliest)
+        # Yola çıkış gerçek "şimdi"den önce olamaz (mesai başı geçmişte kalsa da çalışan şimdi evde/önceki adreste).
+        # depart_min verilmezse şimdi = earliest - LEAD_TIME_MIN. Varış en erken 'earliest'.
+        dep = max(prev["ready"], earliest - LEAD_TIME_MIN if depart_min is None else depart_min)
+        arrival = max(dep + travel(prev["loc"], target, dep, mode), earliest)
         finish = arrival + duration
         if finish + travel(target, nxt_loc, finish, mode) > nxt_deadline:
             continue

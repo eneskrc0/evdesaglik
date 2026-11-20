@@ -79,6 +79,8 @@
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
   const TK = window.KapidaTeklif && window.KAPIDA_MODEL ? window.KapidaTeklif.create(window.KAPIDA_MODEL, C) : null;
   const SIMDI = 570; // demo saati 09:30 (üst çubuktaki saat)
+  // çalışan en erken ne zaman yola çıkabilir: bugün şimdi (09:30), yarın mesai başı (07:30'dan önce kimse başlamıyor)
+  const gercekSimdi = () => (P.info.gun ? 450 : SIMDI);
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
@@ -91,6 +93,7 @@
   // ---------- sesli asistan (sesli.js) ----------
   // Sesli mod mevcut sohbet akışını kullanır: konuşma → yazı → send() (acil kuralı, 3 soru, meslek, rapor aynen) → yanıt seslendirilir.
   const SV = window.KapidaSesli.create({ dinleyici: null, tts: null, gonder: sesliGonder,
+    acilMi: (t) => C.triage(repo, [...P.msgs.filter((m) => m.who === "me").map((m) => m.text), t].join(". "), { bedridden: false, has_physician_plan: false }).is_emergency,
     ciz: () => { if (P.screen === "chat") renderP(); } });
   function sesliKur() {
     const S = window.KapidaSesli;
@@ -523,7 +526,7 @@
       const gunList = [];
       for (const hedef of saatler) {
         const bas = Math.max(simdi, hedef - LEAD);
-        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
+        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60, simdi); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
         res.candidates = meslekSuz(t, res.candidates);
         if (!res.candidates.length) continue;
         const ilk = Math.min(...res.candidates.map((c) => c.arrival_min));
@@ -733,7 +736,7 @@
     P.triage = t;
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; return pEmergency(); }
     const service = t.services[0];
-    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60);
+    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60, gercekSimdi());
     P.cands = meslekSuz(t, res.candidates).slice(0, 10); P.pt = pt; // YZ teklif katmanı bu 10 kişi arasından seçer
     const [ico, head, why] = levelCopy(t.level, service, t.profession);
     const yz = TK && P.cands.length ? teklifPlani(service, pt) : null;
@@ -1048,7 +1051,7 @@
     const c = P.cands[P.sheet];
     // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
     if (!c.teklif) {
-      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500);
+      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500, gercekSimdi());
       const hala = kontrol.candidates.find((x) => x.provider_id === c.provider_id);
       if (!hala || hala.arrival_min !== c.arrival_min) {
         P.sheet = null; P.saatler = null;
