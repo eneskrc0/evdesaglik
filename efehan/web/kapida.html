@@ -350,6 +350,15 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 #pScreen .teklif-btn .tiny { flex-basis: 100%; text-align: left; opacity: .85; }
 #pScreen .teklif-toplam { font-size: 18px; font-weight: 800; }
 .model-panel summary { cursor: pointer; color: var(--brand); font-weight: 700; padding: 4px 0; min-height: 36px; }
+
+/* ziyaret sonrası puanlama */
+.puan-satir { display: flex; gap: 6px; justify-content: center; }
+.puan-btn { width: 52px; height: 52px; border-radius: 14px; border: 1px solid var(--line); background: var(--phone); font-size: 28px; line-height: 1; color: var(--line); cursor: pointer; }
+.puan-btn.on { color: #e8a317; border-color: #e8a317; background: color-mix(in srgb, #e8a317 12%, var(--phone)); }
+.puan-btn:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.puan-yildiz { color: #c98a0c; letter-spacing: 1px; }
+.puan textarea { width: 100%; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--phone); color: inherit; resize: vertical; }
+.gz-uyari.ok { background: color-mix(in srgb, var(--brand) 12%, var(--phone)); border-color: var(--brand); }
 </style>
 </head>
 <body>

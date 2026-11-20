@@ -110,6 +110,7 @@
       const sev = seviye(s);
       s.kontrol = null; s.pin = ""; s.pinHata = "";
       s.sonraki = vdk(s) + aralik(s);
+      s.onay = { t: Date.now(), saat: saat(s, r), dk: Math.round(aralik(s)) };
       olay(s, r, "Çalışan", `${nasil}${sev >= 2 ? " (geç yanıt; zincir durduruldu)" : ""}. Sonraki kontrol ~${Math.round(aralik(s))} dk sonra`);
     }
 
@@ -133,7 +134,7 @@
       if (s.sessiz && !s.sessiz.bildirildi && now - s.sessiz.t0 > 5000) { s.sessiz.bildirildi = true; olay(s, r, "Güvenlik masası", `112'ye sessiz alarm bildirildi · son konum ${k ? k.pos.map((x) => x.toFixed(4)).join(", ") : "-"} (demo: gerçek arama yapılmaz)`, "alarm"); }
       if (s.sos && !s.sos.iptal && !s.sos.bildirildi && now - s.sos.t0 > SOS_IPTAL_SN * 1000) { s.sos.bildirildi = true; olay(s, r, "Güvenlik masası", "SOS iptal edilmedi → 112'ye son konumla bildirildi (demo: gerçek arama yapılmaz)", "alarm"); }
       const kalan = s.kontrol ? kalanSn(s) : s.sos && !s.sos.iptal && !s.sos.bildirildi ? Math.ceil(SOS_IPTAL_SN - (now - s.sos.t0) / 1000) : "";
-      return [surum, k ? k.ulasti : "-", Math.floor(vdk(s)), kalan].join("|");
+      return [surum, k ? k.ulasti : "-", Math.floor(vdk(s)), kalan, s.onay && now - s.onay.t < 5000].join("|");
     }
 
     // ---------- görünümler ----------
@@ -161,7 +162,7 @@
           <div class="row"><button class="btn primary" type="button" data-gz="h-tamam" style="flex:1">Evet, tamamlandı</button><button class="btn" type="button" data-gz="h-sorun">Sorun var</button></div>${sorunSecim(s)}</div>`;
       }
       if (s.checkin) {
-        return `<div class="card gz stack"><div class="row between"><b>Güvenli ziyaret açık</b><span class="pill good">${Math.floor(vdk(s))} / ${s.sure} dk</span></div>
+        return `<div class="card gz stack"><div class="row between"><b>Güvenli ziyaret açık</b><span class="pill good"><span data-canli>${Math.floor(vdk(s))}</span> / ${s.sure} dk</span></div>
           <div class="small">${esc(pp.first)} ${saat({ checkin: s.checkin, checkout: s.checkin }, r)} itibarıyla evinde. Ziyaret boyunca güvenlik masası çalışanla düzenli kontrol yapıyor.</div>
           ${s.hastaSorunAcik ? sorunSecim(s) : `<button class="btn ghost gz-mini" type="button" data-gz="h-sorun">Sorun bildir</button>`}</div>`;
       }
@@ -198,8 +199,8 @@
           return `<div class="card gz stack">${bas}<b class="small">Ziyarette sorun yaşadın mı?</b><div class="stack" style="gap:6px">${sec.map(([v, l]) => `<button class="btn ${v === "yok" ? "primary" : ""}" type="button" data-gz="cikis-sec" data-v="${v}">${l}</button>`).join("")}</div></div>`;
         }
         return `<div class="card gz stack">${bas}
-          <div class="row between" style="flex-wrap:nowrap"><button class="gz-sure" type="button" data-gz-sure="1" aria-label="Ziyaret süresi">${Math.floor(vdk(s))}<small> / ${s.sure} dk</small></button>
-            <div class="tiny muted" style="text-align:right">Konum paylaşılıyor<br>son kayıt ${s.konumlar[0] ? s.konumlar[0].saat : "-"}<br>sonraki kontrol ~${Math.max(0, Math.ceil(s.sonraki - vdk(s)))} dk</div></div>
+          <div class="row between" style="flex-wrap:nowrap"><button class="gz-sure" type="button" data-gz-sure="1" aria-label="Ziyaret süresi"><span data-canli>${Math.floor(vdk(s))}</span><small> / ${s.sure} dk</small></button>
+            <div class="tiny muted" style="text-align:right">Konum paylaşılıyor<br>son kayıt <span data-canli>${s.konumlar[0] ? s.konumlar[0].saat : "-"}</span><br>sonraki kontrol ~<span data-canli>${Math.max(0, Math.ceil(s.sonraki - vdk(s)))}</span> dk${s.onay ? `<br>son yanıt ✓ ${s.onay.saat}` : ""}</div></div>
           <div class="row"><button class="btn primary" type="button" data-gz="cikis" style="flex:1">Ziyareti bitir (çıkış)</button><button class="btn gz-sos" type="button" data-gz="sos">Acil yardım</button></div>
           <div class="tiny muted">Gizli alarm: süreye 2 saniye basılı tut. Ekranda hiçbir şey değişmez, güvenlik masası sessizce devreye girer.</div></div>`;
       }
@@ -222,28 +223,28 @@
     function uyariHtml(r) {
       if (!aktif(r)) return "";
       const s = durum(r);
-      const pinAlani = (baglam) => `<div class="row" style="flex-wrap:nowrap"><input class="inp gz-pin" id="gzPin" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN" placeholder="PIN" value="${esc(s.pin)}">
+      const pinAlani = (baglam) => `<div class="row" style="flex-wrap:nowrap"><input class="inp gz-pin" id="gzPin" type="text" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" maxlength="4" autocomplete="one-time-code" data-baglam="${baglam}" aria-label="PIN" placeholder="PIN" value="${esc(s.pin)}">
         <button class="btn primary" type="button" data-gz="pin" data-baglam="${baglam}">${baglam === "sos" ? "İptal et" : "Yolundayım"}</button></div>${s.pinHata ? `<div class="tiny" role="alert" style="color:var(--coral)">${esc(s.pinHata)}</div>` : ""}<div class="tiny muted">Demo PIN: ${PIN}</div>`;
       if (s.sos && !s.sos.iptal) {
         const kalan = Math.max(0, Math.ceil(SOS_IPTAL_SN - (Date.now() - s.sos.t0) / 1000));
-        return `<div class="gz-uyari alarm stack" role="alert"><b>Alarm gönderildi</b><div class="small">Güvenlik masası konumunu görüyor ve seni arıyor. ${s.sos.bildirildi ? "112'ye bildirildi (demo)." : `${kalan} sn içinde iptal edilmezse 112'ye son konumla bildirilir.`}</div>
+        return `<div class="gz-uyari alarm stack" role="alert"><b>Alarm gönderildi</b><div class="small">Güvenlik masası konumunu görüyor ve seni arıyor. ${s.sos.bildirildi ? "112'ye bildirildi (demo)." : `<span data-canli>${kalan}</span> sn içinde iptal edilmezse 112'ye son konumla bildirilir.`}</div>
           <a class="btn block" href="tel:112" style="text-align:center;text-decoration:none">112'yi ara</a>${s.sos.bildirildi ? "" : `<div class="tiny">Yanlış alarm mı? PIN ile iptal et:</div>${pinAlani("sos")}`}</div>`;
       }
-      if (!s.kontrol) return "";
+      if (!s.kontrol) return s.onay && Date.now() - s.onay.t < 5000 ? `<div class="gz-uyari ok stack" role="status"><b>✓ Teşekkürler, yanıtın alındı</b><div class="small">Güvenlik masası kaydetti. Sonraki kontrol ~${s.onay.dk} dk sonra${s.checkin && vdk(s) >= s.sure ? "; ziyaret bittiyse “Ziyareti bitir”e bas" : ""}.</div></div>` : "";
       const sev = seviye(s);
       if (sev === 2 && !s.kontrol.acildi) return `<div class="gz-uyari arama stack" role="alert"><b>Gelen arama · Kapıda Güvenlik Masası</b><div class="small">Bildirimlere yanıt vermedin; operatör seni arıyor.</div>
         <div class="row"><button class="btn primary" type="button" data-gz="ac" style="flex:1">Aç</button><button class="btn" type="button" data-gz="yardim">Yardım gerekiyor</button></div></div>`;
       const baslik = s.kontrol.acildi ? "Operatör hatta: iyiysen PIN'ini gir" : sev >= 3 ? "Yanıt bekleniyor: güvenlik masası devrede" : sev === 1 ? "İkinci uyarı: Her şey yolunda mı?" : "Her şey yolunda mı?";
       return `<div class="gz-uyari ${sev >= 1 ? "sev" : ""} stack" role="alert"><b>${baslik}</b>
-        <div class="small">${s.kontrol.neden === "sure" ? "Planlanan ziyaret süresi doldu." : "Ziyaret sırasında düzenli kontrol."} ${sev <= 1 && !s.kontrol.acildi ? `${kalanSn(s)} sn içinde yanıt vermezsen bir sonraki adıma geçilir (demo; gerçekte 2 dk).` : ""}</div>
-        ${pinAlani("kontrol")}<button class="btn gz-sos" type="button" data-gz="yardim">Yardım gerekiyor</button></div>`;
+        <div class="small">${s.kontrol.neden === "sure" ? "Planlanan ziyaret süresi doldu." : "Ziyaret sırasında düzenli kontrol."} ${sev <= 1 && !s.kontrol.acildi ? `<span data-canli>${kalanSn(s)}</span> sn içinde yanıt vermezsen bir sonraki adıma geçilir (demo; gerçekte 2 dk).` : ""}</div>
+        ${pinAlani("kontrol")}<div class="row">${s.kontrol.neden === "sure" || vdk(s) >= s.sure ? `<button class="btn" type="button" data-gz="cikis" style="flex:1">Ziyareti bitir</button>` : ""}<button class="btn gz-sos" type="button" data-gz="yardim" style="flex:1">Yardım gerekiyor</button></div></div>`;
     }
 
     // Güvenlik masası (platform operasyonu) — jüri ve demo için görünür panel
     function masaHtml(r) {
       if (!aktif(r)) return `<h3>Güvenlik masası</h3><div class="small muted">Hasta tarafında bugün için randevu alıp kabul edilince ziyaret burada izlenir: konum kaydı, kontrol zamanlayıcısı ve yükseltme zinciri.</div>`;
       const s = durum(r), k = konum(s, r), pp = o.kisi(r.provider_id), sev = seviye(s);
-      const evre = s.checkout ? "Bitti" : s.checkin ? `Ziyarette · ${Math.floor(vdk(s))}/${s.sure} dk` : k && k.ulasti ? "Kapıda" : "Yolda";
+      const evre = s.checkout ? "Bitti" : s.checkin ? `Ziyarette · <span data-canli>${Math.floor(vdk(s))}</span>/${s.sure} dk` : k && k.ulasti ? "Kapıda" : "Yolda";
       return `<h3>Güvenlik masası <span class="tiny muted">(platform operasyonu · demo görünümü)</span></h3>
         <div class="row between small"><span><b>${esc(pp.full)}</b> · ${esc(r.patient.district)}</span><span class="pill ${s.sessiz || (s.sos && !s.sos.iptal) || sev >= 3 ? "coral" : s.kontrol ? "sun" : "good"}">${s.sessiz ? "SESSİZ ALARM" : s.sos && !s.sos.iptal ? "SOS" : sev >= 3 ? "ALARM" : s.kontrol ? "Kontrol" : evre}</span></div>
         <div class="tiny">Kapı kodu: ${s.kodDurum === "eslesti" ? "doğrulandı" : s.kodDurum === "tutmadi" ? "DOĞRULANAMADI" : "bekliyor"} · risk: ${s.risk.ad} · son konum: ${s.konumlar[0] ? `${s.konumlar[0].saat}, adrese ${uzaklik(s.konumlar[0].m)} (${s.konumlar.length} kayıt)` : "-"}${s.checkout ? " · paylaşım durdu" : ""}</div>
@@ -288,7 +289,7 @@
         if (s.kontrol) { s.kontrol = null; s.sonraki = vdk(s) + aralik(s); }
         if (!s.sos || s.sos.iptal) { s.sos = { t0: Date.now() }; s.pin = ""; s.pinHata = ""; olay(s, r, "Çalışan", `ACİL YARDIM istedi · konum ${konum(s, r) ? konum(s, r).pos.map((x) => x.toFixed(4)).join(", ") : "-"} → operatör arıyor, ${SOS_IPTAL_SN} sn içinde iptal edilmezse 112`, "alarm"); }
       }
-      else if (a === "cikis") { s.cikisSoru = true; degis(); }
+      else if (a === "cikis") { if (s.kontrol && seviye(s) <= 1) { kontrolCoz(s, r, "Ziyareti bitirmeye geçti"); s.onay = null; } s.cikisSoru = true; degis(); }
       else if (a === "cikis-sec") {
         s.checkout = Date.now(); s.cikisSoru = false; s.cikisSorun = v; s.kontrol = null;
         const ad = { yok: "sorun yok", sozlu: "sözlü şiddet/tehdit bildirdi", fiziksel: "fiziksel şiddet bildirdi", diger: "başka bir sorun bildirdi" }[v];

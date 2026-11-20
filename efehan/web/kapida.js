@@ -79,6 +79,8 @@
   // YZ teklif katmanı (teklif.js): Enes'in eğitilmiş bildirim modeli + YZ fiyat önerisi + ±%10 teklif bandı
   const TK = window.KapidaTeklif && window.KAPIDA_MODEL ? window.KapidaTeklif.create(window.KAPIDA_MODEL, C) : null;
   const SIMDI = 570; // demo saati 09:30 (üst çubuktaki saat)
+  // çalışan en erken ne zaman yola çıkabilir: bugün şimdi (09:30), yarın mesai başı (07:30'dan önce kimse başlamıyor)
+  const gercekSimdi = () => (P.info.gun ? 450 : SIMDI);
   // Mesleki doğrulama (dogrulama.js): ilk girişte açılır; onay (demo) olmadan görev kabul edilemez.
   const DG = window.KapidaDogrulama.create({ esc, rerender: () => renderH(), toast: (m) => { H.toast = m; renderH(); } });
   // Güvenli Ziyaret (guvenlik.js): risk notu, kapı kodu, konum kontrolü, kontrol zamanlayıcısı ve yükseltme zinciri, gizli SOS, Beyaz Kod.
@@ -577,7 +579,7 @@
       const gunList = [];
       for (const hedef of saatler) {
         const bas = Math.max(simdi, hedef - LEAD);
-        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
+        const res = C.findCandidates(repo, service, pt, gunTarih(gun), bas, SORTS.onerilen[1], 20, 60, simdi); // tüm uygunlar: en erken varış puan sırasına bağlı olmasın
         res.candidates = meslekSuz(t, res.candidates);
         if (!res.candidates.length) continue;
         const ilk = Math.min(...res.candidates.map((c) => c.arrival_min));
@@ -680,10 +682,17 @@
   function randevuKartlari() {
     const liste = (P.randevular || []).map((id) => (P.request && P.request.id === id ? P.request : REQ.find((x) => x.id === id))).filter(Boolean);
     if (!liste.length) return "";
-    const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı");
-    const satir = (r) => { const [d, renk] = randevuDurumu(r); return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
+    const bitti = (r) => r.status === "kabul" && !!(G.durum(r) || {}).checkout;
+    const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı" && !bitti(r));
+    // Ziyaret bitti ama hasta henüz onaylamadı / puanlamadı: ana ekranda en üstte göster (hasta takip ekranında olmayabilir)
+    const puanla = liste.find((r) => bitti(r) && !r.puan);
+    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = bitti(r) && !r.puan ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
         <span><b>${esc(svc(r.service).name_tr)}</b><span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)}</span></span><span class="pill ${renk}">${esc(d)}</span></button>`; };
-    return `${aktif ? `<div class="card yaklasan stack" style="gap:8px"><div class="row between"><b>Yaklaşan randevun</b><span class="pill ${randevuDurumu(aktif)[1]}">${esc(randevuDurumu(aktif)[0])}</span></div>
+    const puanKutusu = puanla ? (() => { const onay = (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first;
+      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ziyaretini puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
+        <div class="small">${onay ? "Deneyimini birkaç saniyede puanla; diğer hastalara yol gösterir." : "Hizmet tamamlandı mı? Onaylayıp puan verebilirsin."}</div>
+        <button class="btn primary block" type="button" data-act="takip" data-id="${puanla.id}">${onay ? "Puanla" : "Onayla ve puanla"}</button></div>`; })() : "";
+    return `${puanKutusu}${aktif ? `<div class="card yaklasan stack" style="gap:8px"><div class="row between"><b>Yaklaşan randevun</b><span class="pill ${randevuDurumu(aktif)[1]}">${esc(randevuDurumu(aktif)[0])}</span></div>
         <div>${esc(svc(aktif.service).name_tr)} · ${gunEki(aktif)}<b>${C.hhmm(aktif.arrival_min)}</b></div><div class="small muted">${esc(person(aktif.provider_id).full)} · toplam ${tl(aktif.price.patient_pays)} TL</div>
         <button class="btn primary block" type="button" data-act="takip" data-id="${aktif.id}">Takip et${aktif.status === "kabul" && !aktif.gun ? " · kapı kodu burada" : ""}</button></div>` : ""}
       ${liste.length ? `<details class="randevularim"${aktif ? "" : " open"}><summary><b>Randevularım</b> <span class="small muted">(${liste.length})</span></summary><div class="stack" style="gap:6px;margin-top:8px">${liste.map(satir).join("")}</div></details>` : ""}`;
@@ -787,7 +796,7 @@
     P.triage = t;
     if (t.is_emergency) { P.emergency = { msg: t.message, why: t.reasons[0], src: "Kural motoru" }; P.screen = "emergency"; return pEmergency(); }
     const service = t.services[0];
-    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60);
+    const res = C.findCandidates(repo, service, pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 60, gercekSimdi());
     P.cands = meslekSuz(t, res.candidates).slice(0, 10); P.pt = pt; // YZ teklif katmanı bu 10 kişi arasından seçer
     const [ico, head, why] = levelCopy(t.level, service, t.profession);
     const yz = TK && P.cands.length ? teklifPlani(service, pt) : null;
@@ -915,6 +924,66 @@
       <button class="btn primary block" type="button" data-act="confirm">Randevuyu onayla · ${tl(pr.patient_pays)} TL</button>
     </div></div>`;
   }
+  // ---------- ziyaret sonrası puanlama (hasta → sağlık çalışanı) ----------
+  // Ziyaret bitip hasta "tamamlandı" deyince açılır; bir ziyarete bir puan. Puan çalışanın ortalamasına eklenir
+  // (önceki ortalama PUAN_ONCEKI değerlendirmeden sayılır, sentetik) ve eşleştirmedeki yetkinlik puanına yansır.
+  // 1–2 yıldız kalite ekibine düşer; yorum çalışana hastanın adı olmadan gösterilir. Güvenlik sorunu ayrı: "Sorun var".
+  const PUAN_ONCEKI = 20;
+  const PUAN = {}; // pid → [{yildiz, etiketler, yorum, reqId, hizmet, saat}]
+  const PUAN_ETIKET = {
+    iyi: ["Zamanında geldi", "Nazik ve saygılı", "Açıklayarak anlattı", "Özenli ve temiz çalıştı", "Güven verdi"],
+    kotu: ["Geç kaldı", "Acele etti", "Yeterince açıklamadı", "Özensiz çalıştı", "Kaba davrandı"],
+  };
+  const YILDIZ_AD = ["", "Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
+  function puanOrtalama(pid) {
+    const pv = repo.providers[pid], l = PUAN[pid] || [];
+    if (pv._ilkPuan === undefined) pv._ilkPuan = pv.rating;
+    const ort = (pv._ilkPuan * PUAN_ONCEKI + l.reduce((a, x) => a + x.yildiz, 0)) / (PUAN_ONCEKI + l.length);
+    return { ort: Math.round(ort * 100) / 100, sayi: PUAN_ONCEKI + l.length, yeni: l.length };
+  }
+  const yildizlar = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+  function puanKarti(r) {
+    const pp = person(r.provider_id);
+    if (r.puan) {
+      const o = puanOrtalama(r.provider_id);
+      return `<div class="card stack puan" style="gap:6px"><b>Teşekkürler!</b>
+        <div class="small"><span class="puan-yildiz" aria-label="${r.puan.yildiz} yıldız">${yildizlar(r.puan.yildiz)}</span> verdin${r.puan.etiketler.length ? ` · ${esc(r.puan.etiketler.join(", "))}` : ""}.</div>
+        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ziyareti inceleyecek ve sana yazılı dönecek. Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.</div>` : ""}
+        <div class="tiny muted">${esc(pp.first)}'in yeni ortalaması ★ ${o.ort.toFixed(2).replace(".", ",")} (${o.sayi} değerlendirme). Puanlar sıralamada yetkinlik puanına yansır.</div></div>`;
+    }
+    const t = P.puanTaslak && P.puanTaslak.id === r.id ? P.puanTaslak : (P.puanTaslak = { id: r.id, yildiz: 0, etiketler: [], yorum: "" });
+    const etiketler = t.yildiz ? PUAN_ETIKET[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
+    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ziyaretini puanla">
+      <b>${esc(pp.first)} ziyaretini puanla</b>
+      <div class="small muted">Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil.</div>
+      <div class="puan-satir">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="puan-btn ${n <= t.yildiz ? "on" : ""}" data-puan="${n}" aria-pressed="${n === t.yildiz}" aria-label="${n} yıldız, ${YILDIZ_AD[n]}">★</button>`).join("")}</div>
+      ${t.yildiz ? `<div class="small" aria-live="polite"><b>${YILDIZ_AD[t.yildiz]}</b>${t.yildiz <= 3 ? " · ne eksikti?" : " · en çok ne hoşuna gitti?"}</div>
+      <div class="quick">${etiketler.map((x) => `<button class="chip" type="button" data-puan-etiket="${esc(x)}" aria-pressed="${t.etiketler.includes(x)}">${esc(x)}</button>`).join("")}</div>
+      <textarea id="puanYorum" rows="2" maxlength="300" placeholder="İstersen birkaç kelime yaz (isteğe bağlı)" aria-label="Yorum (isteğe bağlı)">${esc(t.yorum)}</textarea>` : ""}
+      <button class="btn primary block" type="button" data-act="puanGonder" ${t.yildiz ? "" : "disabled"}>Puanı gönder</button>
+      <div class="tiny muted">Yorumun ${esc(pp.first)}'e adın olmadan gösterilir.</div></div>`;
+  }
+  function puanGonder() {
+    const r = P.request, t = P.puanTaslak;
+    if (!r || r.puan || !t || t.id !== r.id || !t.yildiz) return;
+    const kayit = { yildiz: t.yildiz, etiketler: t.etiketler.slice(), yorum: (t.yorum || "").trim().slice(0, 300), reqId: r.id, hizmet: r.service, saat: r.arrival_min };
+    (PUAN[r.provider_id] ||= []).unshift(kayit);
+    const o = puanOrtalama(r.provider_id);
+    repo.providers[r.provider_id].rating = Math.round(o.ort * 10) / 10; // eşleştirme ve kartlar bu puanı kullanır
+    const upd = { ...r, puan: kayit }; putRequest(upd); P.request = upd; P.puanTaslak = null;
+    P.toast = "Puanın kaydedildi. Teşekkürler!";
+    if (r.provider_id === H.pid) H.toast = `Yeni değerlendirme: ${yildizlar(kayit.yildiz)}`;
+    renderP(); renderH();
+  }
+  // Çalışan ekranı: aldığı değerlendirmeler (hastanın adı yok)
+  function degerlendirmelerHtml(pid) {
+    const l = PUAN[pid] || [];
+    if (!l.length) return "";
+    const o = puanOrtalama(pid);
+    return `<div class="card stack puan-calisan" style="gap:6px"><div class="row between"><b>Hasta değerlendirmeleri</b><span class="pill good">★ ${o.ort.toFixed(2).replace(".", ",")}</span></div>
+      ${l.slice(0, 3).map((x) => `<div class="small"><span class="puan-yildiz" aria-label="${x.yildiz} yıldız">${yildizlar(x.yildiz)}</span> · ${esc(svc(x.hizmet).name_tr)}, ${C.hhmm(x.saat)}${x.etiketler.length ? `<div class="tiny">${esc(x.etiketler.join(" · "))}</div>` : ""}${x.yorum ? `<div class="tiny muted">“${esc(x.yorum)}”</div>` : ""}${x.yildiz <= 2 ? `<div class="tiny muted">Kalite ekibi inceliyor; görüşün istenecek.</div>` : ""}</div>`).join("")}
+      <div class="tiny muted">${o.sayi} değerlendirme (${o.yeni} yeni). Hasta adı gösterilmez.</div></div>`;
+  }
   function pDone() {
     const r = P.request;
     const pp = person(r.provider_id);
@@ -931,6 +1000,7 @@
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>${esc(pp.first)} senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}<div class="small muted">Fotoğrafı ziyaretten önce sohbetten ya da ziyarette gösterebilirsin.</div></div>` : ""}
       ${G.aktif(r) ? `<div id="gzHasta">${G.hastaHtml(r)}</div>` : ""}
+      ${gs.hastaOnay ? puanKarti(r) : ""}
       ${st === "kabul" && r.gun ? `<div class="card soft small">Randevun <b>yarın (${GUNLER[1].uzun}) ${C.hhmm(r.arrival_min)}</b>. Canlı takip yarın, sağlık çalışanı yola çıkınca başlar.</div>` : ""}
       <div class="timeline-v">${steps.map(([a, b, done], i) => `<div class="tv ${done ? "done" : (i === steps.findIndex((s) => !s[2]) ? "now" : "")}"><span class="dot"></span><div><b class="small">${esc(a)}</b><div class="tiny muted">${esc(b)}</div></div></div>`).join("")}</div>
       ${r.report.malzeme && r.report.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Ziyaretten önce hazırla</b>${r.report.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
@@ -1028,6 +1098,14 @@
       if (k === "kapat") { SV.kapat(); renderP(); } else if (k === "dokun") SV.dokun(); else if (k === "duraklat") SV.duraklat();
       return;
     }
+    const pz = e.target.closest("[data-puan],[data-puan-etiket]");
+    if (pz && P.puanTaslak) {
+      const T = P.puanTaslak;
+      if (pz.dataset.puan) { const n = +pz.dataset.puan; if ((n >= 4) !== (T.yildiz >= 4)) T.etiketler = []; T.yildiz = n; }
+      else { const x = pz.dataset.puanEtiket; T.etiketler = T.etiketler.includes(x) ? T.etiketler.filter((y) => y !== x) : [...T.etiketler, x]; }
+      renderP(); const b = document.querySelector(pz.dataset.puan ? `[data-puan="${pz.dataset.puan}"]` : `[data-puan-etiket="${CSS.escape(pz.dataset.puanEtiket)}"]`); if (b) b.focus();
+      return;
+    }
     const t = e.target.closest("[data-act],[data-tile],[data-quick],[data-plan],[data-when],[data-sort],[data-pick],[data-hizmet]");
     if (!t) return;
     if (t.dataset.stop && !e.target.closest("[data-act]")) return;
@@ -1042,6 +1120,7 @@
     if (a === "start") startChat();
     else if (a === "sesli") sesliBaslat(true);
     else if (a === "sesliac") sesliBaslat(false);
+    else if (a === "puanGonder") puanGonder();
     else if (a === "home") { if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (er) { /**/ } P.listening = false; } P.screen = "home"; P.sheet = null; renderP(); }
     else if (a === "chat") { P.screen = "chat"; P.emergency = null; renderP(); }
     else if (a === "skipdoc" && SV.acik) { const m = istenenMeslek(); SV.hizli(`Soruları geç, ${m && !HEKIMLER.has(m) ? yonelme(meslekAdi(m)) : "doktora"} yönlendir.`); }
@@ -1052,13 +1131,15 @@
     else if (a === "closeSheet") { if (e.target === t || t.tagName === "BUTTON") { P.sheet = null; renderP(); } }
     else if (a === "confirm") { await confirmBooking(); }
     else if (a === "cancel") { if (P.request) { P.request = { ...P.request, status: "iptal" }; takvimdenSil(P.request.id); await putRequest(P.request); } P.screen = "home"; P.toast = "Talebin iptal edildi; sağlık çalışanının takviminden de çıkarıldı."; renderP(); renderH(); }
-    else if (a === "takip") { const r = REQ.find((x) => x.id === t.dataset.id) || P.request; if (r) { P.request = r; P.screen = "done"; renderP(); } }
+    else if (a === "takip") { const r = REQ.find((x) => x.id === t.dataset.id) || P.request; if (r) { P.request = r; P.screen = "done"; renderP();
+      const hedef = $("#pScreen .puan") || (G.durum(r) && G.durum(r).checkout ? $("#gzHasta") : null); if (hedef) hedef.scrollIntoView({ block: "center" }); } }
   });
   $("#pScreen").addEventListener("submit", (e) => { if (e.target.id === "pComposer") { e.preventDefault(); const ta = $("#pInput"); const v = ta.value; ta.value = ""; send(v); } });
   $("#pScreen").addEventListener("keydown", (e) => { if (e.target.id === "pInput" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pComposer").requestSubmit(); } });
   // Kullanıcının açtığı klasik liste, teklifler gelip ekran yenilenince kapanmasın
   // Adres arama: yazdıkça öneri; seçilen adres en yakın yol noktasına (yol paketindeki 240 nokta) yerleşir
   $("#pScreen").addEventListener("input", (e) => {
+    if (e.target.id === "puanYorum" && P.puanTaslak) { P.puanTaslak.yorum = e.target.value; return; }
     if (e.target.id !== "pAdres" || !ADR) return;
     P.info.adresYazi = e.target.value;
     const r = ADR.ara(e.target.value), L = $("#pAdresList");
@@ -1102,7 +1183,7 @@
     const c = P.cands[P.sheet];
     // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
     if (!c.teklif) {
-      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500);
+      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500, gercekSimdi());
       const hala = kontrol.candidates.find((x) => x.provider_id === c.provider_id);
       if (!hala || hala.arrival_min !== c.arrival_min) {
         P.sheet = null; P.saatler = null;
@@ -1201,7 +1282,7 @@
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      <div class="h-head"><div class="row between"><div class="who"><span class="avatar">${esc(pp.initials)}</span><div><b>${esc(pp.full)}</b><div class="tiny" style="opacity:.85">${esc(pp.prof)} · ${esc(p.home_district)} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
+      <div class="h-head"><div class="row between"><div class="who"><span class="avatar">${esc(pp.initials)}</span><div><b>${esc(pp.full)}</b><div class="tiny" style="opacity:.85">${esc(pp.prof)} · ${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
         <span class="pill" style="background:rgba(255,255,255,.18);color:inherit">Çevrimiçi</span></div>
         <div class="stats"><div><b class="num">${stops.length}</b><span>bugünkü ziyaret</span></div><div><b class="num">${km.toFixed(1)} km</b><span>toplam yol</span></div><div><b class="num">${tl(earn)} TL</b><span>bugünkü kazanç</span></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
@@ -1267,7 +1348,7 @@
   }
   function hRoute(p, stops) {
     const home = [p.home_lat, p.home_lon];
-    return `<div class="pad stack">${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    return `<div class="pad stack">${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
   }
   // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
@@ -1327,23 +1408,41 @@
   $("#gzMasa").addEventListener("click", (e) => { if (G.onClick(e, P.request)) { renderP(); renderH(); gzYenile(true); } });
   // Güvenli Ziyaret: zamanlayıcı ilerler; yalnızca değişen kutular yeniden çizilir (PIN girişi bozulmasın)
   let gzImza = "";
+  // Güvenli Ziyaret kutularını yenile. Yalnızca sayılar değiştiyse (geri sayım, dakika) yerinde güncellenir; kutu baştan
+  // çizilmez. Böylece telefonda PIN yazarken klavye kapanmaz, düğmeye basılıyken düğme değişip dokunuş boşa gitmez.
+  let gzBasili = null;
+  document.addEventListener("pointerdown", (e) => { gzBasili = e.target; }, true);
+  ["pointerup", "pointercancel"].forEach((ev) => document.addEventListener(ev, () => setTimeout(() => { gzBasili = null; }, 0), true));
+  document.addEventListener("click", () => { gzBasili = null; }, true); // tıklama işlenirken gelen güncelleme ertelenmesin
+  let gzBekleyen = false; // basılıyken ertelenen yenileme: bir sonraki turda yapılır
+  const CANLI = /<span data-canli>([^<]*)<\/span>/g;
   function gzKoy(sel, html) {
     const el = $(sel); if (!el || el._html === html) return;
+    const iskelet = (h) => h.replace(CANLI, "").replace(/ value="[^"]*"/g, ""); // yazılan PIN de kutuyu baştan çizdirmesin
+    if (el._html !== undefined && iskelet(el._html) === iskelet(html)) {
+      const yeni = [...html.matchAll(CANLI)].map((m) => m[1]);
+      el.querySelectorAll("span[data-canli]").forEach((sp, i) => { if (yeni[i] !== undefined && sp.innerHTML !== yeni[i]) sp.innerHTML = yeni[i]; });
+      el._html = html; return;
+    }
+    if (gzBasili && el.contains(gzBasili)) { gzBekleyen = true; return; } // parmak kalkınca (bir sonraki turda) çizilir
     const odak = document.activeElement && document.activeElement.id === "gzPin" && el.contains(document.activeElement);
     el.innerHTML = html; el._html = html;
     if (odak) { const i = $("#gzPin"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
   }
   function gzYenile(zorla) {
     const imza = G.tick(P.request);
-    if (!zorla && imza === gzImza) return;
-    gzImza = imza;
+    if (!zorla && imza === gzImza && !gzBekleyen) return;
+    gzImza = imza; gzBekleyen = false;
     if (P.screen === "done" && P.request) gzKoy("#gzHasta", G.hastaHtml(P.request));
     gzKoy("#gzCalisan", G.calisanHtml(gzR())); gzKoy("#gzUyari", G.uyariHtml(gzR())); gzKoy("#gzMasa", G.masaHtml(P.request));
     if ($("#hScreen .tabs") && !$("#gzCalisan") && G.aktif(gzR()) && H.tab === "rota" && !H.open) renderH(); // ilk görünüş
   }
   setInterval(() => gzYenile(false), 400);
   $("#hScreen").addEventListener("change", (e) => DG.onChange(e));
-  $("#hScreen").addEventListener("keydown", (e) => DG.onKey(e));
+  $("#hScreen").addEventListener("keydown", (e) => {
+    if (e.target.id === "gzPin" && e.key === "Enter") { e.preventDefault(); const b = e.target.parentElement.querySelector("[data-gz=pin]"); if (b) b.click(); return; }
+    DG.onKey(e);
+  });
   $("#demoCtl").addEventListener("click", (e) => DG.demoClick(e));
   $("#hScreen").addEventListener("click", async (e) => {
     if (DG.onClick(e)) return;
@@ -1415,6 +1514,19 @@
     const upd = { ...r, status: "kabul", accepted_at: Date.now() };
     putRequest(upd); P.request = upd; P.toast = `${person(pid).full} talebini onayladı (demo).`;
     renderP(); renderH();
+  }, 1000);
+
+  // Yalnız hasta telefonu: kapı kodu eşleşince çalışan adına demo check-in (3 sn), kısa bir ziyaret (8 sn) ve çıkış.
+  // Böylece tek telefonda da "tamamlandı → puanla" adımına gelinir. Çalışan ekranı açıkken (#ikisi) bunu çalışan yapar.
+  const otoZiyaret = {};
+  const gzTikla = (gz, v) => G.onClick({ target: { closest: () => ({ dataset: { gz, v } }) } }, P.request);
+  setInterval(() => {
+    if (!document.body.classList.contains("rol-hasta") || CAP.db) return;
+    const r = P.request, s = r && r.status === "kabul" && !r.gun ? G.durum(r) : null;
+    if (!s) return;
+    const z = (otoZiyaret[r.id] ||= {});
+    if (s.kodDurum === "eslesti" && !s.checkin) { z.kod ||= Date.now(); if (Date.now() - z.kod > 3000 && gzTikla("checkin")) { P.toast = `${person(r.provider_id).first} ziyareti başlattı (demo).`; renderP(); renderH(); } }
+    else if (s.checkin && !s.checkout) { z.giris ||= Date.now(); if (Date.now() - z.giris > 8000) { gzTikla("cikis"); if (gzTikla("cikis-sec", "yok")) { P.toast = "Ziyaret bitti (demo)."; renderP(); renderH(); } } }
   }, 1000);
 
   // ---------- demo hesapları: hasta ve sağlık çalışanı (prototip; gerçek kimlik doğrulama yok, şifre sunucuya gitmez) ----------

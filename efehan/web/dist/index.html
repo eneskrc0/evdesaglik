@@ -734,7 +734,7 @@ tr.fail td { background: var(--crit-soft); }
   }
   const round2 = (x) => Math.round(x * 100) / 100;
 
-  function bestInsertion(home, window, stops, target, duration, earliest, mode) {
+  function bestInsertion(home, window, stops, target, duration, earliest, mode, cikis) {
     const [start, end] = window;
     const points = [{ loc: home, ready: start }];
     for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
@@ -746,7 +746,9 @@ tr.fail td { background: var(--crit-soft); }
       const nxtLoc = nxt ? nxt.loc : home;
       const deadline = nxt ? nxt.start : end;
       const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
-      const arrival = Math.max(prev.ready + travel(prev.loc, target, prev.ready, mode), earliest);
+      // yola çıkış gerçek "şimdi"den önce olamaz (cikis; verilmezse earliest - LEAD_TIME_MIN); routing.py ile aynı
+      const dep = Math.max(prev.ready, cikis == null ? earliest - CFG.LEAD_TIME_MIN : cikis);
+      const arrival = Math.max(dep + travel(prev.loc, target, dep, mode), earliest);
       const finish = arrival + duration;
       if (finish + travel(target, nxtLoc, finish, mode) > deadline) continue;
       const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
@@ -789,7 +791,7 @@ tr.fail td { background: var(--crit-soft); }
     return [p.yetkinlik / s, p.fiyat / s, p.hiz / s];
   }
 
-  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5) {
+  function findCandidates(repo, serviceCode, patient, date, nowMin, prefs, maxKm = 20, topK = 5, gercekSimdi = null) {
     prefs = prefs || { yetkinlik: 1, fiyat: 1, hiz: 1 };
     const svc = repo.services[serviceCode];
     const notes = [];
@@ -817,7 +819,7 @@ tr.fail td { background: var(--crit-soft); }
       } else {
         if (dist > maxKm) { elim.mesafe++; continue; }
         const stops = repo.scheduled[p.id + "|" + date] || [];
-        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest, p.transport);
+        ins = bestInsertion(home, win, stops, target, svc.duration_min, earliest, p.transport, gercekSimdi == null ? nowMin : gercekSimdi);
         if (!ins) { elim.rota++; continue; }
         arrival = ins.arrival_min;
       }

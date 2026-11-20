@@ -6,7 +6,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.4,
+  "sure": 2.6,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -88,7 +88,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.6,
+  "sure": 1.7,
   "yz_cagri": 2,
   "ekran": "summary",
   "konusma": [
@@ -150,7 +150,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -191,7 +191,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.3,
+  "sure": 2.4,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -275,7 +275,7 @@
   "hatalar": [
    "ekran chat (beklenen emergency)"
   ],
-  "sure": 2.0,
+  "sure": 1.8,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [
@@ -354,7 +354,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.3,
+  "sure": 2.2,
   "yz_cagri": 3,
   "ekran": "chat",
   "konusma": [
@@ -461,7 +461,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.1,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -502,7 +502,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.3,
+  "sure": 2.4,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -543,7 +543,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.3,
+  "sure": 2.2,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -584,7 +584,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.9,
+  "sure": 2.0,
   "yz_cagri": 1,
   "ekran": "summary",
   "konusma": [
@@ -717,7 +717,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 4.2,
+  "sure": 4.1,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -825,7 +825,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 3.8,
+  "sure": 3.7,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [
@@ -842,7 +842,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 3.0,
+  "sure": 2.8,
   "yz_cagri": 4,
   "ekran": "summary",
   "konusma": [
@@ -908,7 +908,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -990,7 +990,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -1031,7 +1031,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.8,
+  "sure": 2.7,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [
@@ -1080,7 +1080,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.8,
+  "sure": 2.0,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [

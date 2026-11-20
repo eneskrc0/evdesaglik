@@ -40,7 +40,7 @@ with sync_playwright() as pw:
     check(u["b"][0] == 3 and u["b"][1] == 1 and "görüntülü" in u["b"][2] and "iki kişilik" in u["b"][2], "YZ notu (bıçak/tehdit) yüksek risk: tek not, görüntülü ön görüşme ve iki kişilik ziyaret önerisi")
     check(u["c"] == 0 and u["d"] == 2, "risksiz raporda not yok; gece ziyareti orta risk")
     check("kapı kodunu" in u["red"] and u["checkin"], "kod onaylanmadan check-in yok; onaydan sonra var")
-    check(u["kontrol"] and u["cozuldu"] and u["sessiz"] and u["uyari"] == "", "baskı PIN'i kontrolü kapatıyor gibi görünür ama sessiz alarm verir")
+    check(u["kontrol"] and u["cozuldu"] and u["sessiz"] and "yanıtın alındı" in u["uyari"] and "alarm" not in u["uyari"].lower(), "baskı PIN'i normal PIN'le aynı onayı gösterir (fark edilmez) ama sessiz alarm verir")
 
     # --- uçtan uca: teklifle bugüne randevu ---
     p.locator("[data-tile]").first.click()
@@ -94,7 +94,7 @@ with sync_playwright() as pw:
     uy.locator("#gzPin").fill("1111"); uy.get_by_role("button", name="Yolundayım").click()
     check("PIN yanlış" in uy.inner_text(), "yanlış PIN kontrolü kapatmıyor")
     uy.locator("#gzPin").fill("2580"); uy.get_by_role("button", name="Yolundayım").click()
-    check(uy.inner_text().strip() == "" and "Yolundayım" in masa.inner_text(), "doğru PIN ile kontrol kapandı, masaya yazıldı")
+    check("yanıtın alındı" in uy.inner_text() and "Yolundayım" in masa.inner_text(), "doğru PIN ile kontrol kapandı, onay gösterildi, masaya yazıldı")
 
     # yanıt yok → zincir: ikinci uyarı → arama → ... → 112
     masa.get_by_role("button", name="Kontrolü şimdi gönder").click(); pg.wait_for_timeout(500)
@@ -110,7 +110,7 @@ with sync_playwright() as pw:
     # gizli SOS: süreye 2 sn basılı tut
     sure = kart.locator("[data-gz-sure]"); sure.hover(); pg.mouse.down(); pg.wait_for_timeout(2300); pg.mouse.up()
     pg.wait_for_timeout(500)
-    check("SESSİZ ALARM" in masa.inner_text() and uy.inner_text().strip() == "" and "Alarm" not in kart.inner_text(), "gizli SOS: masada sessiz alarm, çalışanın ekranı değişmedi")
+    check("SESSİZ ALARM" in masa.inner_text() and "alarm" not in uy.inner_text().lower() and "Alarm" not in kart.inner_text(), "gizli SOS: masada sessiz alarm, çalışanın ekranı değişmedi")
 
     # görünür acil yardım + PIN ile iptal
     kart.get_by_role("button", name="Acil yardım").click()

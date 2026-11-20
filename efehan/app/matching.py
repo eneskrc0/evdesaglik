@@ -62,8 +62,9 @@ def competence_score(visits: int, years: int, rating: float) -> float:
 
 def find_candidates(repo: Repo, service_code: str, patient: Patient, date: str,
                     now_min: int, prefs: Preferences | None = None,
-                    max_km: float = 20.0, top_k: int = 5) -> tuple[list[Candidate], list[str]]:
-    """(adaylar, eleme notları) döndürür."""
+                    max_km: float = 20.0, top_k: int = 5, real_now: int | None = None) -> tuple[list[Candidate], list[str]]:
+    """(adaylar, eleme notları) döndürür. real_now: gerçek şimdiki dakika (ileri bir saat için aranıyorsa
+    now_min o saattir; çalışan yine de gerçek şimdiden itibaren yola çıkabilir). Verilmezse now_min."""
     prefs = prefs or Preferences()
     svc = repo.services[service_code]
     notes: list[str] = []
@@ -103,7 +104,8 @@ def find_candidates(repo: Repo, service_code: str, patient: Patient, date: str,
                 elim["mesafe"] += 1
                 continue
             stops = repo.scheduled.get((p.id, date), [])
-            ins = best_insertion(home, window, stops, target, svc.duration_min, earliest, p.transport)
+            ins = best_insertion(home, window, stops, target, svc.duration_min, earliest, p.transport,
+                                 now_min if real_now is None else real_now)
             if ins is None:
                 elim["rota"] += 1
                 continue
