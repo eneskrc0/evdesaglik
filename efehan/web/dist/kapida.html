@@ -332,6 +332,11 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .sesli .understood { text-align: center; align-self: center; }
 .sv-alt { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: auto; }
 @media (prefers-reduced-motion: reduce) { .sv-orb, .sv-halka { animation: none !important; transition: none !important; } }
+/* Randevularım */
+.yaklasan { border: 2px solid var(--brand); background: var(--brand-soft); }
+.randevu-satir { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--phone); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 52px; cursor: pointer; }
+.randevu-satir > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+.randevularim summary { cursor: pointer; padding: 6px 0; }
 </style>
 </head>
 <body>
@@ -3000,6 +3005,21 @@ YANIT yalnızca şu JSON olsun:
       }, () => { CAP.db = null; });
     } catch (e) { CAP.db = null; }
   }
+  // ---------- takvim: randevu eşleştirmenin kullandığı takvime işlenir (aynı saat bir daha önerilmez), iptal/ret her yerden siler ----------
+  function takvimeIsle(r) {
+    const k = r.provider_id + "|" + (r.date || DATE);
+    const l = (repo.scheduled[k] ||= []);
+    if (l.some((v) => v.reqId === r.id)) return;
+    l.push({ id: "R-" + r.id, reqId: r.id, provider_id: r.provider_id, date: r.date || DATE, start_min: r.arrival_min,
+      duration_min: svc(r.service).duration_min, lat: r.patient.lat, lon: r.patient.lon, service_code: r.service });
+    l.sort((a, b) => a.start_min - b.start_min);
+    P.saatler = null;
+  }
+  function takvimdenSil(reqId) {
+    for (const k of Object.keys(repo.scheduled)) repo.scheduled[k] = repo.scheduled[k].filter((v) => v.reqId !== reqId);
+    for (const pid of Object.keys(H.accepted)) H.accepted[pid] = H.accepted[pid].filter((v) => v.reqId !== reqId);
+    P.saatler = null;
+  }
   async function putRequest(r) {
     const i = REQ.findIndex((x) => x.id === r.id);
     if (i >= 0) REQ[i] = r; else REQ.push(r);
@@ -3405,8 +3425,27 @@ YANIT yalnızca şu JSON olsun:
     if (P.toast) { const t = P.toast; setTimeout(() => { if (P.toast === t) { P.toast = ""; const n = $("#pScreen .toast"); if (n) n.remove(); } }, 3800); }
     if (P.screen === "chat") { const m = $("#pMsgs"); if (m) m.scrollTop = m.scrollHeight; }
   }
+  // Ana ekranda yaklaşan randevu ve "Randevularım": randevuya her zaman geri dönülebilsin
+  const DURUM_AD = { bekliyor: "Onay bekliyor", kabul: "Onaylandı", red: "Uygun değil", iptal: "İptal edildi" };
+  function randevuDurumu(r) {
+    const gs = G.durum(r) || {};
+    if (r.status === "kabul" && gs.hastaOnay === "tamam") return ["Tamamlandı", "plain"];
+    if (r.status === "kabul" && gs.checkin && !gs.checkout) return ["Ziyaret sürüyor", "good"];
+    return [DURUM_AD[r.status] || r.status, r.status === "kabul" ? "good" : r.status === "bekliyor" ? "sun" : "plain"];
+  }
+  function randevuKartlari() {
+    const liste = (P.randevular || []).map((id) => (P.request && P.request.id === id ? P.request : REQ.find((x) => x.id === id))).filter(Boolean);
+    if (!liste.length) return "";
+    const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı");
+    const satir = (r) => { const [d, renk] = randevuDurumu(r); return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
+        <span><b>${esc(svc(r.service).name_tr)}</b><span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)}</span></span><span class="pill ${renk}">${esc(d)}</span></button>`; };
+    return `${aktif ? `<div class="card yaklasan stack" style="gap:8px"><div class="row between"><b>Yaklaşan randevun</b><span class="pill ${randevuDurumu(aktif)[1]}">${esc(randevuDurumu(aktif)[0])}</span></div>
+        <div>${esc(svc(aktif.service).name_tr)} · ${gunEki(aktif)}<b>${C.hhmm(aktif.arrival_min)}</b></div><div class="small muted">${esc(person(aktif.provider_id).full)} · toplam ${tl(aktif.price.patient_pays)} TL</div>
+        <button class="btn primary block" type="button" data-act="takip" data-id="${aktif.id}">Takip et${aktif.status === "kabul" && !aktif.gun ? " · kapı kodu burada" : ""}</button></div>` : ""}
+      ${liste.length ? `<details class="randevularim"${aktif ? "" : " open"}><summary><b>Randevularım</b> <span class="small muted">(${liste.length})</span></summary><div class="stack" style="gap:6px;margin-top:8px">${liste.map(satir).join("")}</div></details>` : ""}`;
+  }
   function pHome() {
-    return `<div class="pad stack" style="gap:16px">
+    return `<div class="pad stack" style="gap:16px">${randevuKartlari()}
       <div class="row between"><div><div class="small muted">İyi günler${window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : ""}</div><h2 style="font-size:20px">Bugün nasıl yardımcı olalım?</h2></div>
         <span class="pill ${P.mode === "ai" ? "good" : "plain"}">${P.mode === "ai" ? "Yapay zekâ açık" : P.mode === "loading" ? "Hazırlanıyor" : "Demo modu"}</span></div>
       <div class="hero"><span class="deco"></span>
@@ -3759,7 +3798,8 @@ YANIT yalnızca şu JSON olsun:
     else if (a === "voice") { P.voice = !P.voice; renderP(); }
     else if (a === "closeSheet") { if (e.target === t || t.tagName === "BUTTON") { P.sheet = null; renderP(); } }
     else if (a === "confirm") { await confirmBooking(); }
-    else if (a === "cancel") { if (P.request) { P.request = { ...P.request, status: "iptal" }; await putRequest(P.request); } P.screen = "home"; P.toast = "Talebin iptal edildi."; renderP(); renderH(); }
+    else if (a === "cancel") { if (P.request) { P.request = { ...P.request, status: "iptal" }; takvimdenSil(P.request.id); await putRequest(P.request); } P.screen = "home"; P.toast = "Talebin iptal edildi; sağlık çalışanının takviminden de çıkarıldı."; renderP(); renderH(); }
+    else if (a === "takip") { const r = REQ.find((x) => x.id === t.dataset.id) || P.request; if (r) { P.request = r; P.screen = "done"; renderP(); } }
   });
   $("#pScreen").addEventListener("submit", (e) => { if (e.target.id === "pComposer") { e.preventDefault(); const ta = $("#pInput"); const v = ta.value; ta.value = ""; send(v); } });
   $("#pScreen").addEventListener("keydown", (e) => { if (e.target.id === "pInput" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#pComposer").requestSubmit(); } });
@@ -3807,6 +3847,16 @@ YANIT yalnızca şu JSON olsun:
 
   async function confirmBooking() {
     const c = P.cands[P.sheet];
+    // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
+    if (!c.teklif) {
+      const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500);
+      const hala = kontrol.candidates.find((x) => x.provider_id === c.provider_id);
+      if (!hala || hala.arrival_min !== c.arrival_min) {
+        P.sheet = null; P.saatler = null;
+        P.toast = hala ? `${person(c.provider_id).first} için bu saat az önce doldu; en erken ${C.hhmm(hala.arrival_min)}. Liste yenilendi.` : `${person(c.provider_id).first} bu saat için artık uygun değil. Liste yenilendi.`;
+        renderP(); return;
+      }
+    }
     const id = "T" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const r = {
       id, created_at: new Date().toISOString(), status: c.teklif ? "kabul" : "bekliyor", accepted_at: c.teklif ? Date.now() : undefined, teklif: c.teklif || null, provider_id: c.provider_id, service: c.service, level: P.triage.level,
@@ -3814,6 +3864,7 @@ YANIT yalnızca şu JSON olsun:
       report: P.report, photos: P.photos.slice(0, 3).map((p) => p.url), red_flags_checked: true, from_app: true, author: CAP.uid || null,
     };
     P.request = r; P.sheet = null; P.screen = "done";
+    takvimeIsle(r); (P.randevular ||= []).unshift(r.id);
     H.pid = c.provider_id; H.tab = "talepler"; H.open = id;
     if (c.teklif) { // çalışan teklif verdi, hasta kabul etti → randevu kesin, çalışanın rotasına girer
       (H.accepted[c.provider_id] ||= []).push({ reqId: id, date: gunTarih(P.info.gun), lat: P.pt.lat, lon: P.pt.lon, start_min: c.arrival_min, duration_min: svc(c.service).duration_min, service_code: c.service, earn: c.price.provider_gets });
@@ -3865,7 +3916,7 @@ YANIT yalnızca şu JSON olsun:
   }
   const hWindow = (pid) => repo.availability[pid + "|" + DATE] || [540, 1020];
   function hStops(pid) {
-    return [...(repo.scheduled[pid + "|" + DATE] || []), ...(H.accepted[pid] || []).filter((x) => (x.date || DATE) === DATE)].sort((a, b) => a.start_min - b.start_min);
+    return [...(repo.scheduled[pid + "|" + DATE] || []).filter((x) => !x.reqId), ...(H.accepted[pid] || []).filter((x) => (x.date || DATE) === DATE)].sort((a, b) => a.start_min - b.start_min);
   }
   function inbox(pid) {
     const real = REQ.filter((r) => r.provider_id === pid && r.status === "bekliyor");
@@ -3965,16 +4016,46 @@ YANIT yalnızca şu JSON olsun:
     return `<div class="hr-kutu">${MAP.svg({ rotalar, isaretler: isaret, aciklama: "Günlük rota haritası" })}</div>
       <div class="tiny muted">Gerçek sokaklar üzerinde günlük rota · toplam ~${topKm.toFixed(1).replace(".", ",")} km${stops.some((x) => x.reqId) ? " · turuncu: yeni kabul ettiğin ziyaret" : ""}</div>`;
   }
+  // Saatlerim: oturum boyunca saklanır; Pazartesi (bugün, 16.11) ve Salı (yarın, 17.11) eşleştirmeye anında yansır
+  const GUN_ADI = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], GUN_TARIH = { 0: DATE, 1: DATE2 };
+  function saatlerim(pid) {
+    if (H.saatlerim && H.saatlerim[pid]) return H.saatlerim[pid];
+    const v = GUN_ADI.map((_, i) => { const w = GUN_TARIH[i] ? repo.availability[pid + "|" + GUN_TARIH[i]] : null;
+      return { acik: GUN_TARIH[i] ? !!w : i < 5, bas: w ? w[0] : 540, bit: w ? w[1] : 1020 }; });
+    const p = repo.providers[pid];
+    (H.saatlerim ||= {})[pid] = { gunler: v, ilceler: new Set([p.home_district]) };
+    return H.saatlerim[pid];
+  }
+  function saatUygula(pid) {
+    const S = saatlerim(pid);
+    for (const [i, t] of Object.entries(GUN_TARIH)) {
+      const g = S.gunler[i], k = pid + "|" + t;
+      if (g.acik) repo.availability[k] = [g.bas, g.bit]; else delete repo.availability[k];
+    }
+    P.saatler = null; // hasta tarafındaki uygun saatler yeniden hesaplansın
+  }
   function hHours(p) {
-    const w = hWindow(p.id);
-    let opts = ""; for (let m = 7 * 60; m <= 21 * 60; m += 30) opts += `<option value="${m}">${C.hhmm(m)}</option>`;
+    const S = saatlerim(p.id);
+    let opts = ""; for (let m = 7 * 60; m <= 22 * 60; m += 30) opts += `<option value="${m}">${C.hhmm(m)}</option>`;
+    const sec = (v) => opts.replace(`value="${v}"`, `value="${v}" selected`);
     return `<div class="pad stack">
       <div class="small muted">Boş saatlerini seç. Sistem sana yalnızca bu aralıklara ve rotana uyan talepleri gösterir.</div>
-      ${["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d, i) => `<div class="row" style="flex-wrap:nowrap"><label class="row small" style="width:72px"><input type="checkbox" ${i < 5 ? "checked" : ""} style="accent-color:var(--brand)"> ${d}</label>
-        <select class="inp" aria-label="${d} başlangıç">${opts.replace(`value="${w[0]}"`, `value="${w[0]}" selected`)}</select><select class="inp" aria-label="${d} bitiş">${opts.replace(`value="${w[1]}"`, `value="${w[1]}" selected`)}</select></div>`).join("")}
-      <div class="stack" style="gap:6px"><b class="small">Hizmet verdiğim ilçeler</b><div class="seg">${window.EVDE_DATA.districts.map((d) => `<button class="chip" type="button" aria-pressed="${d.name === p.home_district}" data-toggle="1">${esc(d.name)}</button>`).join("")}</div></div>
-      <div class="note small">Taslak ekran: değişiklikler kaydedilmez.</div></div>`;
+      ${GUN_ADI.map((d, i) => { const g = S.gunler[i]; return `<div class="row" style="flex-wrap:nowrap"><label class="row small" style="width:84px"><input type="checkbox" data-saat-gun="${i}" ${g.acik ? "checked" : ""} style="accent-color:var(--brand)"> ${d}${GUN_TARIH[i] ? `<span class="tiny muted">${i ? " yarın" : " bugün"}</span>` : ""}</label>
+        <select class="inp" data-saat-gun="${i}" data-uc="bas" aria-label="${d} başlangıç" ${g.acik ? "" : "disabled"}>${sec(g.bas)}</select><select class="inp" data-saat-gun="${i}" data-uc="bit" aria-label="${d} bitiş" ${g.acik ? "" : "disabled"}>${sec(g.bit)}</select></div>`; }).join("")}
+      <div class="stack" style="gap:6px"><b class="small">Hizmet verdiğim ilçeler</b><div class="seg">${window.EVDE_DATA.districts.map((d) => `<button class="chip" type="button" aria-pressed="${S.ilceler.has(d.name)}" data-toggle="1" data-ilce="${esc(d.name)}">${esc(d.name)}</button>`).join("")}</div></div>
+      <div class="note small">Değişiklikler bu oturum boyunca saklanır. Bugün (Pzt 16.11) ve yarın (Sal 17.11) için hastaya gösterilen uygun saatlere hemen yansır; diğer günler demo takviminde yok.</div></div>`;
   }
+  $("#hScreen").addEventListener("change", (e) => {
+    const el = e.target.closest("[data-saat-gun]"); if (!el || !H.pid) return;
+    const S = saatlerim(H.pid), g = S.gunler[+el.dataset.saatGun];
+    if (el.type === "checkbox") g.acik = el.checked;
+    else {
+      const v = +el.value, yeni = { ...g, [el.dataset.uc]: v };
+      if (yeni.bas >= yeni.bit) { H.toast = "Bitiş saati başlangıçtan sonra olmalı."; renderH(); return; }
+      g[el.dataset.uc] = v;
+    }
+    saatUygula(H.pid); H.toast = "Saatlerin kaydedildi."; renderH(); renderP();
+  });
   $("#hScreen").addEventListener("input", (e) => { if (!G.onInput(e, gzR())) DG.onInput(e); });
   $("#hScreen").addEventListener("pointerdown", (e) => G.onPointerDown(e, gzR()));
   ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => $("#hScreen").addEventListener(ev, () => G.onPointerUp()));
@@ -4005,7 +4086,11 @@ YANIT yalnızca şu JSON olsun:
     if (G.onClick(e, gzR())) { renderH(); renderP(); gzYenile(true); return; }
     const t = e.target.closest("[data-tab],[data-open],[data-act],[data-toggle]");
     if (!t) return;
-    if (t.dataset.toggle) { t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true"); return; }
+    if (t.dataset.toggle) {
+      const acik = t.getAttribute("aria-pressed") !== "true"; t.setAttribute("aria-pressed", String(acik));
+      if (t.dataset.ilce && H.pid) { const S = saatlerim(H.pid); if (acik) S.ilceler.add(t.dataset.ilce); else S.ilceler.delete(t.dataset.ilce); }
+      return;
+    }
     if (t.dataset.tab) { H.tab = t.dataset.tab; renderH(); return; }
     if (t.dataset.open) { H.open = t.dataset.open; renderH(); $("#hScreen").scrollTop = 0; return; }
     const a = t.dataset.act;
@@ -4018,8 +4103,9 @@ YANIT yalnızca şu JSON olsun:
       if (a === "haccept" && !DG.canAccept()) { H.toast = "Başvurun onaylanmadan görev kabul edemezsin."; renderH(); return; }
       if (a === "haccept") {
         (H.accepted[pid] ||= []).push({ reqId: id, date: r.date || DATE, lat: r.patient.lat, lon: r.patient.lon, start_min: r.arrival_min, duration_min: svc(r.service).duration_min, service_code: r.service, earn: r.price.provider_gets });
+        takvimeIsle(r);
         H.toast = `Kabul edildi. ${gunEki(r)}${C.hhmm(r.arrival_min)} rotana eklendi.`;
-      } else { H.rejected[id] = true; H.toast = "Talep reddedildi; hastaya başka seçenek gösterilir."; }
+      } else { H.rejected[id] = true; takvimdenSil(id); H.toast = "Talep reddedildi; hastaya başka seçenek gösterilir."; }
       if (!r.synthetic) { const upd = { ...r, status: a === "haccept" ? "kabul" : "red", accepted_at: Date.now() }; await putRequest(upd); if (P.request && P.request.id === id) P.request = upd; }
       else if (a === "hreject") { /* örnek talep yalnızca listeden kalkar */ }
       H.open = null; H.tab = a === "haccept" ? "rota" : "talepler";
