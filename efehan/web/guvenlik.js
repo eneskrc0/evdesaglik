@@ -232,7 +232,7 @@
       }
       if (!s.kontrol) return s.onay && Date.now() - s.onay.t < 5000 ? `<div class="gz-uyari ok stack" role="status"><b>✓ Teşekkürler, yanıtın alındı</b><div class="small">Güvenlik masası kaydetti. Sonraki kontrol ~${s.onay.dk} dk sonra${s.checkin && vdk(s) >= s.sure ? "; ziyaret bittiyse “Ziyareti bitir”e bas" : ""}.</div></div>` : "";
       const sev = seviye(s);
-      if (sev === 2 && !s.kontrol.acildi) return `<div class="gz-uyari arama stack" role="alert"><b>Gelen arama · Kapıda Güvenlik Masası</b><div class="small">Bildirimlere yanıt vermedin; operatör seni arıyor.</div>
+      if (sev === 2 && !s.kontrol.acildi) return `<div class="gz-uyari arama stack" role="alert"><b>Gelen arama · anında sağlık Güvenlik Masası</b><div class="small">Bildirimlere yanıt vermedin; operatör seni arıyor.</div>
         <div class="row"><button class="btn primary" type="button" data-gz="ac" style="flex:1">Aç</button><button class="btn" type="button" data-gz="yardim">Yardım gerekiyor</button></div></div>`;
       const baslik = s.kontrol.acildi ? "Operatör hatta: iyiysen PIN'ini gir" : sev >= 3 ? "Yanıt bekleniyor: güvenlik masası devrede" : sev === 1 ? "İkinci uyarı: Her şey yolunda mı?" : "Her şey yolunda mı?";
       return `<div class="gz-uyari ${sev >= 1 ? "sev" : ""} stack" role="alert"><b>${baslik}</b>

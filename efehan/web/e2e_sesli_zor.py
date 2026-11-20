@@ -145,7 +145,7 @@ try:
         n0 = pg.evaluate("window.__soylenen.length")
         metinler(["Babamın sırtında yara var"])
         p.get_by_role("button", name="Sesli asistanla konuş").click()
-        pg.wait_for_function(f"window.__soylenen.length > {n0} && window.__soylenen.slice({n0}).some(t => t.includes('Kapıda asistanı'))", timeout=10000)
+        pg.wait_for_function(f"window.__soylenen.length > {n0} && window.__soylenen.slice({n0}).some(t => t.includes('sağlık asistanı'))", timeout=10000)
         pg.wait_for_function("[...document.querySelectorAll('#pScreen .sv-son')].some(e => e.innerText.includes('sırtında'))", timeout=25000)
         t = pg.evaluate("[...document.querySelectorAll('#pScreen .sv-son')].map(e => e.innerText).join(' ')")
         check("sırtında" in t and "dizimde" not in t, f"ikinci konuşma temiz başladı: {t!r}")

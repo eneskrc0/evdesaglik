@@ -38,13 +38,24 @@
     check: I('<path d="M5 12l5 5 9-10"/>'),
     alert: I('<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17v.01"/>'),
     route: I('<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>'),
+    zil: I('<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21a2 2 0 0 0 4 0"/>'),
+    ileri: I('<path d="M9 5l7 7-7 7"/>'),
+    takvim: I('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M10 15.5l2-1.5v4"/>'),
+    para: I('<ellipse cx="9" cy="7" rx="5.5" ry="2.2"/><path d="M3.5 7v3.5c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2V7"/><path d="M3.5 10.5V14c0 1.2 2.5 2.2 5.5 2.2"/><ellipse cx="15.5" cy="14" rx="5" ry="2"/><path d="M10.5 14v3.6c0 1.1 2.2 2 5 2s5-.9 5-2V14"/>'),
+    // Yara bandı (iki yuvarlak uçlu, ortası delikli) ve damlalı tüp — hizmet listesi
+    yarabandi: I('<rect x="2.5" y="8.2" width="19" height="7.6" rx="3.8" transform="rotate(-45 12 12)"/><rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1" transform="rotate(-45 12 12)"/><path d="M11 11h.01M13 13h.01M11 13h.01M13 11h.01"/>'),
+    tupdamla: I('<path d="M5 3h7M6.2 3v13.3a2.3 2.3 0 0 0 4.6 0V3M6.2 10h4.6"/><path d="M17.5 12s3 3.3 3 5.3a3 3 0 0 1-6 0c0-2 3-5.3 3-5.3z"/>'),
   };
+  // Genel sağlık çalışanı avatarı (fotoğraf yerine; gerçek kişi değil)
+  const AVATAR = `<svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 17.5c0-6 5-9.5 11-9.5s11 3.5 11 9.5"/><path d="M16.5 17.5h23l-1 4h-21z"/><path d="M28 10.5v5M25.5 13h5" stroke="var(--brand)" stroke-width="2.2"/><path d="M18 22c0 7 4.5 12 10 12s10-5 10-12"/><path d="M8 52c1.5-8.5 9-13 20-13s18.5 4.5 20 13"/></svg>`;
+  const MARKA = `<span class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</span>`;
+  const appbar = () => `<div class="appbar">${MARKA}<button class="zil" type="button" aria-label="Bildirimler">${ICO.zil}<i></i></button></div>`;
   const svcIcon = (code) => {
     const s = svc(code) || {};
-    if (/bas|yara|pansuman/.test(code)) return ICO.bandage;
+    if (/bas|yara|pansuman/.test(code)) return ICO.yarabandi;
     if (code === "iv_serum") return ICO.drop;
     if (/enjeksiyon/.test(code)) return ICO.syringe;
-    if (/kan_alma|vital/.test(code)) return ICO.tube;
+    if (/kan_alma|vital/.test(code)) return ICO.tupdamla;
     if (s.category === "rehabilitasyon") return ICO.walk;
     if (s.category === "tele") return ICO.video;
     return ICO.steth;
@@ -54,6 +65,8 @@
   const NAMES = ["Elif", "Zeynep", "Ayşe", "Merve", "Selin", "Burak", "Emre", "Deniz", "Can", "Ece", "Gizem", "Mert", "Seda", "Onur", "İrem", "Kerem", "Duygu", "Tolga", "Nazlı", "Barış"];
   const SUR = "AKYDTSBÇEGHMÖPUVZ";
   const TITLE = { hemsire: "Hemşire", hekim: "Dr.", uzman_hekim: "Uzm. Dr.", ebe: "Ebe", fizyoterapist: "Fzt.", odyolog: "Ody.", diyetisyen: "Dyt.", dil_konusma: "DKT", ergoterapist: "Ergoterapist", klinik_psikolog: "Psk.", podolog: "Podolog" };
+  // Başlıkta kısa ad: "Hemşire Onur V." (unvan + ad + soyadın baş harfi)
+  const kisaAd = (pid) => person(pid).full;
   function person(pid) {
     const p = repo.providers[pid];
     const h = [...pid].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
@@ -111,7 +124,7 @@
     const last = P.msgs[P.msgs.length - 1];
     return { tur: "devam", metin: last && last.who === "ai" ? last.text : "" };
   }
-  const SESLI_SELAM = "Merhaba, ben Kapıda asistanı. Seni dinliyorum. Ne olduğunu kendi cümlelerinle anlat; konuşman bitince kısa bir an beklemen yeterli.";
+  const SESLI_SELAM = "Merhaba, ben anında sağlık asistanı. Seni dinliyorum. Ne olduğunu kendi cümlelerinle anlat; konuşman bitince kısa bir an beklemen yeterli.";
   function sesliBaslat(yeni) {
     if (!SV.var()) return;
     if (yeni) {
@@ -266,13 +279,14 @@
     for (const [pid, ss] of Object.entries(repo.provider_services)) if (ss[code] !== undefined) m = Math.min(m, svc(code).base_fee_tl * repo.providers[pid].fee_multiplier);
     return m === Infinity ? svc(code).base_fee_tl : m;
   }
+  // [hizmet, ad, sohbeti başlatan örnek cümle, kısa açıklama]
   const TILES = [
-    ["basi_yarasi_bakimi", "Yara / bası yarası bakımı", "Annemin sırtında yara var, pansuman gerekiyor"],
-    ["iv_serum", "Serum takma", "Doktorun yazdığı serumu evde taktırmak istiyorum"],
-    ["kan_alma", "Evde kan alma", "Doktorun istediği tahlil için evden kan aldırmak istiyorum"],
-    ["fizyoterapi_seansi", "Evde fizik tedavi", "Ameliyat sonrası evde fizik tedavi istiyorum"],
-    ["ev_muayene", "Doktor ev ziyareti", "Babam hasta, doktorun eve gelip bakmasını istiyorum"],
-    ["tele_muayene", "Görüntülü doktor", "Doktorla görüntülü görüşmek istiyorum"],
+    ["basi_yarasi_bakimi", "Yara bakımı ve pansuman", "Annemin sırtında yara var, pansuman gerekiyor", "Ameliyat sonrası dikiş yeri, yara bakımı ve pansuman"],
+    ["kan_alma", "Kan alma", "Doktorun istediği tahlil için evden kan aldırmak istiyorum", "Evde veya iş yerinde kan alma hizmeti"],
+    ["iv_serum", "Serum takma", "Doktorun yazdığı serumu evde taktırmak istiyorum", "Doktorun yazdığı serum evde, hemşire eşliğinde"],
+    ["fizyoterapi_seansi", "Evde fizik tedavi", "Ameliyat sonrası evde fizik tedavi istiyorum", "Ameliyat sonrası ve hareket kısıtlılığında"],
+    ["ev_muayene", "Doktor ev ziyareti", "Babam hasta, doktorun eve gelip bakmasını istiyorum", "Doktor eve gelip muayene eder"],
+    ["tele_muayene", "Görüntülü doktor", "Doktorla görüntülü görüşmek istiyorum", "Evden çıkmadan doktorla görüntülü görüşme"],
   ];
 
   // ---------- YZ ----------
@@ -329,7 +343,7 @@
     Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null, plan: "bilinmiyor", bed: false, forWhom: "", gun: 0, when: 570 });
     Object.assign(P, { gecmisSoru: null, gecmisSoruldu: false, atlaBekliyor: false });
     P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
-    const hello = "Merhaba, ben Kapıda asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
+    const hello = "Merhaba, ben anında sağlık asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
       P.msgs.push({ who: "ai", text: hello, quick: ["Annem için", "Babam için", "Kendim için"] });
     } else {
@@ -698,19 +712,20 @@
       ${liste.length ? `<details class="randevularim"${aktif ? "" : " open"}><summary><b>Randevularım</b> <span class="small muted">(${liste.length})</span></summary><div class="stack" style="gap:6px;margin-top:8px">${liste.map(satir).join("")}</div></details>` : ""}`;
   }
   function pHome() {
-    return `<div class="pad stack" style="gap:16px">${randevuKartlari()}
-      <div class="row between"><div><div class="small muted">İyi günler${window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : ""}</div><h2 style="font-size:20px">Bugün nasıl yardımcı olalım?</h2></div>
-        <span class="pill ${P.mode === "ai" ? "good" : "plain"}">${P.mode === "ai" ? "Yapay zekâ açık" : P.mode === "loading" ? "Hazırlanıyor" : "Demo modu"}</span></div>
+    const ad = window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : "";
+    return `${appbar()}<div class="pad stack" style="gap:16px;padding-top:10px">
+      <div class="stack" style="gap:4px"><div class="selam">İyi günler${esc(ad)}</div><h1 class="baslik-xl">Bugün nasıl yardımcı olalım?</h1></div>
+      ${randevuKartlari()}
       <div class="hero"><span class="deco"></span>
         <h1>Ne olduğunu anlat,<br>gerisini biz ayarlayalım.</h1>
-        <div class="small" style="opacity:.9">Konuşarak ya da yazarak anlat. Fotoğraf ekleyebilirsin. Fiyatı seçmeden önce görürsün.</div>
-        <button class="talk" type="button" data-act="start"><span class="mic">${ICO.mic}</span><span>Anlatmaya başla<br><span class="small muted" style="font-weight:500">yaklaşık 2 dakika</span></span></button>
-        ${SV.var() ? `<button class="talk sesli-gir" type="button" data-act="sesli"><span class="mic">${ICO.dalga}</span><span>Sesli asistanla konuş<br><span class="small muted" style="font-weight:500">el değmeden, telefonda konuşur gibi</span></span></button>` : ""}
+        <div class="small" style="color:var(--muted)">Konuşarak ya da yazarak anlat. Fotoğraf ekleyebilirsin. Fiyatı seçmeden önce görürsün.</div>
+        <button class="ana-btn" type="button" data-act="start">${ICO.mic}<span class="ayrac"></span>Anlatmaya başla</button>
+        <span class="pill durum-pil ${P.mode === "ai" ? "good" : "plain"}">${P.mode === "ai" ? "Yapay zekâ açık" : P.mode === "loading" ? "Hazırlanıyor" : "Demo modu"}</span>
       </div>
-      <div class="how"><div><span class="n">1</span>Anlat</div><div><span class="n">2</span>Fiyatı gör, seç</div><div><span class="n">3</span>Kapında</div></div>
-      <div class="stack" style="gap:8px"><div class="row between"><h3 style="font-size:16px">Sık istenenler</h3><span class="tiny muted">başlangıç fiyatları</span></div>
-        <div class="tiles">${TILES.map(([code, name, pre]) => `<button class="tile" type="button" data-tile="${esc(pre)}">
-          <span class="t-ico">${svcIcon(code)}</span><b>${esc(name)}</b><span class="from"><b class="num">${tl(fromPrice(code))} TL</b>'den</span></button>`).join("")}</div></div>
+      ${SV.var() ? `<button class="satir-kart" type="button" data-act="sesli"><span class="sk-ico">${ICO.dalga}</span><span class="ayrac"></span><span class="sk-metin"><b>Sesli asistanla konuş</b><span>El değmeden, telefonda konuşur gibi</span></span><span class="sk-ok">${ICO.ileri}</span></button>` : ""}
+      <div class="bolum"><h3>Hizmetler</h3></div>
+      <div class="stack" style="gap:10px">${TILES.map(([code, name, pre, aciklama]) => `<button class="satir-kart" type="button" data-tile="${esc(pre)}">
+          <span class="sk-ico">${svcIcon(code)}</span><span class="ayrac"></span><span class="sk-metin"><b>${esc(name)}</b><span>${esc(aciklama)} · <span class="num">${tl(fromPrice(code))} TL</span>'den</span></span><span class="sk-ok">${ICO.ileri}</span></button>`).join("")}</div>
       <div class="sos">${ICO.alert}<span>Göğüs ağrısı, nefes darlığı, bilinç kaybı gibi acil durumlarda beklemeyin: <b>112</b></span></div>
     </div>`;
   }
@@ -719,8 +734,8 @@
     const last = P.msgs[P.msgs.length - 1];
     const quick = !P.busy && last && last.who === "ai" && last.quick && last.quick.length ? last.quick : [];
     return `<div class="chatwrap">
-      <div class="chathead"><button class="back" type="button" data-act="home" aria-label="Geri">${ICO.back}</button><div class="bot">K</div>
-        <div style="flex:1"><b>Kapıda asistanı</b><div class="tiny muted">${P.mode === "ai" ? (CAP.server ? "Yapay zekâ (sunucu) · teşhis koymaz" : "Yapay zekâ · teşhis koymaz") : "Demo soruları · teşhis koymaz"}</div></div>
+      <div class="chathead"><button class="back" type="button" data-act="home" aria-label="Geri">${ICO.back}</button><div class="bot"><svg viewBox="0 0 40 40" width="26" height="26" aria-hidden="true"><use href="#marka"/></svg></div>
+        <div style="flex:1"><b>Sağlık asistanı</b><div class="tiny muted">${P.mode === "ai" ? (CAP.server ? "Yapay zekâ (sunucu) · teşhis koymaz" : "Yapay zekâ · teşhis koymaz") : "Demo soruları · teşhis koymaz"}</div></div>
         ${SV.var() ? `<button class="iconbtn" type="button" data-act="sesliac" title="Sesli asistan (el değmeden konuş)" aria-label="Sesli asistanı aç">${ICO.dalga}</button>` : ""}
         ${CAP.tts ? `<button class="iconbtn" type="button" data-act="voice" aria-pressed="${P.voice}" title="Yanıtları sesli oku" style="${P.voice ? "background:var(--brand-soft)" : ""}">${ICO.speaker}</button>` : ""}</div>
       <div class="pad" style="padding:10px 16px 0">${stepsBar(1)}</div>
@@ -738,7 +753,7 @@
   }
   function pBuilding() {
     return `<div class="pad stack" style="height:100%;justify-content:center;align-items:center;text-align:center;gap:16px">
-      <div class="bot" style="width:64px;height:64px;font-size:26px;border-radius:20px">K</div>
+      <div class="bot" style="width:64px;height:64px;border-radius:20px"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><use href="#marka"/></svg></div>
       <h2>Anlattıklarını özetliyoruz</h2><div class="muted">Sağlık çalışanına gidecek raporu hazırlıyoruz. Göndermeden önce sen kontrol edeceksin.</div>
       <span class="typing"><i></i><i></i><i></i></span></div>`;
   }
@@ -1339,21 +1354,21 @@
       body = H.tab === "talepler" ? hInbox(box) : H.tab === "rota" ? hRoute(p, stops) : hHours(p);
     }
     el.innerHTML = `<div style="display:flex;flex-direction:column;min-height:100%">
-      <div class="h-head"><div class="row between"><div class="who"><span class="avatar">${esc(pp.initials)}</span><div><b>${esc(pp.full)}</b><div class="tiny" style="opacity:.85">${esc(pp.prof)} · ${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
-        <span class="pill" style="background:rgba(255,255,255,.18);color:inherit">Çevrimiçi</span></div>
-        <div class="stats"><div><b class="num">${stops.length}</b><span>bugünkü ziyaret</span></div><div><b class="num">${km.toFixed(1)} km</b><span>toplam yol</span></div><div><b class="num">${tl(earn)} TL</b><span>bugünkü kazanç</span></div></div></div>
+      ${appbar()}<div class="h-head"><div class="profil"><div class="who"><span class="profil-foto">${AVATAR}</span><div style="min-width:0"><div class="profil-ad">${esc(kisaAd(pid))}</div><span class="cevrimici">Çevrimiçi</span>
+          <div class="tiny muted" style="margin-top:4px">${esc(p.home_district)} · ★ ${puanOrtalama(p.id).ort.toFixed(1).replace(".", ",")} · başvuru: ${esc(DG.headerLabel())}</div></div></div>
+        <div class="stats"><div>${ICO.takvim}<b class="num">${stops.length}</b><span>ziyaret</span></div><div>${ICO.pin}<b class="num">${km.toFixed(1).replace(".", ",")} <small>km</small></b><span>toplam yol</span></div><div>${ICO.para}<b class="num">${tl(earn)} <small>TL</small></b><span>kazanç</span></div></div></div></div>
       ${H.open ? "" : `<div class="tabs" role="tablist">${[["talepler", "Talepler"], ["rota", "Rotam"], ["saat", "Saatlerim"]].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${H.tab === k}">${l}${k === "talepler" && box.length ? `<span class="badge">${box.length}</span>` : ""}</button>`).join("")}</div>`}
       ${DG.banner()}<div id="gzUyari" class="gz-ust">${G.uyariHtml(gzR())}</div><div style="flex:1">${body}</div></div>${H.toast ? `<div class="toast" role="status">${esc(H.toast)}</div>` : ""}`;
     if (H.toast) { const t = H.toast; setTimeout(() => { if (H.toast === t) { H.toast = ""; const n = $("#hScreen .toast"); if (n) n.remove(); } }, 3500); }
   }
   function hInbox(box) {
     if (!box.length) return `<div class="pad muted">Şu an yeni talep yok. Saatlerini genişletirsen daha fazla talep gelir.</div>`;
+    const km = (x) => String(x).replace(".", ",");
     return `<div class="pad stack">${box.map((r) => `<button class="req ${r.synthetic ? "" : "new"}" type="button" data-open="${esc(r.id)}">
-      <div class="row between" style="width:100%;flex-wrap:nowrap"><span class="row" style="gap:6px;flex-wrap:nowrap;min-width:0">${svcIcon(r.service)}<b>${esc(svc(r.service).name_tr)}</b></span>${r.synthetic ? `<span class="pill plain">örnek</span>` : `<span class="pill sun">Yeni · uygulamadan</span>`}</div>
-      <div class="cond">${esc(r.report.tek_satir || r.report.sikayet)}</div>
-      <div class="row small muted" style="gap:10px"><span class="row" style="gap:4px">${ICO.clock}${gunEki(r)}${C.hhmm(r.arrival_min)}</span><span class="row" style="gap:4px">${ICO.pin}${esc(r.patient.district)}</span>
-        ${r.patient.bedridden ? `<span class="pill plain">yatağa bağımlı</span>` : ""}${(r.photos || []).length ? `<span class="pill">${r.photos.length} fotoğraf</span>` : ""}</div>
-      <div class="row between" style="width:100%"><span class="small">${r.ins ? (r.ins.shared && r.ins.added_km <= 5 ? `<span class="pill good">Rotana uygun</span> ek yol ${r.ins.added_km} km` : `Ek yol ${r.ins.added_km} km`) : "Görüntülü"}</span><span class="earn num">+${tl(hEarn(r))} TL</span></div>
+      <div class="rq-ust"><span class="rq-ico">${svcIcon(r.service)}</span><span class="rq-baslik"><b>${esc(svc(r.service).name_tr)}</b><span class="cond">${esc(r.report.tek_satir || r.report.sikayet)}</span></span>${r.synthetic ? `<span class="pill plain">Örnek</span>` : `<span class="pill kirmizi">Yeni · uygulamadan</span>`}</div>
+      <div class="rq-bilgi"><span>${ICO.clock}${gunEki(r)}${C.hhmm(r.arrival_min)}</span><span class="sep"></span><span>${ICO.pin}${esc(r.patient.district)}</span>
+        ${r.patient.bedridden ? `<span class="sep"></span><span class="pill plain">Yatağa bağımlı</span>` : ""}${(r.photos || []).length ? `<span class="pill plain">${r.photos.length} fotoğraf</span>` : ""}</div>
+      <div class="rq-alt"><span class="row" style="gap:8px">${r.ins ? (r.ins.shared && r.ins.added_km <= 5 ? `<span class="pill kirmizi">Rotana uygun</span><span class="sep" style="width:1px;height:16px;background:var(--line)"></span>Ek yol ${km(r.ins.added_km)} km` : `Ek yol ${km(r.ins.added_km)} km`) : "Görüntülü"}</span><span class="earn num">${tl(hEarn(r))} TL</span></div>
     </button>`).join("")}</div>`;
   }
   const hEarn = (r) => r.price.provider_gets;
