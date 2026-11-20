@@ -363,6 +363,34 @@
     const p = pts[0] || Object.values(repo.patients)[0];
     return { lat: p.lat, lon: p.lon, bedridden: P.info.bed, has_physician_plan: P.info.plan === "var", district: P.info.district, id: p.id };
   }
+  // "Ne zaman?": sabit dilimler yerine bugün gerçekten uygun varış saatleri (sağlık çalışanlarının takvimi,
+  // ziyaret paylaşımı ve İzmir yol süreleriyle). Her saat = o saatten itibaren gelebilecek en erken kişi.
+  function uygunSaatler() {
+    const { t, pt } = decide(), service = t.services[0];
+    const key = [service, pt.lat, pt.lon, P.info.bed].join("|");
+    if (P.saatler && P.saatler.key === key) return P.saatler.list;
+    // Hedef saatler: şimdi (en erken), 11:00, 13:00, 15:00, 17:00, 18:30 — her biri için o saatten sonraki en erken varış
+    const LEAD = C.CFG.LEAD_TIME_MIN, list = [], MAXK = 8;
+    for (const hedef of [SIMDI + LEAD, 660, 780, 900, 1020, 1110]) {
+      const bas = Math.max(SIMDI, hedef - LEAD);
+      const res = C.findCandidates(repo, service, pt, DATE, bas, SORTS.onerilen[1], 20, MAXK);
+      if (!res.candidates.length) continue;
+      const ilk = Math.min(...res.candidates.map((c) => c.arrival_min));
+      if (list.some((x) => Math.abs(x.ilk - ilk) < 45)) continue; // birbirine çok yakın saatleri gösterme
+      list.push({ when: bas, ilk, kisi: res.candidates.length, fazla: res.candidates.length >= MAXK, enErken: !list.length });
+    }
+    P.saatler = { key, list };
+    return list;
+  }
+  function saatSecimi() {
+    if (P.triage && P.triage.is_emergency) return "";
+    const list = uygunSaatler();
+    if (!list.length) return `<div class="stack" style="gap:6px"><b class="small">Ne zaman?</b><div class="note small">Bugün için uygun saat kalmadı. Yine de seçeneklere bakabilirsin.</div></div>`;
+    if (!list.some((x) => x.when === P.info.when)) P.info.when = list[0].when;
+    return `<div class="stack" style="gap:6px"><b class="small">Ne zaman gelsin? <span class="muted" style="font-weight:500">bugün uygun saatler</span></b>
+      <div class="saatler">${list.map((x) => `<button class="saat" type="button" data-when="${x.when}" aria-pressed="${P.info.when === x.when}"><b>${C.hhmm(x.ilk)}</b><span>${x.enErken ? "en erken · " : ""}${x.kisi}${x.fazla ? "+" : ""} kişi</span></button>`).join("")}</div>
+      <div class="tiny muted">Saatler sağlık çalışanlarının bugünkü takvimine ve yol süresine göre hesaplandı; seçtiğin saatten itibaren gelebilecek kişiler listelenir.</div></div>`;
+  }
   function decide() {
     const pt = patientPoint();
     const userText = P.msgs.filter((m) => m.who === "me").map((m) => m.text).join(". ") + ". " + (P.report.sikayet || "");
@@ -466,7 +494,7 @@
         <label class="row small" style="gap:10px"><input type="checkbox" id="pBed" ${P.info.bed ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Yatağa bağımlı / evden çıkamıyor</label>
         <label class="stack small" style="gap:4px" for="pDist"><b>Hangi ilçe? (açık adres sonra)</b>
           <select class="inp" id="pDist">${districts.map((d) => `<option${d === P.info.district ? " selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
-        <div class="stack" style="gap:6px"><b class="small">Ne zaman?</b><div class="seg">${[[570, "Hemen"], [780, "Öğleden sonra"], [960, "Akşamüstü"]].map(([v, l]) => `<button class="chip" type="button" data-when="${v}" aria-pressed="${P.info.when === v}">${l}</button>`).join("")}</div></div>
+        ${saatSecimi()}
       </div>
       ${r.malzeme && r.malzeme.length ? `<div class="card stack" style="gap:6px"><b class="small">Hazırlık</b>${r.malzeme.map((m) => `<div class="row small">${ICO.check}<span>${esc(m)}</span></div>`).join("")}</div>` : ""}
       <details class="card"><summary class="small" style="font-weight:700;cursor:pointer">Sağlık çalışanı ne görecek?</summary>

@@ -26,9 +26,11 @@ with sync_playwright() as pw:
         if p.locator("[data-act=options]").count(): break
         if p.locator("[data-quick]").count(): p.locator("[data-quick]").first.click()
     teklif = None
-    for when in ("Hemen", "Öğleden sonra", "Akşamüstü"):
+    for k in range(3):
         if p.locator("[data-act=summary]").count(): p.locator("[data-act=summary]").first.click()
-        p.get_by_role("button", name=when, exact=True).click()
+        saat = p.locator(".saat").nth(k); when = saat.locator("b").inner_text()
+        if k == 0: check(p.locator(".saat").count() >= 3 and "en erken" in saat.inner_text(), f"'Ne zaman' bugünün uygun saatlerini gösteriyor ({p.locator('.saatler').inner_text().count(':')} saat)")
+        saat.click()
         p.locator("[data-act=options]").click()
         t = p.locator(".yz-teklif").inner_text()
         check("kişiye gönderdi" in t and "Önerilen fiyat" in t and "teklif olasılığı" in t, f"[{when}] YZ 3 kişi seçti, fiyat önerdi, olasılıkları gösterdi")
