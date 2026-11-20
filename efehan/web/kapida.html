@@ -307,7 +307,8 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .giris-kutu{max-width:980px;width:100%;display:flex;flex-direction:column;gap:14px}.giris-sira{display:flex;gap:14px;flex-wrap:wrap}
 .giris-kart{flex:1 1 220px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px}
 .giris-ust{font-size:15px}.giris-ad{font-size:20px;font-weight:700;color:var(--brand)}.giris-kart label{display:flex;flex-direction:column;gap:3px}
-.tek-rol .switch{display:none}.rol-hasta #colH,.rol-calisan #colP{display:none!important}.tek-rol .foot-note{display:none}
+.tek-rol .switch,.tek-rol .rol-kapi{display:none}.cikis{display:none;font-size:13px;color:var(--brand);font-weight:700;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}.tek-rol .cikis{display:inline-block}
+@media (max-width:860px){.tek-rol .sub{display:none}}.rol-hasta #colH,.rol-calisan #colP{display:none!important}.tek-rol .foot-note{display:none}
 .rol-kapi{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:4px 0 0}.rol-kapi a{font-size:13px;color:var(--brand);font-weight:700;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:#fff}
 .toplu-plan{line-height:1.7}.toplu-simdi{background:var(--brand);color:#fff;border-radius:6px;padding:0 4px}.adres-oneri{justify-content:flex-start;white-space:normal}
 </style>
@@ -322,6 +323,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
     <button type="button" data-show="p" aria-pressed="true">Hasta</button>
     <button type="button" data-show="h" aria-pressed="false">Sağlık çalışanı</button>
   </div>
+  <button class="cikis" type="button" id="cikisBtn">Hesap değiştir</button>
   <div class="rol-kapi"><a href="#hasta">Yalnız hasta uygulaması</a><a href="#calisan">Yalnız hemşire uygulaması</a><a href="#doktor">Yalnız doktor uygulaması</a><a href="#ikisi">İkisi yan yana</a></div>
 </div>
 <div class="stage">

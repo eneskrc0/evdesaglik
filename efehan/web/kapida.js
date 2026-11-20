@@ -512,7 +512,7 @@
   }
   function pHome() {
     return `<div class="pad stack" style="gap:16px">
-      <div class="row between"><div><div class="small muted">İyi günler</div><h2 style="font-size:20px">Bugün nasıl yardımcı olalım?</h2></div>
+      <div class="row between"><div><div class="small muted">İyi günler${window.KAPIDA_OTURUM && /hasta|ikisi/.test(window.KAPIDA_OTURUM.rol) ? " " + HESAPLAR.hasta.ad.split(" ")[0] : ""}</div><h2 style="font-size:20px">Bugün nasıl yardımcı olalım?</h2></div>
         <span class="pill ${P.mode === "ai" ? "good" : "plain"}">${P.mode === "ai" ? "Yapay zekâ açık" : P.mode === "loading" ? "Hazırlanıyor" : "Demo modu"}</span></div>
       <div class="hero"><span class="deco"></span>
         <h1>Ne olduğunu anlat,<br>gerisini biz ayarlayalım.</h1>
@@ -1202,6 +1202,7 @@
     });
     document.body.appendChild(d);
   }
+  $("#cikisBtn").addEventListener("click", () => { history.replaceState(null, "", location.pathname + location.search.replace(/[?&]rol=[^&]*/, "")); location.reload(); });
   // Bağlantı #hasta / #calisan ile açıldıysa o hesapla doğrudan; değilse giriş ekranı
   { const h = (location.hash || "").replace("#", "") || new URLSearchParams(location.search).get("rol") || "";
     // "ham": giriş yapılmamış ham görünüm (otomatik testler; doğrulama akışı baştan)
