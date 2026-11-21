@@ -21,6 +21,7 @@ from pathlib import Path
 CITY_SPEED_KMH = 25.0      # şehir içi ortalama hız (varsayım)
 PARKING_MIN = 5            # park + kapıya ulaşma (varsayım)
 ROAD_FACTOR = 1.3          # kuş uçuşu -> yol mesafesi (varsayım)
+TELE_TAMPON_MIN = 15       # görüntülü görüşme ile ev ziyareti arasında yol/hazırlık payı (varsayım)
 LEAD_TIME_MIN = 30         # talepten sonra en erken varış payı (kabul + hazırlık; varsayım). Yola çıkış en erken talep anı.
 MIN_SAVED_KM = 1.0         # "ziyaret paylaşımı" sayılması için en az tasarruf (varsayım)
 
@@ -122,6 +123,18 @@ class Insertion:
         return max(0.0, self.standalone_km - self.added_km)
 
 
+def tele_baslangic(window: tuple[int, int], stops: list[dict], earliest: int, duration: int) -> int | None:
+    """Görüntülü görüşme için en erken boş saat: pencere içinde, diğer randevularla çakışmadan.
+    Ev ziyaretlerinin çevresinde TELE_TAMPON_MIN yol payı bırakılır; None = o gün yer yok."""
+    dolu = sorted((s["start_min"], s["start_min"] + s["duration_min"]) if s.get("uzaktan") else
+                  (s["start_min"] - TELE_TAMPON_MIN, s["start_min"] + s["duration_min"] + TELE_TAMPON_MIN) for s in stops)
+    t = max(window[0], earliest)
+    for b0, b1 in dolu:
+        if t < b1 and t + duration > b0:
+            t = b1
+    return t if t + duration <= window[1] else None
+
+
 def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: list[dict],
                    target: tuple[float, float], duration: int, earliest: int, mode: str = "araba",
                    depart_min: int | None = None) -> Insertion | None:
@@ -130,6 +143,9 @@ def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: li
     Rota: ev (window[0]'da çıkış) -> ziyaretler -> ev (window[1]'e kadar dönüş).
     """
     start, end = window
+    # Görüntülü randevular (uzaktan) rotada durak değildir ama o saatte çalışan meşguldür
+    uzak = [(s["start_min"], s["start_min"] + s["duration_min"]) for s in stops if s.get("uzaktan")]
+    stops = [s for s in stops if not s.get("uzaktan")]
     points = [{"loc": home, "ready": start}]
     for s in stops:
         points.append({"loc": (s["lat"], s["lon"]), "start": s["start_min"],
@@ -148,6 +164,10 @@ def best_insertion(home: tuple[float, float], window: tuple[int, int], stops: li
         # depart_min verilmezse şimdi = earliest - LEAD_TIME_MIN. Varış en erken 'earliest'.
         dep = max(prev["ready"], earliest - LEAD_TIME_MIN if depart_min is None else depart_min)
         arrival = max(dep + travel(prev["loc"], target, dep, mode), earliest)
+        # Görüntülü randevuyla çakışıyorsa ziyareti görüşmeden (+ yol payı) sonraya kaydır
+        for b0, b1 in sorted(uzak):
+            if arrival - TELE_TAMPON_MIN < b1 and arrival + duration + TELE_TAMPON_MIN > b0:
+                arrival = b1 + TELE_TAMPON_MIN
         finish = arrival + duration
         if finish + travel(target, nxt_loc, finish, mode) > nxt_deadline:
             continue

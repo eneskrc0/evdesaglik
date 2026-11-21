@@ -475,6 +475,42 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 @media (min-width: 861px) { .stage { gap: 24px; } }
 @media (max-width: 1460px) and (min-width: 861px) { .phone.kilit { width: 220px; height: 500px; } .stage { gap: 18px; } }
 @media (max-width: 1340px) and (min-width: 861px) { .phone.kilit { width: 196px; height: 470px; border-width: 7px; } .stage { gap: 12px; padding-left: 6px; padding-right: 6px; } .kilit-ekran .k-saat { font-size: 46px; } .kilit-col .cap { font-size: 11px; } }
+
+/* ---- Görüntülü doktor görüşmesi (goruntulu.js): yaşlılar için büyük yazı ve düğmeler ---- */
+.vg-metin{font-size:17px;line-height:1.45}
+.vg-uyari{font-size:18px;font-weight:600;background:#fff4f3;border:1px solid #f6c7c4;border-radius:12px;padding:12px 14px;color:#8a1410}
+.vg-bilgi{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:17px}.vg-bilgi dt{color:var(--muted)}.vg-bilgi dd{margin:0}
+.vg-katil{min-height:56px;font-size:19px;font-weight:700;border-radius:14px;border:0;background:var(--brand);color:#fff;width:100%;cursor:pointer}
+.vg-katil:disabled{background:#d8d8d8;color:#6b6b6b;cursor:not-allowed}
+.vg-btn{min-height:52px;min-width:48px;font-size:17px;font-weight:600;border-radius:12px;border:1px solid var(--line);background:#fff;color:inherit;padding:0 14px;cursor:pointer;flex:1}
+.vg-btn[aria-pressed="true"]{background:#2b2b2b;color:#fff;border-color:#2b2b2b}.vg-btn:disabled{opacity:.5;cursor:not-allowed}
+.vg-btn-ikinci{width:100%}.vg-ayril{background:#fff;color:#c4170f;border-color:#f0a9a5}.vg-tamamla{background:var(--brand);color:#fff;border-color:var(--brand)}
+.vg-dugmeler{display:flex;gap:8px;flex-wrap:wrap}
+.vg-ekran{padding:14px;display:flex;flex-direction:column;gap:12px;font-size:17px}
+.vg-baslik{font-size:22px}
+.vg-onizleme-buyuk{width:100%;aspect-ratio:3/4;max-height:340px;object-fit:cover;border-radius:16px;background:#1d1d1f;transform:scaleX(-1)}
+.vg-kapali{display:flex;align-items:center;justify-content:center;color:#ddd;background:#2a2a2c;transform:none;font-size:15px;text-align:center}
+.vg-gorusme{background:#111;color:#fff;min-height:100%}.vg-gorusme .muted{color:#bbb}
+.vg-ust{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:18px}.vg-ust-alt{font-size:15px;color:#ccc;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.vg-nokta{width:10px;height:10px;border-radius:50%;background:#aaa;display:inline-block}.vg-iyi{background:#2fbf5b}.vg-bekle,.vg-erken{background:#f0b400}.vg-gecikme,.vg-kopuk{background:#e5211b}
+.vg-demo{font-size:12px;font-weight:700;background:#f0b400;color:#111;border-radius:8px;padding:4px 8px;white-space:nowrap}
+.vg-buyuk{position:relative;min-height:340px;border-radius:16px;background:#1f1f22;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vg-uzak,.vg-uzak-demo{width:100%;height:100%;min-height:340px;object-fit:cover}.vg-uzak-demo{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#2c3440,#1a1d22)}
+.vg-video-not{position:absolute;top:8px;left:8px;font-size:12px;background:rgba(0,0,0,.6);padding:3px 6px;border-radius:6px}
+.vg-profil{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:20px;font-size:17px}.vg-profil span:last-child{color:#ccc;font-size:16px;max-width:280px}
+.vg-avatar{width:84px;height:84px;border-radius:50%;background:#3a3f48;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff}
+.vg-kendi{position:absolute;right:10px;bottom:10px;width:96px;height:128px;border-radius:12px;object-fit:cover;border:2px solid #fff;transform:scaleX(-1);background:#333;font-size:12px}
+.vg-kendi.vg-kapali{transform:none;padding:6px}
+.vg-kopuk{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;font-size:18px;z-index:2}
+.vg-onay{background:#fff;color:#111;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:17px}
+.vg-hata{background:#fff4f3;color:#8a1410;border:1px solid #f6c7c4;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:16px}
+.vg-durum{font-size:18px;font-weight:600;padding:10px 12px;border-radius:12px;background:#f5f5f5}.vg-durum-gecikme,.vg-durum-kopuk{background:#fff4f3;color:#8a1410}
+.vg-ozet{background:#fff;color:#111;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:16px;max-height:220px;overflow:auto}
+.vg-gorusme .vg-btn{color:#111;font-size:17px;padding:0 8px;line-height:1.15}.vg-gorusme .vg-btn[aria-pressed="true"]{background:#e9e9e9;color:#111;border-color:#bbb}.vg-gorusme .vg-ayril{color:#c4170f;flex-basis:100%}.vg-gorusme .vg-tamamla{color:#fff}
+.vg-gorusme textarea{font-size:16px}.vg-gorusme label{color:#fff}
+.vg-demo-panel{font-size:14px;color:#ccc}.vg-demo-panel summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
+.vg-konusuyor{position:absolute;bottom:14px;left:14px;width:14px;height:14px;border-radius:50%;background:#2fbf5b;animation:vgnab 1.2s infinite}
+@keyframes vgnab{50%{opacity:.3}}
 </style>
 </head>
 <body>
@@ -524,6 +560,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 <script>/*__DOGRULAMA__*/</script>
 <script>/*__GUVENLIK__*/</script>
 <script>/*__SESLI__*/</script>
+<script>/*__GORUNTULU__*/</script>
 <script>/*__DENETIM__*/</script>
 <script>/*__TOPLU__*/</script>
 <script>/*__ADRES__*/</script>
