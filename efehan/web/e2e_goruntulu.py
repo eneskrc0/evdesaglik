@@ -143,6 +143,15 @@ with sync_playwright() as pw:
     check("Tamamlandı" in p.inner_text() and "Görüşmeye katıl" not in p.inner_text(), "hasta ekranında 'Tamamlandı', katıl düğmesi yok")
     h.locator("[data-tab=rota]").click()
     check(h.locator(f"[data-vg=h-katil][data-id='{rid}']").count() == 0 and "Tamamlandı" in h.inner_text(), "hekim ekranında da 'Tamamlandı'")
+    t = p.inner_text()
+    check("görüntülü görüşmeni puanla" in t and p.locator("[data-puan]").count() == 5, "görüşme bitince hastada puanlama kartı (5 yıldız)")
+    check("Görüntü/ses sorunu doktorun puanına yazılmaz" in t, "puan kartı: bağlantı sorunu doktora yazılmaz notu")
+    p.locator("[data-puan='5']").click()
+    check("Dikkatle dinledi" in p.inner_text() and "Zamanında katıldı" in p.inner_text() and "Özenli ve temiz çalıştı" not in p.inner_text(), "görüntülüye özel etiketler (ev ziyareti etiketleri yok)")
+    p.locator("[data-puan-etiket='Dikkatle dinledi']").click(); p.locator("[data-act=puanGonder]").click()
+    check("Teşekkürler!" in p.inner_text() and T("id => (window.KapidaTest.oda(id) || {}).istek", rid) is not None, "puan gönderildi, teşekkür kartı")
+    p.locator("[data-act=home]").first.click()
+    check(any("★★★★★" in x for x in pg.eval_on_selector_all("#pScreen .randevu-satir", "els => els.map(e => e.textContent)")), "Randevularım'da görüşmenin 5 yıldızı görünüyor")
 
     # ---------- 10) İptal iki tarafta ----------
     yukle()
@@ -153,6 +162,7 @@ with sync_playwright() as pw:
     h.locator("[data-tab=talepler]").click(); h.locator("[data-tab=rota]").click()
     check(h.locator(f"[data-vg=h-katil][data-id='{v2['id']}']").count() == 0, "iptal: hekim ekranındaki görüşme kartı kalktı")
     check("İptal edildi" in p.inner_text() or "iptal" in p.inner_text().lower(), "iptal: hasta tarafında bildirildi")
+    check(p.locator("[data-puan]").count() == 0 and "puanla" not in p.inner_text().lower(), "iptal edilen görüşme puanlanmıyor")
 
     # ---------- 11) Doktor yalnızca görüntülü: "doktora bağla" görüntülüye gider; evde ziyaret yalnız hemşire vb. ----------
     def akis(ilk, yatakta):
@@ -254,6 +264,12 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(2200)
     sure = p.locator("[data-vg-sure]").inner_text()
     check(oda(v7["id"])["otoDoktor"] and sure != "00:00" and "doktor otomatik katıldı" in p.inner_text(), f"tek telefon: doktor demo olarak katıldı, süre sayıyor ({sure})")
+    p.get_by_role("button", name="Demo: doktor görüşmeyi tamamlasın").click()
+    check(oda(v7["id"])["durum"] == "tamamlandi" and not oda(v7["id"])["medya"] and "görüntülü görüşmeni puanla" in p.inner_text(), "tek telefon: demo tamamlama → kamera kapandı, puan kartı çıktı")
+    p.locator("[data-act=home]").first.click()
+    check("görüşmeni puanla" in p.inner_text() and p.get_by_role("button", name="Puanla").count() >= 1, "ana sayfada 'görüşmeni puanla' daveti")
+    p.get_by_role("button", name="Puanla").first.click()
+    check(p.locator("[data-puan]").count() == 5, "davetten puan kartına dönüldü")
     check(not errs, f"sayfa hatası yok {errs}")
     br.close()
 print(f"Tamam: {ok} kontrol geçti.")
