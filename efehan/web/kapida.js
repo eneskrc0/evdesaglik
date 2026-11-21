@@ -381,12 +381,12 @@
     ["kan_alma", "Kan alma", "Doktorun istediği tahlil için evden kan aldırmak istiyorum", "Evde veya iş yerinde kan alma hizmeti"],
     ["iv_serum", "Serum takma", "Doktorun yazdığı serumu evde taktırmak istiyorum", "Doktorun yazdığı serum evde, hemşire eşliğinde"],
     ["fizyoterapi_seansi", "Evde fizik tedavi", "Ameliyat sonrası evde fizik tedavi istiyorum", "Ameliyat sonrası ve hareket kısıtlılığında"],
-    ["ev_muayene", "Doktor ev ziyareti", "Babam hasta, doktorun eve gelip bakmasını istiyorum", "Doktor eve gelip muayene eder"],
     ["tele_muayene", "Görüntülü doktor", "Doktorla görüntülü görüşmek istiyorum", "Evden çıkmadan doktorla görüntülü görüşme"],
+    ["tele_hemsire_destekli", "Hemşire evde, doktor görüntülü", "Babam yatağa bağımlı, hemşire gelsin doktor görüntülü baksın", "Evden çıkamayan hasta için: hemşire gelir, doktor görüntülü bağlanır"],
   ];
 
   // ---------- YZ ----------
-  const SERVICE_LIST = Object.values(repo.services).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
+  const SERVICE_LIST = Object.values(repo.services).filter((s) => !repo.hekim_evde.has(s.code)).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
   // İstemler tek kaynaktan (istemler.js): Claude sürümü ve sunucu aynı talimatları kullanır.
   const CHAT_RULES = window.KAPIDA_ISTEMLER.SOHBET_KURALLARI;
   const reportPrompt = (transcript) => window.KAPIDA_ISTEMLER.raporIstemi(transcript, P.photoNotes, SERVICE_LIST);
@@ -492,7 +492,7 @@
     if (!photos.length && !d.saglik && /( fiyat| ucret| ne kadar| kac para| kac lira| kac tl)/.test(C.normalize(shown))) {
       P.msgs[P.msgs.length - 1].araLaf = true;
       const f = (c) => `${svc(c).name_tr.toLocaleLowerCase("tr")} ${svc(c).base_fee_tl} TL`;
-      const cevap = `Başlangıç fiyatları: ${["ev_muayene", "tele_muayene", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
+      const cevap = `Başlangıç fiyatları: ${["tele_muayene", "tele_hemsire_destekli", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
       P.msgs.push({ who: "ai", text: cevap, araLaf: true }); speak(cevap); renderP(); return;
     }
     // 1d) "Direkt doktora yönlendir" / "soru sorma": soruları geç (acil kontrolü yukarıda yapıldı)
@@ -571,7 +571,7 @@
     const bed = /yatağa/.test(bedA) ? true : /rahat/.test(bedA) ? false : null;
     const t = C.triage(repo, all, { bedridden: !!bed, has_physician_plan: plan === "var" });
     const route = repo.routes.find((r) => r.code === t.route);
-    const code = route ? route.service_list[0] : "ev_muayene";
+    const code = route ? route.service_list[0] : "tele_muayene";
     return {
       kim_icin: a[1] || "belirtilmedi", yas_araligi: /70/.test(a[1] || "") ? "70 üstü" : "belirtilmedi",
       sikayet: a[0] || "belirtilmedi", hastanin_kendi_sozleri: a[0] || "belirtilmedi", baslangic: a[2] || "belirtilmedi", seyir: /kötüleş/.test(a[2] || "") ? "kötüleşiyor (beyan)" : "belirtilmedi",
@@ -641,7 +641,7 @@
       if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
       rep = demoReport();
     }
-    if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
+    if (!repo.services[rep.hizmet_onerisi] || repo.hekim_evde.has(rep.hizmet_onerisi)) rep.hizmet_onerisi = "tele_muayene"; // doktor eve gitmez
     if (!repo.professions[rep.istenen_meslek]) rep.istenen_meslek = istenenMeslek() || "";
     if (P.info.doktor && P.info.atlaMeslek) {
       const ad = meslekAdi(P.info.atlaMeslek);
@@ -650,8 +650,8 @@
       rep.hasta_icin_ozet = `İsteğin üzerine seni ${yonelme(ad)} yönlendiriyoruz.` + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " İletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = [`Ayrıntılar ${yonelme(ad)} ziyarette sorulacak (kullanıcı soruları geçti)`, ...(rep.eksik_bilgiler || [])];
     } else if (P.info.doktor) {
-      rep.hizmet_onerisi = "ev_muayene";
-      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
+      rep.hizmet_onerisi = P.info.bed ? "tele_hemsire_destekli" : "tele_muayene";
+      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi (doktor görüntülü bağlanır).";
       rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
     }
@@ -730,14 +730,17 @@
       // Kural motoru kalıp bulamadı: YZ'nin hizmet önerisini mevzuat kuralıyla süz
       const s = svc(sug);
       let level, services;
-      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "HEKIM_EV" : "TELE"; services = [level === "HEKIM_EV" ? "ev_muayene" : "tele_muayene"]; }
+      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; }
+      else if (repo.hekim_evde.has(sug)) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; } // doktor eve gitmez
       else if ((repo.profession_services.hekim || new Set()).has(sug)) { level = s.remote_possible ? "TELE" : "HEKIM_EV"; services = [sug]; }
       else { level = "PLANLI"; services = [sug]; }
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
     }
     if (P.info.doktor && !P.info.atlaMeslek && !t.is_emergency) {
-      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
+      // Doktorlar yalnızca görüntülü: doğrudan doktor isteği görüntülü görüşmedir; evden çıkamayan hastaya hemşire gelir, doktor görüntülü bağlanır
+      const lv = pt.bedridden ? "TELE_HEMSIRE" : "TELE";
+      t = { ...t, level: lv, services: [lv === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin (doktor görüntülü bağlanır)."] };
     }
     // Şikâyet birden fazla hizmete gidiyorsa (ör. sonda: bakım / takma-değişim; ayak: standart / diyabetik) hasta seçer.
     // Karar (seviye, meslek) değişmez; yalnızca hizmet kalemi ve taban ücret. Açıkça söylediyse uygun olan önceden seçili.
@@ -770,8 +773,8 @@
     const prof = istenen && !HEKIMLER.has(istenen) && level === "PLANLI" ? meslekAdi(istenen).toLocaleLowerCase("tr") : (() => { const ps = [...repo.professionsFor(service)].filter((x) => x !== "hekim" && x !== "uzman_hekim"); return ps.length ? repo.professions[ps[0]].name_tr.toLowerCase() : "sağlık çalışanı"; })();
     return {
       PLANLI: [ICO.home, `Bir ${prof} evine gelir`, "Doktorunun planı olduğu için doğrudan uygun sağlık çalışanını gönderebiliyoruz."],
-      HEKIM_EV: [ICO.steth, "Önce bir doktor evine gelip baksın", "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
-      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Kısa bir görüntülü görüşmeyle doktor durumu değerlendirir; gerekirse eve hemşire ya da doktor gönderir."],
+      HEKIM_EV: [ICO.steth, "Önce doktor değerlendirsin" /* doktorlar yalnızca görüntülü: bu seviye artık TELE/TELE_HEMSIRE’ye çevrilir */, "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
+      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Doktor evine gelmez; kısa bir görüntülü görüşmeyle durumu değerlendirir. Gerekirse plan yazar, eve hemşire ya da başka bir sağlık çalışanı gelir."],
       TELE_HEMSIRE: [ICO.bed, "Hemşire evine gelir, doktor görüntülü bağlanır", "Evden çıkamayan hasta için: hemşire ölçümleri yapar, doktor aynı anda görüntülü değerlendirir."],
     }[level];
   }
@@ -807,11 +810,12 @@
     const bitti = (r) => r.status === "kabul" && (uzaktanMi(r) ? VG.bitti(VG.durum(r)) : !!(G.durum(r) || {}).checkout);
     const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı" && !bitti(r));
     // Ziyaret bitti ama hasta henüz onaylamadı / puanlamadı: ana ekranda en üstte göster (hasta takip ekranında olmayabilir)
-    const puanla = liste.find((r) => bitti(r) && !r.puan && !uzaktanMi(r));
-    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = bitti(r) && !r.puan && !uzaktanMi(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
+    const puanlanir = (r) => bitti(r) && !r.puan && (!uzaktanMi(r) || VG.durum(r).durum === "tamamlandi");
+    const puanla = liste.find(puanlanir);
+    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = puanlanir(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
         <span><b>${esc(svc(r.service).name_tr)}</b>${uzaktanMi(r) ? ` <span class="pill kirmizi">Görüntülü</span>` : ""}<span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)}</span></span><span class="pill ${renk}">${esc(d)}</span></button>`; };
-    const puanKutusu = puanla ? (() => { const onay = (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first;
-      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ziyaretini puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
+    const puanKutusu = puanla ? (() => { const vg = uzaktanMi(puanla), onay = vg || (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first, ne = vg ? "görüşmeni" : "ziyaretini";
+      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ile ${ne} puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
         <div class="small">${onay ? "Deneyimini birkaç saniyede puanla; diğer hastalara yol gösterir." : "Hizmet tamamlandı mı? Onaylayıp puan verebilirsin."}</div>
         <button class="btn primary block" type="button" data-act="takip" data-id="${puanla.id}">${onay ? "Puanla" : "Onayla ve puanla"}</button></div>`; })() : "";
     if (aktif && uzaktanMi(aktif)) { const s = VG.durum(aktif), pp = person(aktif.provider_id);
@@ -1243,6 +1247,11 @@
     iyi: ["Zamanında geldi", "Nazik ve saygılı", "Açıklayarak anlattı", "Özenli ve temiz çalıştı", "Güven verdi"],
     kotu: ["Geç kaldı", "Acele etti", "Yeterince açıklamadı", "Özensiz çalıştı", "Kaba davrandı"],
   };
+  // Görüntülü görüşme: doktorun davranışı puanlanır; bağlantı/uygulama sorunu doktora yazılmaz (ayrı bildirilir)
+  const PUAN_ETIKET_VG = {
+    iyi: ["Zamanında katıldı", "Nazik ve saygılı", "Dikkatle dinledi", "Açıklayarak anlattı", "Güven verdi"],
+    kotu: ["Geç katıldı", "Acele etti", "Dinlemedi", "Yeterince açıklamadı", "Kaba davrandı"],
+  };
   const YILDIZ_AD = ["", "Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
   // Yayımlanan puanlar: en eskiden başlayarak PUAN_TOPLU'nun katı kadar (PUAN en yeni başta tutulur)
   const yayindaPuanlar = (pid) => { const l = PUAN[pid] || []; const n = l.length - (l.length % PUAN_TOPLU); return l.slice(l.length - n); };
@@ -1258,14 +1267,15 @@
     if (r.puan) {
       return `<div class="card stack puan" style="gap:6px"><b>Teşekkürler!</b>
         <div class="small"><span class="puan-yildiz" aria-label="${r.puan.yildiz} yıldız">${yildizlar(r.puan.yildiz)}</span> verdin${r.puan.etiketler.length ? ` · ${esc(r.puan.etiketler.join(", "))}` : ""}.</div>
-        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ziyareti inceleyecek ve sana yazılı dönecek. Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.</div>` : ""}
+        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ${uzaktanMi(r) ? "görüşmeyi" : "ziyareti"} inceleyecek ve sana yazılı dönecek.${uzaktanMi(r) ? "" : ` Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.`}</div>` : ""}
         <div class="tiny muted">Puanın ${esc(pp.first)}'e tek başına gösterilmez: birkaç değerlendirme birikince adın, yıldızın ve ziyaret saati olmadan ortalamaya katılır. Ortalama, sıralamada yetkinlik puanına yansır.</div></div>`;
     }
     const t = P.puanTaslak && P.puanTaslak.id === r.id ? P.puanTaslak : (P.puanTaslak = { id: r.id, yildiz: 0, etiketler: [], yorum: "" });
-    const etiketler = t.yildiz ? PUAN_ETIKET[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
-    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ziyaretini puanla">
-      <b>${esc(pp.first)} ziyaretini puanla</b>
-      <div class="small muted">Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil.</div>
+    const vg = uzaktanMi(r), ne = vg ? "görüntülü görüşmeni" : "ziyaretini";
+    const etiketler = t.yildiz ? (vg ? PUAN_ETIKET_VG : PUAN_ETIKET)[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
+    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ile ${ne} puanla">
+      <b>${esc(pp.first)} ile ${ne} puanla</b>
+      <div class="small muted">${vg ? "Doktorun ilgisini puanla (zamanında katılma, dinleme, açıklama). Görüntü/ses sorunu doktorun puanına yazılmaz. Tedavinin tıbbi doğruluğu puanlanmaz." : "Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil."}</div>
       <div class="puan-satir">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="puan-btn ${n <= t.yildiz ? "on" : ""}" data-puan="${n}" aria-pressed="${n === t.yildiz}" aria-label="${n} yıldız, ${YILDIZ_AD[n]}">★</button>`).join("")}</div>
       ${t.yildiz ? `<div class="small" aria-live="polite"><b>${YILDIZ_AD[t.yildiz]}</b>${t.yildiz <= 3 ? " · ne eksikti?" : " · en çok ne hoşuna gitti?"}</div>
       <div class="quick">${etiketler.map((x) => `<button class="chip" type="button" data-puan-etiket="${esc(x)}" aria-pressed="${t.etiketler.includes(x)}">${esc(x)}</button>`).join("")}</div>
@@ -1309,6 +1319,7 @@
       <button class="back" type="button" data-act="home">${ICO.back} Ana sayfa</button>
       <h2 style="font-size:22px">${r.status === "kabul" ? "Görüntülü görüşmen" : r.status === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
       ${VG.hastaRandevuHtml(r, vgHastaCtx(r))}
+      ${r.status === "kabul" && VG.durum(r).durum === "tamamlandi" ? puanKarti(r) : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>Doktorun senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}</div>` : ""}
       <div class="card stack small" style="gap:6px"><b>Görüşmeden önce</b><div>• Sessiz, aydınlık bir yer seç; telefonu sabitle.</div><div>• Kullandığın ilaçları ve varsa tahlil sonuçlarını yanına al.</div><div>• Acil bir durum olursa görüşmeyi beklemeden 112'yi ara.</div></div>
       ${r.status === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : ""}
@@ -2004,6 +2015,17 @@
   }
   window.addEventListener("hashchange", () => { const h = (location.hash || "").replace("#", ""); if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else rolUygula(); });
   rolUygula();
+  // Görüntülü görüşme, tek telefon demosu: doktor ekranı görünmüyorsa hasta odada bekledikten 5 sn sonra doktor adına demo katılım
+  setInterval(() => VG.tick(document), 1000); // görüşme süresi yerinde güncellenir
+  const vgOto = {};
+  setInterval(() => {
+    const r = P.request; if (!r || !vgVar(r) || r.status !== "kabul" || P.vgOda !== r.id) return;
+    const s = VG.durum(r); if (s.hasta !== "bekleme" || s.doktor === "gorusmede" || s.kopuk) { delete vgOto[r.id]; return; }
+    if (!vgHastaCtx(r).tekTelefon) return;
+    vgOto[r.id] ||= Date.now();
+    if (Date.now() - vgOto[r.id] < 5000) return;
+    if (VG.doktorKatil(r)) { P.toast = `${person(vgDoktor(r)).full} görüşmeye katıldı (demo).`; renderP(); renderH(); }
+  }, 1000);
   // Yalnız hasta telefonu açıkken (ortak veri yok): çalışan ekranı görünmediği için onayı demo olarak 6 sn sonra çalışan adına ver.
   const otoOnay = {};
   setInterval(() => {
@@ -2118,7 +2140,7 @@
       if (r.status === "red") bildir("p", id + ":red", { ikon: "↩️", baslik: "Sağlık çalışanı uygun değil", metin: "Sana başka seçenekler gösterelim.", hedef: git });
       if (vgVar(r) && r.status === "kabul") { const s = VG.durum(r), dk = person(vgDoktor(r));
         if (VG.acikMi(r) && !VG.bitti(s)) bildir("p", id + ":vg-oda", { ikon: "🎥", baslik: "Görüşme odası açıldı", metin: `${dk.full} ile görüntülü görüşmen · ${C.hhmm(r.vgBaslangic ?? r.arrival_min)}`, hedef: git });
-        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı.`, hedef: git }); }
+        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı. Görüşmeni puanlayabilirsin.`, hedef: git }); }
       const ta = takipAdimi(r);
       if (ta.adim >= 1) bildir("p", id + ":yolda", { ikon: ta.T.toplu ? "🚌" : "🚗", baslik: `${pp.first} yola çıktı`, metin: `${neyleGeliyor(ta.T).replace(/<[^>]+>/g, "")} · tahmini varış ${C.hhmm(r.arrival_min)}`, hedef: git });
       if (ta.adim >= 2) bildir("p", id + ":yakin", { ikon: "📍", baslik: `${pp.first} yaklaşıyor`, metin: `1 km'den az kaldı${ta.kalan ? ` · ~${ta.kalan} dk` : ""}.`, hedef: git });
@@ -2350,6 +2372,7 @@
       repo.providers[pid].rating = Math.round(puanOrtalama(pid).ort * 10) / 10; renderH(); } };
   // Prova kurulumu (yalnızca testler): seçilen hizmet için ilk (ya da verilen) adayla randevu oluşturur — arayüzdeki onay akışının aynısı (confirmBooking)
   window.KapidaTest.randevuKur = async (code, o = {}) => {
+    P.info.plan = o.plan ? "var" : "bilinmiyor"; P.info.bed = !!o.yatakta;
     P.pt = patientPoint(); P.info.gun = 0; P.info.when = o.when ?? 570; P.sort = "onerilen";
     P.triage = { level: svc(code).category === "tele" ? (uzaktanHizmet(code) ? "TELE" : "TELE_HEMSIRE") : "PLANLI", services: [code] };
     P.report = cannedReport(code);

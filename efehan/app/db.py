@@ -47,6 +47,11 @@ class Patient:
     has_physician_plan: bool
 
 
+# Ekip kararı (21.11): doktorlar yalnızca görüntülü hizmet verir (hemşire evde + doktor görüntülü karma hizmet sürer)
+HEKIM_YALNIZ_GORUNTULU = True
+HEKIMLER = {"hekim", "uzman_hekim"}
+
+
 class Repo:
     def __init__(self, path: Path | str = DEFAULT_DB):
         self.path = Path(path)
@@ -101,12 +106,33 @@ class Repo:
         self.scheduled: dict[tuple[str, str], list[dict]] = {}
         for r in q("SELECT * FROM scheduled_visits ORDER BY start_min"):
             self.scheduled.setdefault((r["provider_id"], r["date"]), []).append(dict(r))
+        self.hekim_yalniz_goruntulu()
         self.patients = {
             r["id"]: Patient(r["id"], r["district"], r["lat"], r["lon"],
                              bool(r["bedridden"]), bool(r["has_physician_plan"]))
             for r in q("SELECT * FROM patients")
         }
         conn.close()
+
+    def hekim_yalniz_goruntulu(self) -> None:
+        """Ekip kararı (21.11): doktorlar yalnızca görüntülü hizmet verir, eve doktor gitmez.
+        Hekimin evde verdiği hizmetler (ev muayenesi, palyatif değerlendirme) hekimlerden kaldırılır;
+        hekimlerin takvimdeki eski (sentetik) ev ziyaretleri yolculuksuz görüntülü blok sayılır."""
+        if not HEKIM_YALNIZ_GORUNTULU:
+            return
+        self.hekim_evde = {s for p in HEKIMLER for s in self.profession_services.get(p, set())
+                           if not self.services[s].remote_possible}
+        for p in HEKIMLER:
+            if p in self.profession_services:
+                self.profession_services[p] -= self.hekim_evde
+        for pid, prov in self.providers.items():
+            if prov.profession_code in HEKIMLER:
+                for s in self.hekim_evde:
+                    self.provider_services.get(pid, {}).pop(s, None)
+        for (pid, _), visits in self.scheduled.items():
+            if pid in self.providers and self.providers[pid].profession_code in HEKIMLER:
+                for v in visits:
+                    v["uzaktan"] = True
 
     def professions_for(self, service_code: str) -> set[str]:
         return {p for p, s in self.profession_services.items() if service_code in s}

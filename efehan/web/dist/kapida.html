@@ -471,6 +471,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 @keyframes titre { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
 .kilit-ekran .k-alt { margin-top: auto; text-align: center; font-size: 11px; opacity: .7; }
 .tek-rol.rol-hasta #kilitHCol, .tek-rol.rol-calisan #kilitPCol { display: none; }
+@media (max-width: 1239px) and (min-width: 861px) { body:not(.tek-rol) .kilit-col { display: none !important; } } /* #ikisi: hasta + çalışan yan yana kalsın */
 @media (max-width: 860px) { .kilit-col { display: none !important; } .bld-panel { inset: 0; } .bld-afis { top: 8px; } }
 @media (min-width: 861px) { .stage { gap: 24px; } }
 @media (max-width: 1460px) and (min-width: 861px) { .phone.kilit { width: 220px; height: 500px; } .stage { gap: 18px; } }
@@ -478,13 +479,13 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 
 /* ---- Görüntülü doktor görüşmesi (goruntulu.js): yaşlılar için büyük yazı ve düğmeler ---- */
 .vg-metin{font-size:17px;line-height:1.45}
-.vg-uyari{font-size:18px;font-weight:600;background:#fff4f3;border:1px solid #f6c7c4;border-radius:12px;padding:12px 14px;color:#8a1410}
+.vg-uyari{font-size:18px;font-weight:600;background:var(--brand-soft);border:1px solid var(--brand);border-radius:12px;padding:12px 14px;color:var(--ink)}
 .vg-bilgi{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:17px}.vg-bilgi dt{color:var(--muted)}.vg-bilgi dd{margin:0}
 .vg-katil{min-height:56px;font-size:19px;font-weight:700;border-radius:14px;border:0;background:var(--brand);color:#fff;width:100%;cursor:pointer}
 .vg-katil:disabled{background:#d8d8d8;color:#6b6b6b;cursor:not-allowed}
-.vg-btn{min-height:52px;min-width:48px;font-size:17px;font-weight:600;border-radius:12px;border:1px solid var(--line);background:#fff;color:inherit;padding:0 14px;cursor:pointer;flex:1}
-.vg-btn[aria-pressed="true"]{background:#2b2b2b;color:#fff;border-color:#2b2b2b}.vg-btn:disabled{opacity:.5;cursor:not-allowed}
-.vg-btn-ikinci{width:100%}.vg-ayril{background:#fff;color:#c4170f;border-color:#f0a9a5}.vg-tamamla{background:var(--brand);color:#fff;border-color:var(--brand)}
+.vg-btn{min-height:52px;min-width:48px;font-size:17px;font-weight:600;border-radius:12px;border:1px solid var(--line);background:var(--phone);color:var(--ink);padding:0 14px;cursor:pointer;flex:1}
+.vg-btn[aria-pressed="true"]{background:var(--ink);color:var(--phone);border-color:var(--ink)}.vg-btn:disabled{opacity:.5;cursor:not-allowed}
+.vg-btn-ikinci{width:100%}.vg-ayril{background:var(--phone);color:var(--brand);border-color:var(--brand)}.vg-tamamla{background:var(--brand);color:#fff;border-color:var(--brand)}
 .vg-dugmeler{display:flex;gap:8px;flex-wrap:wrap}
 .vg-ekran{padding:14px;display:flex;flex-direction:column;gap:12px;font-size:17px}
 .vg-baslik{font-size:22px}
@@ -503,10 +504,10 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .vg-kendi.vg-kapali{transform:none;padding:6px}
 .vg-kopuk{position:absolute;inset:0;background:rgba(0,0,0,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;font-size:18px;z-index:2}
 .vg-onay{background:#fff;color:#111;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:17px}
-.vg-hata{background:#fff4f3;color:#8a1410;border:1px solid #f6c7c4;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:16px}
-.vg-durum{font-size:18px;font-weight:600;padding:10px 12px;border-radius:12px;background:#f5f5f5}.vg-durum-gecikme,.vg-durum-kopuk{background:#fff4f3;color:#8a1410}
+.vg-hata{background:var(--brand-soft);color:var(--ink);border:1px solid var(--brand);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:16px}
+.vg-durum{font-size:18px;font-weight:600;padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--ink);border:1px solid var(--line)}.vg-durum-gecikme,.vg-durum-kopuk{background:var(--brand-soft);color:var(--brand)}
 .vg-ozet{background:#fff;color:#111;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:16px;max-height:220px;overflow:auto}
-.vg-gorusme .vg-btn{color:#111;font-size:17px;padding:0 8px;line-height:1.15}.vg-gorusme .vg-btn[aria-pressed="true"]{background:#e9e9e9;color:#111;border-color:#bbb}.vg-gorusme .vg-ayril{color:#c4170f;flex-basis:100%}.vg-gorusme .vg-tamamla{color:#fff}
+.vg-gorusme .vg-btn{background:#fff;color:#111;font-size:17px;padding:0 8px;line-height:1.15}.vg-gorusme .vg-btn[aria-pressed="true"]{background:#e9e9e9;color:#111;border-color:#bbb}.vg-gorusme .vg-ayril{background:#fff;color:#c4170f;border-color:#f0a9a5;flex-basis:100%}.vg-gorusme .vg-tamamla{background:var(--brand);color:#fff}
 .vg-gorusme textarea{font-size:16px}.vg-gorusme label{color:#fff}
 .vg-demo-panel{font-size:14px;color:#ccc}.vg-demo-panel summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
 .vg-konusuyor{position:absolute;bottom:14px;left:14px;width:14px;height:14px;border-radius:50%;background:#2fbf5b;animation:vgnab 1.2s infinite}
@@ -679,6 +680,16 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
     for (const r of data.availability) this.availability[r.provider_id + "|" + r.date] = [r.start_min, r.end_min];
     this.scheduled = {};
     for (const r of data.scheduled_visits) (this.scheduled[r.provider_id + "|" + r.date] ||= []).push({ ...r });
+    // Ekip kararı (21.11): doktorlar yalnızca görüntülü — hekimin evde verdiği hizmetler hekimlerden kalkar,
+    // hekimlerin takvimdeki eski ev ziyaretleri yolculuksuz görüntülü blok sayılır (Python: Repo.hekim_yalniz_goruntulu)
+    this.hekim_evde = new Set();
+    if (CFG.HEKIM_YALNIZ_GORUNTULU) {
+      const HK = ["hekim", "uzman_hekim"];
+      for (const p of HK) for (const s of this.profession_services[p] || []) if (!this.services[s].remote_possible) this.hekim_evde.add(s);
+      for (const p of HK) if (this.profession_services[p]) for (const s of this.hekim_evde) this.profession_services[p].delete(s);
+      for (const [pid, pr] of Object.entries(this.providers)) if (HK.includes(pr.profession_code) && this.provider_services[pid]) for (const s of this.hekim_evde) delete this.provider_services[pid][s];
+      for (const [k, l] of Object.entries(this.scheduled)) { const pr = this.providers[k.split("|")[0]]; if (pr && HK.includes(pr.profession_code)) l.forEach((v) => { v.uzaktan = true; }); }
+    }
     this.patients = {};
     for (const p of data.patients) {
       this.patients[p.id] = { ...p, bedridden: !!p.bedridden, has_physician_plan: !!p.has_physician_plan };
@@ -779,7 +790,20 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
     return res;
   }
 
+  // Ekip kararı (21.11): doktorlar yalnızca görüntülü hizmet verir; "hekim ev ziyareti" kararı görüntülüye çevrilir
+  // (yatağa bağımlıysa hemşire evde + doktor görüntülü, S14). Acil kararı değişmez. Python: triage.hekim_goruntulu
   function triage(repo, complaint, patient) {
+    const res = triageHam(repo, complaint, patient);
+    return CFG.HEKIM_YALNIZ_GORUNTULU ? hekimGoruntulu(res, patient) : res;
+  }
+  function hekimGoruntulu(res, patient) {
+    if (res.level !== "HEKIM_EV") return res;
+    const level = patient.bedridden ? "TELE_HEMSIRE" : "TELE";
+    return { ...res, level, services: [LEVEL_DEFAULT_SERVICE[level]], message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER,
+      reasons: [...res.reasons, "Doktorlar yalnızca görüntülü hizmet verir: " + (patient.bedridden ? "yatağa bağımlı hasta için hemşire evde, doktor görüntülü" : "doktor görüntülü değerlendirir")],
+      sources: level === "TELE_HEMSIRE" ? [...new Set([...res.sources, "S14"])].sort() : res.sources };
+  }
+  function triageHam(repo, complaint, patient) {
     const text = normalize(complaint);
     const hits = [];
     for (const rf of repo.red_flags) {
@@ -851,7 +875,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 
   // ---------- routing.py ----------
   const CFG = {
-    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, TELE_TAMPON_MIN: 15, MIN_SAVED_KM: 1.0,
+    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, TELE_TAMPON_MIN: 15, HEKIM_YALNIZ_GORUNTULU: true, MIN_SAVED_KM: 1.0,
     TRAVEL_TL_PER_KM: 12.0, COMMISSION: 0.10, SPLIT: { hasta: 0.5, saglikci: 0.3, platform: 0.2 },
     PRICE_SENSITIVITY: 3.0, SPEED_HORIZON_MIN: 480,
   };
@@ -3049,7 +3073,7 @@ YANIT yalnızca şu JSON olsun:
           : `<button class="vg-btn vg-btn-ikinci" type="button" data-vg="p-hazirlik" data-id="${esc(anahtar(r))}">Kamera ve mikrofonu kontrol et</button>
              <button class="vg-katil" type="button" data-vg="p-katil" data-id="${esc(anahtar(r))}" ${katilabilir ? "" : "disabled"}>${s.hasta !== "yok" || (s.durum === "gorusme") ? "Görüşmeye yeniden katıl" : "Görüşmeye katıl"}</button>
              <div class="vg-metin muted">${!onay ? "Doktor onaylayınca katılabileceksin." : katilabilir ? (s.doktor === "gorusmede" ? "Doktorun görüşmede, seni bekliyor." : "Görüşme odası açık.") : `Görüşme odası ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}).`}</div>
-             ${onay && !acikMi(r) && saat < bas(r) ? `<button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r) - 5}">Demo: saati ${hhmm(bas(r) - 5)}'e ilerlet</button>` : ""}`}
+             ${onay && saat < bas(r) && !bitti(s) ? `<button class="btn primary block" type="button" data-vg="demo-saat" data-v="${bas(r)}">Demo: görüşme saatine geç (${hhmm(bas(r))})</button><div class="tiny muted">Demo saati 09:30'da durur; bu düğme saati görüşme saatine alır.</div>` : ""}`}
         ${!bitti(s) && r.status !== "iptal" && s.durum !== "gorusme" && !ctx.karma ? `<button class="btn block" type="button" data-act="cancel">Randevuyu iptal et</button>` : ""}
       </div>`;
     }
@@ -3065,6 +3089,7 @@ YANIT yalnızca şu JSON olsun:
           ${medya ? `<div class="vg-dugmeler">${kontrol("p", s)}</div>` : `<button class="vg-btn" type="button" data-vg="p-medya" ${medyaIsteniyor ? "disabled" : ""}>${medyaIsteniyor ? "İzin bekleniyor…" : "Kamerayı ve mikrofonu aç"}</button>`}
           <div class="vg-durum vg-durum-${hastaDurumMetni(r, s)[0]}" role="status">${esc(acikMi(r) ? metin : `Görüşme odası ${hhmm(bas(r) - ODA_ACILIR)}'de açılır.`)}</div>
           <button class="vg-katil" type="button" data-vg="p-odaya" ${acikMi(r) && !bitti(s) ? "" : "disabled"}>Görüşmeye katıl</button>
+          ${!acikMi(r) && saat < bas(r) ? `<button class="btn primary block" type="button" data-vg="demo-saat" data-v="${bas(r)}">Demo: görüşme saatine geç (${hhmm(bas(r))})</button>` : ""}
           <div class="vg-metin muted">Doktor: ${esc(pp.full)} · ${hhmm(bas(r))}</div></div>`;
       }
       const [tur, metin] = hastaDurumMetni(r, s);
@@ -3079,6 +3104,9 @@ YANIT yalnızca şu JSON olsun:
         <div class="vg-dugmeler">${kontrol("p", s)}<button class="vg-btn vg-ayril" type="button" data-vg="p-ayril-sor">Görüşmeden ayrıl</button></div>
         ${s.ayrilOnay === "p" ? `<div class="vg-onay" role="alertdialog" aria-label="Görüşmeden ayrılma onayı"><b>Görüşmeden ayrılmak istiyor musun?</b><span>Ayrılırsan randevu bitmez; görüşme süresi içinde yeniden katılabilirsin.</span>
           <div class="vg-dugmeler"><button class="vg-btn" type="button" data-vg="p-kal">Görüşmede kal</button><button class="vg-btn vg-ayril" type="button" data-vg="p-ayril">Evet, ayrıl</button></div></div>` : ""}
+        ${ctx.tekTelefon && s.doktor !== "gorusmede" && !s.kopuk ? `<div class="vg-metin muted">Tek telefonla deniyorsun: doktor birkaç saniye içinde demo olarak katılacak.</div><button class="btn primary block" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Demo: doktoru şimdi katılt</button>` : ""}
+        ${s.otoDoktor && s.doktor === "gorusmede" ? `<div class="tiny muted">Demo: doktor otomatik katıldı (doktor ekranı bu telefonda açık değil).</div>` : ""}
+        ${ctx.tekTelefon && s.durum === "gorusme" && s.doktor === "gorusmede" ? `<button class="btn block" type="button" data-vg="demo-bitir" data-id="${esc(anahtar(r))}">Demo: doktor görüşmeyi tamamlasın</button>` : ""}
         <details class="vg-demo-panel"><summary>Demo kontrolleri (sunum için)</summary><div class="vg-dugmeler">
           ${ctx.tekTelefon && s.doktor !== "gorusmede" ? `<button class="btn" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Doktoru katılt</button>` : ""}
           ${saat < bas(r) + 7 ? `<button class="btn" type="button" data-vg="demo-saat" data-v="${bas(r) + 7}">Doktor 7 dk gecikti</button>` : ""}
@@ -3093,7 +3121,7 @@ YANIT yalnızca şu JSON olsun:
       return `<div class="card stack vg-doktor-kart" style="gap:8px"><div class="row between"><span class="row" style="gap:6px"><span class="pill kirmizi">Görüntülü</span><b>${hhmm(bas(r))} · ${sure(r)} dk</b></span>${bitti(s) || r.status === "iptal" ? `<span class="pill plain">${esc(r.status === "iptal" ? "İptal edildi" : DURUM_AD[s.durum])}</span>` : hastaYazi}</div>
         <div class="small">${esc(ctx.baslik)}</div>${ctx.karma ? `<div class="tiny muted">Hemşire evde; sen görüntülü katılıyorsun. Yolculuk yok.</div>` : ""}
         ${bitti(s) || r.status === "iptal" ? "" : `<button class="vg-katil" type="button" data-vg="h-katil" data-id="${esc(anahtar(r))}" ${acikMi(r) ? "" : "disabled"}>${s.doktor === "ayrildi" ? "Görüşmeye yeniden katıl" : "Görüşmeye katıl"}</button>
-        ${acikMi(r) ? "" : `<div class="tiny muted">Oda ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}). <button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r) - 5}" style="min-height:0;padding:0">Demo: saati ilerlet</button></div>`}`}</div>`;
+        ${acikMi(r) ? "" : `<div class="tiny muted">Oda ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}). <button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r)}" style="min-height:0;padding:0">Demo: görüşme saatine geç</button></div>`}`}</div>`;
     }
     function doktorOdaHtml(r, ctx) {
       const s = durum(r);
@@ -3154,6 +3182,8 @@ YANIT yalnızca şu JSON olsun:
         case "h-bitir-sor": s.bitirOnay = true; break;
         case "h-bitir-vazgec": s.bitirOnay = false; break;
         case "h-bitir": s.bitirOnay = false; s.durum = "tamamlandi"; s.doktor = "yok"; s.hasta = "yok"; medyaKapat(); olay(s, "Görüşme tamamlandı"); ctx.tamamlandi(r); ctx.odaKapat("h"); ctx.odaKapat("p"); break;
+        case "demo-bitir": // tek telefon demosu: doktor adına tamamlama (gerçekte yalnızca doktor tamamlar)
+          s.durum = "tamamlandi"; s.doktor = "yok"; s.hasta = "yok"; s.ayrilOnay = null; medyaKapat(); olay(s, "Görüşme tamamlandı (demo)"); ctx.tamamlandi(r); ctx.odaKapat("p"); break;
         case "h-katilmadi": s.durum = "katilmadi"; s.doktor = "yok"; olay(s, "Hasta katılmadı"); ctx.katilmadi(r); ctx.odaKapat("h"); break;
         default: return false;
       }
@@ -3164,9 +3194,12 @@ YANIT yalnızca şu JSON olsun:
     function tick(kok) { kok.querySelectorAll("[data-vg-sure]").forEach((el) => { const s = S[el.dataset.vgSure]; if (s && s.basla) el.textContent = dk(sn() - s.basla); }); }
     // Gerçek ağ kesintisi: oda kopuk görünür; bağlantı dönünce kullanıcı "Yeniden dene" der
     window.addEventListener("offline", () => { for (const s of Object.values(S)) if (s.hasta !== "yok" || s.doktor === "gorusmede") s.kopuk = true; o.yenile && o.yenile(); });
+    // Tek telefon demosu: doktor ekranı yokken doktor adına katılır (açıkça "demo" etiketlenir)
+    function doktorKatil(r) { const s = durum(r); if (bitti(s) || s.doktor === "gorusmede") return false; s.doktor = "gorusmede"; s.otoDoktor = true; olay(s, "Doktor katıldı (demo)");
+      if (s.hasta === "bekleme" || s.hasta === "gorusmede") { s.hasta = "gorusmede"; s.durum = "gorusme"; s.basla ||= sn(); } return true; }
     function iptal(r) { const s = durum(r); s.durum = "iptal"; s.hasta = "yok"; s.doktor = "yok"; medyaKapat(); }
 
-    return { durum, durumAd: (r) => DURUM_AD[durum(r).durum], hastaRandevuHtml, hastaOdaHtml, doktorKartHtml, doktorOdaHtml, onClick, onInput, tick, videolariBagla, medyaKapat, iptal,
+    return { durum, durumAd: (r) => DURUM_AD[durum(r).durum], hastaRandevuHtml, hastaOdaHtml, doktorKartHtml, doktorOdaHtml, onClick, onInput, tick, videolariBagla, medyaKapat, iptal, doktorKatil,
       saat: () => saat, saatAyarla: (v) => { saat = v; }, medyaAcik: () => !!medya, bitti, acikMi };
   }
   window.KapidaGoruntulu = { create };
@@ -3907,12 +3940,12 @@ YANIT yalnızca şu JSON olsun:
     ["kan_alma", "Kan alma", "Doktorun istediği tahlil için evden kan aldırmak istiyorum", "Evde veya iş yerinde kan alma hizmeti"],
     ["iv_serum", "Serum takma", "Doktorun yazdığı serumu evde taktırmak istiyorum", "Doktorun yazdığı serum evde, hemşire eşliğinde"],
     ["fizyoterapi_seansi", "Evde fizik tedavi", "Ameliyat sonrası evde fizik tedavi istiyorum", "Ameliyat sonrası ve hareket kısıtlılığında"],
-    ["ev_muayene", "Doktor ev ziyareti", "Babam hasta, doktorun eve gelip bakmasını istiyorum", "Doktor eve gelip muayene eder"],
     ["tele_muayene", "Görüntülü doktor", "Doktorla görüntülü görüşmek istiyorum", "Evden çıkmadan doktorla görüntülü görüşme"],
+    ["tele_hemsire_destekli", "Hemşire evde, doktor görüntülü", "Babam yatağa bağımlı, hemşire gelsin doktor görüntülü baksın", "Evden çıkamayan hasta için: hemşire gelir, doktor görüntülü bağlanır"],
   ];
 
   // ---------- YZ ----------
-  const SERVICE_LIST = Object.values(repo.services).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
+  const SERVICE_LIST = Object.values(repo.services).filter((s) => !repo.hekim_evde.has(s.code)).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
   // İstemler tek kaynaktan (istemler.js): Claude sürümü ve sunucu aynı talimatları kullanır.
   const CHAT_RULES = window.KAPIDA_ISTEMLER.SOHBET_KURALLARI;
   const reportPrompt = (transcript) => window.KAPIDA_ISTEMLER.raporIstemi(transcript, P.photoNotes, SERVICE_LIST);
@@ -4018,7 +4051,7 @@ YANIT yalnızca şu JSON olsun:
     if (!photos.length && !d.saglik && /( fiyat| ucret| ne kadar| kac para| kac lira| kac tl)/.test(C.normalize(shown))) {
       P.msgs[P.msgs.length - 1].araLaf = true;
       const f = (c) => `${svc(c).name_tr.toLocaleLowerCase("tr")} ${svc(c).base_fee_tl} TL`;
-      const cevap = `Başlangıç fiyatları: ${["ev_muayene", "tele_muayene", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
+      const cevap = `Başlangıç fiyatları: ${["tele_muayene", "tele_hemsire_destekli", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
       P.msgs.push({ who: "ai", text: cevap, araLaf: true }); speak(cevap); renderP(); return;
     }
     // 1d) "Direkt doktora yönlendir" / "soru sorma": soruları geç (acil kontrolü yukarıda yapıldı)
@@ -4097,7 +4130,7 @@ YANIT yalnızca şu JSON olsun:
     const bed = /yatağa/.test(bedA) ? true : /rahat/.test(bedA) ? false : null;
     const t = C.triage(repo, all, { bedridden: !!bed, has_physician_plan: plan === "var" });
     const route = repo.routes.find((r) => r.code === t.route);
-    const code = route ? route.service_list[0] : "ev_muayene";
+    const code = route ? route.service_list[0] : "tele_muayene";
     return {
       kim_icin: a[1] || "belirtilmedi", yas_araligi: /70/.test(a[1] || "") ? "70 üstü" : "belirtilmedi",
       sikayet: a[0] || "belirtilmedi", hastanin_kendi_sozleri: a[0] || "belirtilmedi", baslangic: a[2] || "belirtilmedi", seyir: /kötüleş/.test(a[2] || "") ? "kötüleşiyor (beyan)" : "belirtilmedi",
@@ -4167,7 +4200,7 @@ YANIT yalnızca şu JSON olsun:
       if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
       rep = demoReport();
     }
-    if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
+    if (!repo.services[rep.hizmet_onerisi] || repo.hekim_evde.has(rep.hizmet_onerisi)) rep.hizmet_onerisi = "tele_muayene"; // doktor eve gitmez
     if (!repo.professions[rep.istenen_meslek]) rep.istenen_meslek = istenenMeslek() || "";
     if (P.info.doktor && P.info.atlaMeslek) {
       const ad = meslekAdi(P.info.atlaMeslek);
@@ -4176,8 +4209,8 @@ YANIT yalnızca şu JSON olsun:
       rep.hasta_icin_ozet = `İsteğin üzerine seni ${yonelme(ad)} yönlendiriyoruz.` + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " İletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = [`Ayrıntılar ${yonelme(ad)} ziyarette sorulacak (kullanıcı soruları geçti)`, ...(rep.eksik_bilgiler || [])];
     } else if (P.info.doktor) {
-      rep.hizmet_onerisi = "ev_muayene";
-      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
+      rep.hizmet_onerisi = P.info.bed ? "tele_hemsire_destekli" : "tele_muayene";
+      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi (doktor görüntülü bağlanır).";
       rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
     }
@@ -4256,14 +4289,17 @@ YANIT yalnızca şu JSON olsun:
       // Kural motoru kalıp bulamadı: YZ'nin hizmet önerisini mevzuat kuralıyla süz
       const s = svc(sug);
       let level, services;
-      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "HEKIM_EV" : "TELE"; services = [level === "HEKIM_EV" ? "ev_muayene" : "tele_muayene"]; }
+      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; }
+      else if (repo.hekim_evde.has(sug)) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; } // doktor eve gitmez
       else if ((repo.profession_services.hekim || new Set()).has(sug)) { level = s.remote_possible ? "TELE" : "HEKIM_EV"; services = [sug]; }
       else { level = "PLANLI"; services = [sug]; }
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
     }
     if (P.info.doktor && !P.info.atlaMeslek && !t.is_emergency) {
-      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
+      // Doktorlar yalnızca görüntülü: doğrudan doktor isteği görüntülü görüşmedir; evden çıkamayan hastaya hemşire gelir, doktor görüntülü bağlanır
+      const lv = pt.bedridden ? "TELE_HEMSIRE" : "TELE";
+      t = { ...t, level: lv, services: [lv === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin (doktor görüntülü bağlanır)."] };
     }
     // Şikâyet birden fazla hizmete gidiyorsa (ör. sonda: bakım / takma-değişim; ayak: standart / diyabetik) hasta seçer.
     // Karar (seviye, meslek) değişmez; yalnızca hizmet kalemi ve taban ücret. Açıkça söylediyse uygun olan önceden seçili.
@@ -4296,8 +4332,8 @@ YANIT yalnızca şu JSON olsun:
     const prof = istenen && !HEKIMLER.has(istenen) && level === "PLANLI" ? meslekAdi(istenen).toLocaleLowerCase("tr") : (() => { const ps = [...repo.professionsFor(service)].filter((x) => x !== "hekim" && x !== "uzman_hekim"); return ps.length ? repo.professions[ps[0]].name_tr.toLowerCase() : "sağlık çalışanı"; })();
     return {
       PLANLI: [ICO.home, `Bir ${prof} evine gelir`, "Doktorunun planı olduğu için doğrudan uygun sağlık çalışanını gönderebiliyoruz."],
-      HEKIM_EV: [ICO.steth, "Önce bir doktor evine gelip baksın", "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
-      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Kısa bir görüntülü görüşmeyle doktor durumu değerlendirir; gerekirse eve hemşire ya da doktor gönderir."],
+      HEKIM_EV: [ICO.steth, "Önce doktor değerlendirsin" /* doktorlar yalnızca görüntülü: bu seviye artık TELE/TELE_HEMSIRE’ye çevrilir */, "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
+      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Doktor evine gelmez; kısa bir görüntülü görüşmeyle durumu değerlendirir. Gerekirse plan yazar, eve hemşire ya da başka bir sağlık çalışanı gelir."],
       TELE_HEMSIRE: [ICO.bed, "Hemşire evine gelir, doktor görüntülü bağlanır", "Evden çıkamayan hasta için: hemşire ölçümleri yapar, doktor aynı anda görüntülü değerlendirir."],
     }[level];
   }
@@ -4333,11 +4369,12 @@ YANIT yalnızca şu JSON olsun:
     const bitti = (r) => r.status === "kabul" && (uzaktanMi(r) ? VG.bitti(VG.durum(r)) : !!(G.durum(r) || {}).checkout);
     const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı" && !bitti(r));
     // Ziyaret bitti ama hasta henüz onaylamadı / puanlamadı: ana ekranda en üstte göster (hasta takip ekranında olmayabilir)
-    const puanla = liste.find((r) => bitti(r) && !r.puan && !uzaktanMi(r));
-    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = bitti(r) && !r.puan && !uzaktanMi(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
+    const puanlanir = (r) => bitti(r) && !r.puan && (!uzaktanMi(r) || VG.durum(r).durum === "tamamlandi");
+    const puanla = liste.find(puanlanir);
+    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = puanlanir(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
         <span><b>${esc(svc(r.service).name_tr)}</b>${uzaktanMi(r) ? ` <span class="pill kirmizi">Görüntülü</span>` : ""}<span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)}</span></span><span class="pill ${renk}">${esc(d)}</span></button>`; };
-    const puanKutusu = puanla ? (() => { const onay = (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first;
-      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ziyaretini puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
+    const puanKutusu = puanla ? (() => { const vg = uzaktanMi(puanla), onay = vg || (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first, ne = vg ? "görüşmeni" : "ziyaretini";
+      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ile ${ne} puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
         <div class="small">${onay ? "Deneyimini birkaç saniyede puanla; diğer hastalara yol gösterir." : "Hizmet tamamlandı mı? Onaylayıp puan verebilirsin."}</div>
         <button class="btn primary block" type="button" data-act="takip" data-id="${puanla.id}">${onay ? "Puanla" : "Onayla ve puanla"}</button></div>`; })() : "";
     if (aktif && uzaktanMi(aktif)) { const s = VG.durum(aktif), pp = person(aktif.provider_id);
@@ -4769,6 +4806,11 @@ YANIT yalnızca şu JSON olsun:
     iyi: ["Zamanında geldi", "Nazik ve saygılı", "Açıklayarak anlattı", "Özenli ve temiz çalıştı", "Güven verdi"],
     kotu: ["Geç kaldı", "Acele etti", "Yeterince açıklamadı", "Özensiz çalıştı", "Kaba davrandı"],
   };
+  // Görüntülü görüşme: doktorun davranışı puanlanır; bağlantı/uygulama sorunu doktora yazılmaz (ayrı bildirilir)
+  const PUAN_ETIKET_VG = {
+    iyi: ["Zamanında katıldı", "Nazik ve saygılı", "Dikkatle dinledi", "Açıklayarak anlattı", "Güven verdi"],
+    kotu: ["Geç katıldı", "Acele etti", "Dinlemedi", "Yeterince açıklamadı", "Kaba davrandı"],
+  };
   const YILDIZ_AD = ["", "Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
   // Yayımlanan puanlar: en eskiden başlayarak PUAN_TOPLU'nun katı kadar (PUAN en yeni başta tutulur)
   const yayindaPuanlar = (pid) => { const l = PUAN[pid] || []; const n = l.length - (l.length % PUAN_TOPLU); return l.slice(l.length - n); };
@@ -4784,14 +4826,15 @@ YANIT yalnızca şu JSON olsun:
     if (r.puan) {
       return `<div class="card stack puan" style="gap:6px"><b>Teşekkürler!</b>
         <div class="small"><span class="puan-yildiz" aria-label="${r.puan.yildiz} yıldız">${yildizlar(r.puan.yildiz)}</span> verdin${r.puan.etiketler.length ? ` · ${esc(r.puan.etiketler.join(", "))}` : ""}.</div>
-        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ziyareti inceleyecek ve sana yazılı dönecek. Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.</div>` : ""}
+        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ${uzaktanMi(r) ? "görüşmeyi" : "ziyareti"} inceleyecek ve sana yazılı dönecek.${uzaktanMi(r) ? "" : ` Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.`}</div>` : ""}
         <div class="tiny muted">Puanın ${esc(pp.first)}'e tek başına gösterilmez: birkaç değerlendirme birikince adın, yıldızın ve ziyaret saati olmadan ortalamaya katılır. Ortalama, sıralamada yetkinlik puanına yansır.</div></div>`;
     }
     const t = P.puanTaslak && P.puanTaslak.id === r.id ? P.puanTaslak : (P.puanTaslak = { id: r.id, yildiz: 0, etiketler: [], yorum: "" });
-    const etiketler = t.yildiz ? PUAN_ETIKET[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
-    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ziyaretini puanla">
-      <b>${esc(pp.first)} ziyaretini puanla</b>
-      <div class="small muted">Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil.</div>
+    const vg = uzaktanMi(r), ne = vg ? "görüntülü görüşmeni" : "ziyaretini";
+    const etiketler = t.yildiz ? (vg ? PUAN_ETIKET_VG : PUAN_ETIKET)[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
+    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ile ${ne} puanla">
+      <b>${esc(pp.first)} ile ${ne} puanla</b>
+      <div class="small muted">${vg ? "Doktorun ilgisini puanla (zamanında katılma, dinleme, açıklama). Görüntü/ses sorunu doktorun puanına yazılmaz. Tedavinin tıbbi doğruluğu puanlanmaz." : "Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil."}</div>
       <div class="puan-satir">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="puan-btn ${n <= t.yildiz ? "on" : ""}" data-puan="${n}" aria-pressed="${n === t.yildiz}" aria-label="${n} yıldız, ${YILDIZ_AD[n]}">★</button>`).join("")}</div>
       ${t.yildiz ? `<div class="small" aria-live="polite"><b>${YILDIZ_AD[t.yildiz]}</b>${t.yildiz <= 3 ? " · ne eksikti?" : " · en çok ne hoşuna gitti?"}</div>
       <div class="quick">${etiketler.map((x) => `<button class="chip" type="button" data-puan-etiket="${esc(x)}" aria-pressed="${t.etiketler.includes(x)}">${esc(x)}</button>`).join("")}</div>
@@ -4835,6 +4878,7 @@ YANIT yalnızca şu JSON olsun:
       <button class="back" type="button" data-act="home">${ICO.back} Ana sayfa</button>
       <h2 style="font-size:22px">${r.status === "kabul" ? "Görüntülü görüşmen" : r.status === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
       ${VG.hastaRandevuHtml(r, vgHastaCtx(r))}
+      ${r.status === "kabul" && VG.durum(r).durum === "tamamlandi" ? puanKarti(r) : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>Doktorun senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}</div>` : ""}
       <div class="card stack small" style="gap:6px"><b>Görüşmeden önce</b><div>• Sessiz, aydınlık bir yer seç; telefonu sabitle.</div><div>• Kullandığın ilaçları ve varsa tahlil sonuçlarını yanına al.</div><div>• Acil bir durum olursa görüşmeyi beklemeden 112'yi ara.</div></div>
       ${r.status === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : ""}
@@ -5530,6 +5574,17 @@ YANIT yalnızca şu JSON olsun:
   }
   window.addEventListener("hashchange", () => { const h = (location.hash || "").replace("#", ""); if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else rolUygula(); });
   rolUygula();
+  // Görüntülü görüşme, tek telefon demosu: doktor ekranı görünmüyorsa hasta odada bekledikten 5 sn sonra doktor adına demo katılım
+  setInterval(() => VG.tick(document), 1000); // görüşme süresi yerinde güncellenir
+  const vgOto = {};
+  setInterval(() => {
+    const r = P.request; if (!r || !vgVar(r) || r.status !== "kabul" || P.vgOda !== r.id) return;
+    const s = VG.durum(r); if (s.hasta !== "bekleme" || s.doktor === "gorusmede" || s.kopuk) { delete vgOto[r.id]; return; }
+    if (!vgHastaCtx(r).tekTelefon) return;
+    vgOto[r.id] ||= Date.now();
+    if (Date.now() - vgOto[r.id] < 5000) return;
+    if (VG.doktorKatil(r)) { P.toast = `${person(vgDoktor(r)).full} görüşmeye katıldı (demo).`; renderP(); renderH(); }
+  }, 1000);
   // Yalnız hasta telefonu açıkken (ortak veri yok): çalışan ekranı görünmediği için onayı demo olarak 6 sn sonra çalışan adına ver.
   const otoOnay = {};
   setInterval(() => {
@@ -5644,7 +5699,7 @@ YANIT yalnızca şu JSON olsun:
       if (r.status === "red") bildir("p", id + ":red", { ikon: "↩️", baslik: "Sağlık çalışanı uygun değil", metin: "Sana başka seçenekler gösterelim.", hedef: git });
       if (vgVar(r) && r.status === "kabul") { const s = VG.durum(r), dk = person(vgDoktor(r));
         if (VG.acikMi(r) && !VG.bitti(s)) bildir("p", id + ":vg-oda", { ikon: "🎥", baslik: "Görüşme odası açıldı", metin: `${dk.full} ile görüntülü görüşmen · ${C.hhmm(r.vgBaslangic ?? r.arrival_min)}`, hedef: git });
-        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı.`, hedef: git }); }
+        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı. Görüşmeni puanlayabilirsin.`, hedef: git }); }
       const ta = takipAdimi(r);
       if (ta.adim >= 1) bildir("p", id + ":yolda", { ikon: ta.T.toplu ? "🚌" : "🚗", baslik: `${pp.first} yola çıktı`, metin: `${neyleGeliyor(ta.T).replace(/<[^>]+>/g, "")} · tahmini varış ${C.hhmm(r.arrival_min)}`, hedef: git });
       if (ta.adim >= 2) bildir("p", id + ":yakin", { ikon: "📍", baslik: `${pp.first} yaklaşıyor`, metin: `1 km'den az kaldı${ta.kalan ? ` · ~${ta.kalan} dk` : ""}.`, hedef: git });
@@ -5876,6 +5931,7 @@ YANIT yalnızca şu JSON olsun:
       repo.providers[pid].rating = Math.round(puanOrtalama(pid).ort * 10) / 10; renderH(); } };
   // Prova kurulumu (yalnızca testler): seçilen hizmet için ilk (ya da verilen) adayla randevu oluşturur — arayüzdeki onay akışının aynısı (confirmBooking)
   window.KapidaTest.randevuKur = async (code, o = {}) => {
+    P.info.plan = o.plan ? "var" : "bilinmiyor"; P.info.bed = !!o.yatakta;
     P.pt = patientPoint(); P.info.gun = 0; P.info.when = o.when ?? 570; P.sort = "onerilen";
     P.triage = { level: svc(code).category === "tele" ? (uzaktanHizmet(code) ? "TELE" : "TELE_HEMSIRE") : "PLANLI", services: [code] };
     P.report = cannedReport(code);

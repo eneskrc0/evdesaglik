@@ -67,8 +67,7 @@ with sync_playwright() as pw:
     bas = v["varis"]
     ad2 = [x for x in T("() => window.KapidaTest.adaylar('tele_muayene')") if x["pid"] == dok]
     check(all(x["varis"] >= bas + 20 or x["varis"] + 20 <= bas for x in ad2), f"aynı hekime çakışan görüntülü saat önerilmiyor (dolu {bas}, yeni öneri {[x['varis'] for x in ad2]})")
-    ev = [x for x in T("() => window.KapidaTest.adaylar('ev_muayene')") if x["pid"] == dok]
-    check(all(x["varis"] >= bas + 20 + 15 or x["varis"] + 30 + 15 <= bas for x in ev), f"görüntülü görüşmenin üstüne ev ziyareti konmuyor ({[x['varis'] for x in ev] or 'aday değil'})")
+    check(T("() => window.KapidaTest.adaylar('ev_muayene')") == [], "doktor eve gitmiyor: 'Hekim ev muayenesi' için hiç aday yok")
 
     # ---------- 3) Hasta ana sayfadan görüşmeye döner; ön hazırlık; kamera düğmesiz açılmaz ----------
     p.locator("[data-act=home]").first.click()
@@ -144,6 +143,15 @@ with sync_playwright() as pw:
     check("Tamamlandı" in p.inner_text() and "Görüşmeye katıl" not in p.inner_text(), "hasta ekranında 'Tamamlandı', katıl düğmesi yok")
     h.locator("[data-tab=rota]").click()
     check(h.locator(f"[data-vg=h-katil][data-id='{rid}']").count() == 0 and "Tamamlandı" in h.inner_text(), "hekim ekranında da 'Tamamlandı'")
+    t = p.inner_text()
+    check("görüntülü görüşmeni puanla" in t and p.locator("[data-puan]").count() == 5, "görüşme bitince hastada puanlama kartı (5 yıldız)")
+    check("Görüntü/ses sorunu doktorun puanına yazılmaz" in t, "puan kartı: bağlantı sorunu doktora yazılmaz notu")
+    p.locator("[data-puan='5']").click()
+    check("Dikkatle dinledi" in p.inner_text() and "Zamanında katıldı" in p.inner_text() and "Özenli ve temiz çalıştı" not in p.inner_text(), "görüntülüye özel etiketler (ev ziyareti etiketleri yok)")
+    p.locator("[data-puan-etiket='Dikkatle dinledi']").click(); p.locator("[data-act=puanGonder]").click()
+    check("Teşekkürler!" in p.inner_text() and T("id => (window.KapidaTest.oda(id) || {}).istek", rid) is not None, "puan gönderildi, teşekkür kartı")
+    p.locator("[data-act=home]").first.click()
+    check(any("★★★★★" in x for x in pg.eval_on_selector_all("#pScreen .randevu-satir", "els => els.map(e => e.textContent)")), "Randevularım'da görüşmenin 5 yıldızı görünüyor")
 
     # ---------- 10) İptal iki tarafta ----------
     yukle()
@@ -154,12 +162,31 @@ with sync_playwright() as pw:
     h.locator("[data-tab=talepler]").click(); h.locator("[data-tab=rota]").click()
     check(h.locator(f"[data-vg=h-katil][data-id='{v2['id']}']").count() == 0, "iptal: hekim ekranındaki görüşme kartı kalktı")
     check("İptal edildi" in p.inner_text() or "iptal" in p.inner_text().lower(), "iptal: hasta tarafında bildirildi")
+    check(p.locator("[data-puan]").count() == 0 and "puanla" not in p.inner_text().lower(), "iptal edilen görüşme puanlanmıyor")
 
-    # ---------- 11) Hekimin ev muayenesi hâlâ rotaya girer ----------
-    yukle()
-    v3 = kur("ev_muayene"); onayla(v3["id"])
-    check(v3["ins"] and any(x["reqId"] == v3["id"] for x in T("pid => window.KapidaTest.rota(pid)", v3["pid"])), "ev muayenesi hekimin yol rotasında")
-    check(p.locator("#takip").count() == 1 and "Görüntülü doktor görüşmesi" not in p.inner_text(), "ev muayenesinde hasta canlı takibi var, görüntülü etiketi yok")
+    # ---------- 11) Doktor yalnızca görüntülü: "doktora bağla" görüntülüye gider; evde ziyaret yalnız hemşire vb. ----------
+    def akis(ilk, yatakta):
+        yukle(); p.locator("[data-act=start]").click(); p.locator("#pInput").fill(ilk); p.locator("#pInput").press("Enter")
+        for _ in range(14):
+            pg.wait_for_timeout(500)
+            if p.locator("[data-act=options]").count(): break
+            q = p.locator("[data-quick]")
+            if q.count():
+                h2 = q.filter(has_text="Yatağa" if yatakta else "rahat")
+                (h2.first if h2.count() else q.first).click()
+        if p.locator("#pBed").count() and p.locator("#pBed").is_checked() != yatakta: p.locator("#pBed").click()  # özet ekranındaki "yatağa bağımlı" kutusu
+        p.locator(".saatler .saat").first.click(); p.locator("[data-act=options]").click(); pg.wait_for_timeout(1000)
+        pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)")
+        return p.inner_text(), pg.eval_on_selector_all("#pScreen .opt", "els => els.map(e => e.innerText)")
+    for ilk in ["Direkt doktora bağla beni", "Annem halsiz, doktor eve gelsin"]:
+        t, ops = akis(ilk, False)
+        check("Hekimle video görüşme" in t and ops and all("hekim" in o.lower() and "Görüntülü" in o for o in ops), f"'{ilk}' → görüntülü doktor, tüm adaylar görüntülü hekim")
+    t, ops = akis("Babam yatağa bağımlı, direkt doktora bağla", True)
+    check("Hemşire evine gelir, doktor görüntülü bağlanır" in t and ops and all("hekim" not in o.split("\n")[2].lower() for o in ops), "yatağa bağımlı + doktor isteği → hemşire evde, doktor görüntülü (eve doktor gelmiyor)")
+    check("Doktor ev ziyareti" not in (yukle() or p.inner_text()) and "Hemşire evde, doktor görüntülü" in p.inner_text(), "ana sayfada 'Doktor ev ziyareti' yok, 'Hemşire evde, doktor görüntülü' var")
+    T("() => window.KapidaTest.saat(570)")
+    v3 = kur("kan_alma", plan=True); onayla(v3["id"])
+    check(v3["ins"] and any(x["reqId"] == v3["id"] for x in T("pid => window.KapidaTest.rota(pid)", v3["pid"])) and p.locator("#takip").count() == 1, "hemşirenin ev ziyareti yine rotada, hasta canlı takip görüyor")
 
     # ---------- 12) Karma: hemşire evde (yolculuk), hekim görüntülü ----------
     yukle()
@@ -210,6 +237,39 @@ with sync_playwright() as pw:
     check(boy and all(b[1] >= 48 and b[2] >= 17 for b in boy), f"mobilde görüşme düğmeleri ≥48 px, yazı ≥17 px ({[(b[0][:18], round(b[1])) for b in boy]})")
     gen = pg.evaluate("() => document.querySelector('#pScreen').scrollWidth <= document.querySelector('#pScreen').clientWidth + 1")
     check(gen, "mobilde yatay taşma yok")
+    check(not errs, f"sayfa hatası yok {errs}")
+
+    # ---------- 16) #ikisi dar pencerede iki telefon yan yana; koyu temada hazırlık ekranı okunur ----------
+    for w in (1000, 1100):
+        pg2 = br.new_page(viewport={"width": w, "height": 900}); pg2.goto(PAGE.replace("?rol=ham", "#ikisi")); pg2.wait_for_timeout(1200)
+        bp, bh = pg2.locator("#colP").bounding_box(), pg2.locator("#colH").bounding_box()
+        check(abs(bp["y"] - bh["y"]) < 2 and bh["x"] > bp["x"] and bh["x"] + bh["width"] <= w, f"#ikisi {w} px: hasta ve çalışan telefonu yan yana (çalışan alta kaymıyor)")
+        pg2.close()
+    pg2 = br.new_page(viewport={"width": 1000, "height": 900}, color_scheme="dark"); pg2.goto(PAGE); pg2.wait_for_timeout(1200)
+    pg2.evaluate("window.KapidaTest.randevuKur('tele_muayene')"); pg2.locator("[data-vg=p-hazirlik]").click()
+    renk = pg2.evaluate("""() => [...document.querySelectorAll('#pScreen .vg-btn, #pScreen .vg-durum')].map(e => { const c = getComputedStyle(e);
+      const l = (s) => { const [r, g, b] = s.match(/\\d+/g).map(Number); return (0.299 * r + 0.587 * g + 0.114 * b); }; return Math.abs(l(c.color) - l(c.backgroundColor)); })""")
+    check(renk and min(renk) > 100, f"koyu temada hazırlık ekranı düğme/durum yazısı okunur (parlaklık farkı {[round(x) for x in renk]})")
+    pg2.close()
+
+    # ---------- 15) Tek telefon (#hasta): saat düğmesi, doktor demo olarak katılır, süre sayar ----------
+    pg.goto(PAGE.replace("?rol=ham", "#hasta")); pg.wait_for_timeout(1500)
+    v7 = kur("tele_muayene")
+    pg.wait_for_function("window.KapidaTest.oda(%r).istek.status === 'kabul'" % v7["id"], timeout=12000)
+    p.get_by_role("button", name="Demo: görüşme saatine geç").first.click()
+    check(p.locator("[data-vg=p-katil]").is_enabled(), "tek telefon: 'görüşme saatine geç' ile 'Görüşmeye katıl' açıldı")
+    p.locator("[data-vg=p-katil]").click(); p.locator("[data-vg=p-odaya]").click()
+    check("doktor birkaç saniye içinde demo olarak katılacak" in p.inner_text(), "tek telefon: doktorun demo katılacağı yazıyor")
+    pg.wait_for_function("window.KapidaTest.oda(%r).durum === 'gorusme'" % v7["id"], timeout=9000)
+    pg.wait_for_timeout(2200)
+    sure = p.locator("[data-vg-sure]").inner_text()
+    check(oda(v7["id"])["otoDoktor"] and sure != "00:00" and "doktor otomatik katıldı" in p.inner_text(), f"tek telefon: doktor demo olarak katıldı, süre sayıyor ({sure})")
+    p.get_by_role("button", name="Demo: doktor görüşmeyi tamamlasın").click()
+    check(oda(v7["id"])["durum"] == "tamamlandi" and not oda(v7["id"])["medya"] and "görüntülü görüşmeni puanla" in p.inner_text(), "tek telefon: demo tamamlama → kamera kapandı, puan kartı çıktı")
+    p.locator("[data-act=home]").first.click()
+    check("görüşmeni puanla" in p.inner_text() and p.get_by_role("button", name="Puanla").count() >= 1, "ana sayfada 'görüşmeni puanla' daveti")
+    p.get_by_role("button", name="Puanla").first.click()
+    check(p.locator("[data-puan]").count() == 5, "davetten puan kartına dönüldü")
     check(not errs, f"sayfa hatası yok {errs}")
     br.close()
 print(f"Tamam: {ok} kontrol geçti.")
