@@ -98,7 +98,7 @@
           : `<button class="vg-btn vg-btn-ikinci" type="button" data-vg="p-hazirlik" data-id="${esc(anahtar(r))}">Kamera ve mikrofonu kontrol et</button>
              <button class="vg-katil" type="button" data-vg="p-katil" data-id="${esc(anahtar(r))}" ${katilabilir ? "" : "disabled"}>${s.hasta !== "yok" || (s.durum === "gorusme") ? "Görüşmeye yeniden katıl" : "Görüşmeye katıl"}</button>
              <div class="vg-metin muted">${!onay ? "Doktor onaylayınca katılabileceksin." : katilabilir ? (s.doktor === "gorusmede" ? "Doktorun görüşmede, seni bekliyor." : "Görüşme odası açık.") : `Görüşme odası ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}).`}</div>
-             ${onay && !acikMi(r) && saat < bas(r) ? `<button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r) - 5}">Demo: saati ${hhmm(bas(r) - 5)}'e ilerlet</button>` : ""}`}
+             ${onay && saat < bas(r) && !bitti(s) ? `<button class="btn primary block" type="button" data-vg="demo-saat" data-v="${bas(r)}">Demo: görüşme saatine geç (${hhmm(bas(r))})</button><div class="tiny muted">Demo saati 09:30'da durur; bu düğme saati görüşme saatine alır.</div>` : ""}`}
         ${!bitti(s) && r.status !== "iptal" && s.durum !== "gorusme" && !ctx.karma ? `<button class="btn block" type="button" data-act="cancel">Randevuyu iptal et</button>` : ""}
       </div>`;
     }
@@ -114,6 +114,7 @@
           ${medya ? `<div class="vg-dugmeler">${kontrol("p", s)}</div>` : `<button class="vg-btn" type="button" data-vg="p-medya" ${medyaIsteniyor ? "disabled" : ""}>${medyaIsteniyor ? "İzin bekleniyor…" : "Kamerayı ve mikrofonu aç"}</button>`}
           <div class="vg-durum vg-durum-${hastaDurumMetni(r, s)[0]}" role="status">${esc(acikMi(r) ? metin : `Görüşme odası ${hhmm(bas(r) - ODA_ACILIR)}'de açılır.`)}</div>
           <button class="vg-katil" type="button" data-vg="p-odaya" ${acikMi(r) && !bitti(s) ? "" : "disabled"}>Görüşmeye katıl</button>
+          ${!acikMi(r) && saat < bas(r) ? `<button class="btn primary block" type="button" data-vg="demo-saat" data-v="${bas(r)}">Demo: görüşme saatine geç (${hhmm(bas(r))})</button>` : ""}
           <div class="vg-metin muted">Doktor: ${esc(pp.full)} · ${hhmm(bas(r))}</div></div>`;
       }
       const [tur, metin] = hastaDurumMetni(r, s);
@@ -128,6 +129,8 @@
         <div class="vg-dugmeler">${kontrol("p", s)}<button class="vg-btn vg-ayril" type="button" data-vg="p-ayril-sor">Görüşmeden ayrıl</button></div>
         ${s.ayrilOnay === "p" ? `<div class="vg-onay" role="alertdialog" aria-label="Görüşmeden ayrılma onayı"><b>Görüşmeden ayrılmak istiyor musun?</b><span>Ayrılırsan randevu bitmez; görüşme süresi içinde yeniden katılabilirsin.</span>
           <div class="vg-dugmeler"><button class="vg-btn" type="button" data-vg="p-kal">Görüşmede kal</button><button class="vg-btn vg-ayril" type="button" data-vg="p-ayril">Evet, ayrıl</button></div></div>` : ""}
+        ${ctx.tekTelefon && s.doktor !== "gorusmede" && !s.kopuk ? `<div class="vg-metin muted">Tek telefonla deniyorsun: doktor birkaç saniye içinde demo olarak katılacak.</div><button class="btn primary block" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Demo: doktoru şimdi katılt</button>` : ""}
+        ${s.otoDoktor && s.doktor === "gorusmede" ? `<div class="tiny muted">Demo: doktor otomatik katıldı (doktor ekranı bu telefonda açık değil).</div>` : ""}
         <details class="vg-demo-panel"><summary>Demo kontrolleri (sunum için)</summary><div class="vg-dugmeler">
           ${ctx.tekTelefon && s.doktor !== "gorusmede" ? `<button class="btn" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Doktoru katılt</button>` : ""}
           ${saat < bas(r) + 7 ? `<button class="btn" type="button" data-vg="demo-saat" data-v="${bas(r) + 7}">Doktor 7 dk gecikti</button>` : ""}
@@ -142,7 +145,7 @@
       return `<div class="card stack vg-doktor-kart" style="gap:8px"><div class="row between"><span class="row" style="gap:6px"><span class="pill kirmizi">Görüntülü</span><b>${hhmm(bas(r))} · ${sure(r)} dk</b></span>${bitti(s) || r.status === "iptal" ? `<span class="pill plain">${esc(r.status === "iptal" ? "İptal edildi" : DURUM_AD[s.durum])}</span>` : hastaYazi}</div>
         <div class="small">${esc(ctx.baslik)}</div>${ctx.karma ? `<div class="tiny muted">Hemşire evde; sen görüntülü katılıyorsun. Yolculuk yok.</div>` : ""}
         ${bitti(s) || r.status === "iptal" ? "" : `<button class="vg-katil" type="button" data-vg="h-katil" data-id="${esc(anahtar(r))}" ${acikMi(r) ? "" : "disabled"}>${s.doktor === "ayrildi" ? "Görüşmeye yeniden katıl" : "Görüşmeye katıl"}</button>
-        ${acikMi(r) ? "" : `<div class="tiny muted">Oda ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}). <button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r) - 5}" style="min-height:0;padding:0">Demo: saati ilerlet</button></div>`}`}</div>`;
+        ${acikMi(r) ? "" : `<div class="tiny muted">Oda ${hhmm(bas(r) - ODA_ACILIR)}'de açılır (şu an ${hhmm(saat)}). <button class="btn ghost" type="button" data-vg="demo-saat" data-v="${bas(r)}" style="min-height:0;padding:0">Demo: görüşme saatine geç</button></div>`}`}</div>`;
     }
     function doktorOdaHtml(r, ctx) {
       const s = durum(r);
@@ -213,9 +216,12 @@
     function tick(kok) { kok.querySelectorAll("[data-vg-sure]").forEach((el) => { const s = S[el.dataset.vgSure]; if (s && s.basla) el.textContent = dk(sn() - s.basla); }); }
     // Gerçek ağ kesintisi: oda kopuk görünür; bağlantı dönünce kullanıcı "Yeniden dene" der
     window.addEventListener("offline", () => { for (const s of Object.values(S)) if (s.hasta !== "yok" || s.doktor === "gorusmede") s.kopuk = true; o.yenile && o.yenile(); });
+    // Tek telefon demosu: doktor ekranı yokken doktor adına katılır (açıkça "demo" etiketlenir)
+    function doktorKatil(r) { const s = durum(r); if (bitti(s) || s.doktor === "gorusmede") return false; s.doktor = "gorusmede"; s.otoDoktor = true; olay(s, "Doktor katıldı (demo)");
+      if (s.hasta === "bekleme" || s.hasta === "gorusmede") { s.hasta = "gorusmede"; s.durum = "gorusme"; s.basla ||= sn(); } return true; }
     function iptal(r) { const s = durum(r); s.durum = "iptal"; s.hasta = "yok"; s.doktor = "yok"; medyaKapat(); }
 
-    return { durum, durumAd: (r) => DURUM_AD[durum(r).durum], hastaRandevuHtml, hastaOdaHtml, doktorKartHtml, doktorOdaHtml, onClick, onInput, tick, videolariBagla, medyaKapat, iptal,
+    return { durum, durumAd: (r) => DURUM_AD[durum(r).durum], hastaRandevuHtml, hastaOdaHtml, doktorKartHtml, doktorOdaHtml, onClick, onInput, tick, videolariBagla, medyaKapat, iptal, doktorKatil,
       saat: () => saat, saatAyarla: (v) => { saat = v; }, medyaAcik: () => !!medya, bitti, acikMi };
   }
   window.KapidaGoruntulu = { create };
