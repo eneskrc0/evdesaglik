@@ -944,7 +944,7 @@
       <label class="stack small" style="gap:4px"><b>Telefonu</b><input class="inp" id="hrAcilTel" type="tel" inputmode="tel" maxlength="16" placeholder="05xx xxx xx xx" value="${esc(cp.acil.telefon)}"><span class="tiny muted">Kontrole yanıt vermezsen zincirin 4. adımında aranır (demoda simüle).</span></label>
       <div class="hata-metin" id="hrHata" role="alert"></div>
       <button class="ana-btn" type="button" data-act="hGuvenlikKaydet">Kaydet</button>${cp.pin ? `<button class="btn ghost" type="button" data-act="hPinSifirla">Demo PIN'lerine dön</button>` : ""}</div>`;
-    if (b === "bildirim") return `${altBaslik("h", "Bildirimler")}<div class="ag-kutu">${anahtar("h.yeniTalep", cp.bildirim.yeniTalep, "Yeni talep", "Rotana uyan talepler önce")}${anahtar("h.ses", cp.bildirim.ses, "Talep sesi")}${anahtar("h.rota", cp.bildirim.rota, "Yola çıkma hatırlatması", "Trafiğe göre zamanında")}${anahtar("h.puan", cp.bildirim.puan, "Yeni değerlendirme")}</div></div>`;
+    if (b === "bildirim") return `${altBaslik("h", "Bildirimler")}<div class="ag-kutu">${anahtar("h.yeniTalep", cp.bildirim.yeniTalep, "Yeni talep", "Rotana uyan talepler önce")}${anahtar("h.ses", cp.bildirim.ses, "Talep sesi")}${anahtar("h.rota", cp.bildirim.rota, "Yola çıkma hatırlatması", "Trafiğe göre zamanında")}${anahtar("h.puan", cp.bildirim.puan, "Değerlendirme özeti güncellenince", "Tek tek puan bildirilmez")}</div></div>`;
     if (b === "gorunum") return `${altBaslik("h", "Görünüm ve erişilebilirlik")}${gorunumHtml()}</div>`;
     if (b === "gizlilik") return `${altBaslik("h", "Gizlilik ve verilerim")}${gizlilikHtml("h")}</div>`;
     if (b === "yardim") return `${altBaslik("h", "Yardım ve destek")}${yardimHtml("h")}</div>`;
@@ -1217,27 +1217,33 @@
   // (önceki ortalama PUAN_ONCEKI değerlendirmeden sayılır, sentetik) ve eşleştirmedeki yetkinlik puanına yansır.
   // 1–2 yıldız kalite ekibine düşer; yorum çalışana hastanın adı olmadan gösterilir. Güvenlik sorunu ayrı: "Sorun var".
   const PUAN_ONCEKI = 20;
+  // Gizlilik: sağlık çalışanı tek bir hastanın kaç yıldız verdiğini göremez. Puanlar PUAN_TOPLU kadar birikince topluca
+  // ortalamaya ve özete katılır; çalışana yıldız, saat, hizmet ya da hasta bilgisi olmadan yalnızca ortalama, etiket sayıları
+  // ve karışık sıralı yorumlar gösterilir. Herkese görünen puan (kartlar, eşleştirme) da aynı toplu ortalamadır, böylece
+  // ortalamanın tek bir ziyaretten sonra değişmesinden puan çıkarılamaz.
+  const PUAN_TOPLU = 5;
   const PUAN = {}; // pid → [{yildiz, etiketler, yorum, reqId, hizmet, saat}]
   const PUAN_ETIKET = {
     iyi: ["Zamanında geldi", "Nazik ve saygılı", "Açıklayarak anlattı", "Özenli ve temiz çalıştı", "Güven verdi"],
     kotu: ["Geç kaldı", "Acele etti", "Yeterince açıklamadı", "Özensiz çalıştı", "Kaba davrandı"],
   };
   const YILDIZ_AD = ["", "Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
+  // Yayımlanan puanlar: en eskiden başlayarak PUAN_TOPLU'nun katı kadar (PUAN en yeni başta tutulur)
+  const yayindaPuanlar = (pid) => { const l = PUAN[pid] || []; const n = l.length - (l.length % PUAN_TOPLU); return l.slice(l.length - n); };
   function puanOrtalama(pid) {
-    const pv = repo.providers[pid], l = PUAN[pid] || [];
+    const pv = repo.providers[pid], l = PUAN[pid] || [], y = yayindaPuanlar(pid);
     if (pv._ilkPuan === undefined) pv._ilkPuan = pv.rating;
-    const ort = (pv._ilkPuan * PUAN_ONCEKI + l.reduce((a, x) => a + x.yildiz, 0)) / (PUAN_ONCEKI + l.length);
-    return { ort: Math.round(ort * 100) / 100, sayi: PUAN_ONCEKI + l.length, yeni: l.length };
+    const ort = (pv._ilkPuan * PUAN_ONCEKI + y.reduce((a, x) => a + x.yildiz, 0)) / (PUAN_ONCEKI + y.length);
+    return { ort: Math.round(ort * 100) / 100, sayi: PUAN_ONCEKI + y.length, yeni: y.length, bekleyen: l.length - y.length };
   }
   const yildizlar = (n) => "★".repeat(n) + "☆".repeat(5 - n);
   function puanKarti(r) {
     const pp = person(r.provider_id);
     if (r.puan) {
-      const o = puanOrtalama(r.provider_id);
       return `<div class="card stack puan" style="gap:6px"><b>Teşekkürler!</b>
         <div class="small"><span class="puan-yildiz" aria-label="${r.puan.yildiz} yıldız">${yildizlar(r.puan.yildiz)}</span> verdin${r.puan.etiketler.length ? ` · ${esc(r.puan.etiketler.join(", "))}` : ""}.</div>
         ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ziyareti inceleyecek ve sana yazılı dönecek. Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.</div>` : ""}
-        <div class="tiny muted">${esc(pp.first)}'in yeni ortalaması ★ ${o.ort.toFixed(2).replace(".", ",")} (${o.sayi} değerlendirme). Puanlar sıralamada yetkinlik puanına yansır.</div></div>`;
+        <div class="tiny muted">Puanın ${esc(pp.first)}'e tek başına gösterilmez: birkaç değerlendirme birikince adın, yıldızın ve ziyaret saati olmadan ortalamaya katılır. Ortalama, sıralamada yetkinlik puanına yansır.</div></div>`;
     }
     const t = P.puanTaslak && P.puanTaslak.id === r.id ? P.puanTaslak : (P.puanTaslak = { id: r.id, yildiz: 0, etiketler: [], yorum: "" });
     const etiketler = t.yildiz ? PUAN_ETIKET[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
@@ -1249,7 +1255,7 @@
       <div class="quick">${etiketler.map((x) => `<button class="chip" type="button" data-puan-etiket="${esc(x)}" aria-pressed="${t.etiketler.includes(x)}">${esc(x)}</button>`).join("")}</div>
       <textarea id="puanYorum" rows="2" maxlength="300" placeholder="İstersen birkaç kelime yaz (isteğe bağlı)" aria-label="Yorum (isteğe bağlı)">${esc(t.yorum)}</textarea>` : ""}
       <button class="btn primary block" type="button" data-act="puanGonder" ${t.yildiz ? "" : "disabled"}>Puanı gönder</button>
-      <div class="tiny muted">Yorumun ${esc(pp.first)}'e adın olmadan gösterilir.</div></div>`;
+      <div class="tiny muted">${esc(pp.first)} kaç yıldız verdiğini göremez. Yorumun, başka değerlendirmelerle birlikte adın ve ziyaret bilgisi olmadan gösterilir.</div></div>`;
   }
   function puanGonder() {
     const r = P.request, t = P.puanTaslak;
@@ -1260,17 +1266,22 @@
     repo.providers[r.provider_id].rating = Math.round(o.ort * 10) / 10; // eşleştirme ve kartlar bu puanı kullanır
     const upd = { ...r, puan: kayit }; putRequest(upd); P.request = upd; P.puanTaslak = null;
     P.toast = "Puanın kaydedildi. Teşekkürler!";
-    if (r.provider_id === H.pid) H.toast = `Yeni değerlendirme: ${yildizlar(kayit.yildiz)}`;
     renderP(); renderH();
   }
   // Çalışan ekranı: aldığı değerlendirmeler (hastanın adı yok)
+  // Çalışan ekranı: yalnızca toplu özet — ortalama, etiket sayıları, yorumlar (yıldız, saat, hizmet, hasta yok; sıra karışık)
   function degerlendirmelerHtml(pid) {
     const l = PUAN[pid] || [];
     if (!l.length) return "";
-    const o = puanOrtalama(pid);
-    return `<div class="card stack puan-calisan" style="gap:6px"><div class="row between"><b>Hasta değerlendirmeleri</b><span class="pill good">★ ${o.ort.toFixed(2).replace(".", ",")}</span></div>
-      ${l.slice(0, 3).map((x) => `<div class="small"><span class="puan-yildiz" aria-label="${x.yildiz} yıldız">${yildizlar(x.yildiz)}</span> · ${esc(svc(x.hizmet).name_tr)}, ${C.hhmm(x.saat)}${x.etiketler.length ? `<div class="tiny">${esc(x.etiketler.join(" · "))}</div>` : ""}${x.yorum ? `<div class="tiny muted">“${esc(x.yorum)}”</div>` : ""}${x.yildiz <= 2 ? `<div class="tiny muted">Kalite ekibi inceliyor; görüşün istenecek.</div>` : ""}</div>`).join("")}
-      <div class="tiny muted">${o.sayi} değerlendirme (${o.yeni} yeni). Hasta adı gösterilmez.</div></div>`;
+    const o = puanOrtalama(pid), y = yayindaPuanlar(pid);
+    const sayac = {}; y.forEach((x) => x.etiketler.forEach((e) => { sayac[e] = (sayac[e] || 0) + 1; }));
+    const etiket = Object.entries(sayac).sort((a, b) => b[1] - a[1]);
+    const yorumlar = y.map((x) => x.yorum).filter(Boolean).sort((a, b) => a.localeCompare(b, "tr")); // sıra ziyaret sırasını ele vermesin
+    return `<div class="card stack puan-calisan" style="gap:8px"><div class="row between"><b>Hasta değerlendirmeleri</b><span class="pill good">★ ${o.ort.toFixed(2).replace(".", ",")}</span></div>
+      ${etiket.length ? `<div class="row" style="gap:6px">${etiket.map(([e, n]) => `<span class="pill plain">${esc(e)} · ${n}</span>`).join("")}</div>` : ""}
+      ${yorumlar.map((t) => `<div class="tiny muted">“${esc(t)}”</div>`).join("")}
+      ${o.bekleyen ? `<div class="tiny">${o.bekleyen} yeni değerlendirme var; ${PUAN_TOPLU - o.bekleyen} tane daha birikince ortalamana ve bu özete eklenecek.</div>` : ""}
+      <div class="tiny muted">Hangi hastanın kaç yıldız verdiğini göremezsin: puanlar ${PUAN_TOPLU}'erli gruplar hâlinde, yıldız, saat ve hasta bilgisi olmadan eklenir. Düşük puanları kalite ekibi ayrıca inceler.</div></div>`;
   }
   function pDone() {
     const r = P.request;
@@ -2067,7 +2078,8 @@
     const gr = gzR(); const gs2 = gr && G.durum(gr);
     if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
     if (gs2 && gs2.kontrol) bildir("h", `${gr.id}:h-kontrol:${gs2.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: { tur: "rota" } });
-    for (const x of PUAN[pid] || []) bildir("h", `${pid}:puan:${x.reqId}`, { ikon: "⭐", baslik: "Yeni değerlendirme", metin: `${"★".repeat(x.yildiz)}${"☆".repeat(5 - x.yildiz)}${x.etiketler.length ? " · " + x.etiketler.join(", ") : ""}`, hedef: { tur: "rota" } });
+    // Tek tek puan bildirilmez (hangi hastanın kaç yıldız verdiği anlaşılmasın); yalnızca toplu özet yayımlanınca
+    { const n = yayindaPuanlar(pid).length; if (n) bildir("h", `${pid}:puan-ozet:${n}`, { ikon: "⭐", baslik: "Değerlendirme özetin güncellendi", metin: `${PUAN_TOPLU} yeni değerlendirme ortalamana eklendi: ★ ${puanOrtalama(pid).ort.toFixed(2).replace(".", ",")}`, hedef: { tur: "rota" } }); }
     // genel
     if (DG.state && DG.state.status === "onaylandi") bildir("h", `${pid}:dg-onay`, { ikon: "🎓", baslik: "Mesleki başvurun onaylı (demo)", metin: "Artık görev kabul edebilirsin.", hedef: { tur: "talepler" } });
     if (!BLD_ANAHTAR.h.has(`${pid}:gunaydin`)) {
@@ -2236,7 +2248,11 @@
   // Otomatik testler için salt okunur durum görüntüsü (uygulamayı değiştirmez)
   window.KapidaTest = { durum: () => JSON.parse(JSON.stringify({ ekran: P.screen, mesgul: P.busy, mod: P.mode, plan: P.info.plan, kim: P.info.forWhom,
     mesajlar: P.msgs.map((m) => ({ kim: m.who, metin: m.text, araLaf: !!m.araLaf })), rapor: P.report, acil: P.emergency })),
-    talep: () => (P.request ? JSON.parse(JSON.stringify(P.request.patient)) : null) };
+    talep: () => (P.request ? JSON.parse(JSON.stringify(P.request.patient)) : null),
+    calisan: () => H.pid,
+    // yalnızca otomatik testler: başka hastalardan gelmiş gibi sentetik puan ekler (toplu yayımlamayı denemek için)
+    puanEkle: (pid, yildiz, etiket, yorum) => { (PUAN[pid] ||= []).unshift({ yildiz, etiketler: etiket ? [etiket] : [], yorum: yorum || "", reqId: "TEST" + Math.random(), hizmet: "kan_alma", saat: 600 });
+      repo.providers[pid].rating = Math.round(puanOrtalama(pid).ort * 10) / 10; renderH(); } };
   if (AB.hesap === "misafir" && !AB.liste.length) adresDefteriYukle("misafir", false); // hesapla girildiyse hastaGir yükledi
   if (!PR.hesap) hastaProfiliYukle("misafir", null);
   renderP(); renderH();
