@@ -810,11 +810,12 @@
     const bitti = (r) => r.status === "kabul" && (uzaktanMi(r) ? VG.bitti(VG.durum(r)) : !!(G.durum(r) || {}).checkout);
     const aktif = liste.find((r) => ["bekliyor", "kabul"].includes(r.status) && randevuDurumu(r)[0] !== "Tamamlandı" && !bitti(r));
     // Ziyaret bitti ama hasta henüz onaylamadı / puanlamadı: ana ekranda en üstte göster (hasta takip ekranında olmayabilir)
-    const puanla = liste.find((r) => bitti(r) && !r.puan && !uzaktanMi(r));
-    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = bitti(r) && !r.puan && !uzaktanMi(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
+    const puanlanir = (r) => bitti(r) && !r.puan && (!uzaktanMi(r) || VG.durum(r).durum === "tamamlandi");
+    const puanla = liste.find(puanlanir);
+    const satir = (r) => { const [d0, renk0] = randevuDurumu(r); const [d, renk] = puanlanir(r) ? ["Puanla", "sun"] : r.puan ? [`${d0} · ${"★".repeat(r.puan.yildiz)}`, renk0] : [d0, renk0]; return `<button class="randevu-satir" type="button" data-act="takip" data-id="${r.id}">
         <span><b>${esc(svc(r.service).name_tr)}</b>${uzaktanMi(r) ? ` <span class="pill kirmizi">Görüntülü</span>` : ""}<span class="small muted">${gunEki(r)}${C.hhmm(r.arrival_min)} · ${esc(person(r.provider_id).full)}</span></span><span class="pill ${renk}">${esc(d)}</span></button>`; };
-    const puanKutusu = puanla ? (() => { const onay = (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first;
-      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ziyaretini puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
+    const puanKutusu = puanla ? (() => { const vg = uzaktanMi(puanla), onay = vg || (G.durum(puanla) || {}).hastaOnay, ad = person(puanla.provider_id).first, ne = vg ? "görüşmeni" : "ziyaretini";
+      return `<div class="card yaklasan stack puan-davet" style="gap:8px"><div class="row between"><b>${onay ? `${esc(ad)} ile ${ne} puanla` : `${esc(ad)} ziyareti bitirdi`}</b><span class="pill sun">${onay ? "Puan bekliyor" : "Onay bekliyor"}</span></div>
         <div class="small">${onay ? "Deneyimini birkaç saniyede puanla; diğer hastalara yol gösterir." : "Hizmet tamamlandı mı? Onaylayıp puan verebilirsin."}</div>
         <button class="btn primary block" type="button" data-act="takip" data-id="${puanla.id}">${onay ? "Puanla" : "Onayla ve puanla"}</button></div>`; })() : "";
     if (aktif && uzaktanMi(aktif)) { const s = VG.durum(aktif), pp = person(aktif.provider_id);
@@ -1246,6 +1247,11 @@
     iyi: ["Zamanında geldi", "Nazik ve saygılı", "Açıklayarak anlattı", "Özenli ve temiz çalıştı", "Güven verdi"],
     kotu: ["Geç kaldı", "Acele etti", "Yeterince açıklamadı", "Özensiz çalıştı", "Kaba davrandı"],
   };
+  // Görüntülü görüşme: doktorun davranışı puanlanır; bağlantı/uygulama sorunu doktora yazılmaz (ayrı bildirilir)
+  const PUAN_ETIKET_VG = {
+    iyi: ["Zamanında katıldı", "Nazik ve saygılı", "Dikkatle dinledi", "Açıklayarak anlattı", "Güven verdi"],
+    kotu: ["Geç katıldı", "Acele etti", "Dinlemedi", "Yeterince açıklamadı", "Kaba davrandı"],
+  };
   const YILDIZ_AD = ["", "Çok kötü", "Kötü", "Orta", "İyi", "Çok iyi"];
   // Yayımlanan puanlar: en eskiden başlayarak PUAN_TOPLU'nun katı kadar (PUAN en yeni başta tutulur)
   const yayindaPuanlar = (pid) => { const l = PUAN[pid] || []; const n = l.length - (l.length % PUAN_TOPLU); return l.slice(l.length - n); };
@@ -1261,14 +1267,15 @@
     if (r.puan) {
       return `<div class="card stack puan" style="gap:6px"><b>Teşekkürler!</b>
         <div class="small"><span class="puan-yildiz" aria-label="${r.puan.yildiz} yıldız">${yildizlar(r.puan.yildiz)}</span> verdin${r.puan.etiketler.length ? ` · ${esc(r.puan.etiketler.join(", "))}` : ""}.</div>
-        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ziyareti inceleyecek ve sana yazılı dönecek. Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.</div>` : ""}
+        ${r.puan.yildiz <= 2 ? `<div class="small">Platform kalite ekibi bu ${uzaktanMi(r) ? "görüşmeyi" : "ziyareti"} inceleyecek ve sana yazılı dönecek.${uzaktanMi(r) ? "" : ` Güvenliğini tehdit eden bir durum olduysa "Sorun var" ile bildir ya da 112'yi ara.`}</div>` : ""}
         <div class="tiny muted">Puanın ${esc(pp.first)}'e tek başına gösterilmez: birkaç değerlendirme birikince adın, yıldızın ve ziyaret saati olmadan ortalamaya katılır. Ortalama, sıralamada yetkinlik puanına yansır.</div></div>`;
     }
     const t = P.puanTaslak && P.puanTaslak.id === r.id ? P.puanTaslak : (P.puanTaslak = { id: r.id, yildiz: 0, etiketler: [], yorum: "" });
-    const etiketler = t.yildiz ? PUAN_ETIKET[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
-    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ziyaretini puanla">
-      <b>${esc(pp.first)} ziyaretini puanla</b>
-      <div class="small muted">Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil.</div>
+    const vg = uzaktanMi(r), ne = vg ? "görüntülü görüşmeni" : "ziyaretini";
+    const etiketler = t.yildiz ? (vg ? PUAN_ETIKET_VG : PUAN_ETIKET)[t.yildiz >= 4 ? "iyi" : "kotu"] : [];
+    return `<div class="card stack puan" style="gap:10px" role="group" aria-label="${esc(pp.first)} ile ${ne} puanla">
+      <b>${esc(pp.first)} ile ${ne} puanla</b>
+      <div class="small muted">${vg ? "Doktorun ilgisini puanla (zamanında katılma, dinleme, açıklama). Görüntü/ses sorunu doktorun puanına yazılmaz. Tedavinin tıbbi doğruluğu puanlanmaz." : "Hizmet deneyimini puanla (zamanında gelme, ilgi, açıklama). Tedavinin tıbbi doğruluğunu değil."}</div>
       <div class="puan-satir">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="puan-btn ${n <= t.yildiz ? "on" : ""}" data-puan="${n}" aria-pressed="${n === t.yildiz}" aria-label="${n} yıldız, ${YILDIZ_AD[n]}">★</button>`).join("")}</div>
       ${t.yildiz ? `<div class="small" aria-live="polite"><b>${YILDIZ_AD[t.yildiz]}</b>${t.yildiz <= 3 ? " · ne eksikti?" : " · en çok ne hoşuna gitti?"}</div>
       <div class="quick">${etiketler.map((x) => `<button class="chip" type="button" data-puan-etiket="${esc(x)}" aria-pressed="${t.etiketler.includes(x)}">${esc(x)}</button>`).join("")}</div>
@@ -1312,6 +1319,7 @@
       <button class="back" type="button" data-act="home">${ICO.back} Ana sayfa</button>
       <h2 style="font-size:22px">${r.status === "kabul" ? "Görüntülü görüşmen" : r.status === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
       ${VG.hastaRandevuHtml(r, vgHastaCtx(r))}
+      ${r.status === "kabul" && VG.durum(r).durum === "tamamlandi" ? puanKarti(r) : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>Doktorun senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}</div>` : ""}
       <div class="card stack small" style="gap:6px"><b>Görüşmeden önce</b><div>• Sessiz, aydınlık bir yer seç; telefonu sabitle.</div><div>• Kullandığın ilaçları ve varsa tahlil sonuçlarını yanına al.</div><div>• Acil bir durum olursa görüşmeyi beklemeden 112'yi ara.</div></div>
       ${r.status === "red" ? `<button class="btn primary block" type="button" data-act="options">Diğer seçeneklere bak</button>` : ""}
@@ -2132,7 +2140,7 @@
       if (r.status === "red") bildir("p", id + ":red", { ikon: "↩️", baslik: "Sağlık çalışanı uygun değil", metin: "Sana başka seçenekler gösterelim.", hedef: git });
       if (vgVar(r) && r.status === "kabul") { const s = VG.durum(r), dk = person(vgDoktor(r));
         if (VG.acikMi(r) && !VG.bitti(s)) bildir("p", id + ":vg-oda", { ikon: "🎥", baslik: "Görüşme odası açıldı", metin: `${dk.full} ile görüntülü görüşmen · ${C.hhmm(r.vgBaslangic ?? r.arrival_min)}`, hedef: git });
-        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı.`, hedef: git }); }
+        if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı. Görüşmeni puanlayabilirsin.`, hedef: git }); }
       const ta = takipAdimi(r);
       if (ta.adim >= 1) bildir("p", id + ":yolda", { ikon: ta.T.toplu ? "🚌" : "🚗", baslik: `${pp.first} yola çıktı`, metin: `${neyleGeliyor(ta.T).replace(/<[^>]+>/g, "")} · tahmini varış ${C.hhmm(r.arrival_min)}`, hedef: git });
       if (ta.adim >= 2) bildir("p", id + ":yakin", { ikon: "📍", baslik: `${pp.first} yaklaşıyor`, metin: `1 km'den az kaldı${ta.kalan ? ` · ~${ta.kalan} dk` : ""}.`, hedef: git });

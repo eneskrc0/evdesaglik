@@ -131,6 +131,7 @@
           <div class="vg-dugmeler"><button class="vg-btn" type="button" data-vg="p-kal">Görüşmede kal</button><button class="vg-btn vg-ayril" type="button" data-vg="p-ayril">Evet, ayrıl</button></div></div>` : ""}
         ${ctx.tekTelefon && s.doktor !== "gorusmede" && !s.kopuk ? `<div class="vg-metin muted">Tek telefonla deniyorsun: doktor birkaç saniye içinde demo olarak katılacak.</div><button class="btn primary block" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Demo: doktoru şimdi katılt</button>` : ""}
         ${s.otoDoktor && s.doktor === "gorusmede" ? `<div class="tiny muted">Demo: doktor otomatik katıldı (doktor ekranı bu telefonda açık değil).</div>` : ""}
+        ${ctx.tekTelefon && s.durum === "gorusme" && s.doktor === "gorusmede" ? `<button class="btn block" type="button" data-vg="demo-bitir" data-id="${esc(anahtar(r))}">Demo: doktor görüşmeyi tamamlasın</button>` : ""}
         <details class="vg-demo-panel"><summary>Demo kontrolleri (sunum için)</summary><div class="vg-dugmeler">
           ${ctx.tekTelefon && s.doktor !== "gorusmede" ? `<button class="btn" type="button" data-vg="demo-doktor" data-id="${esc(anahtar(r))}">Doktoru katılt</button>` : ""}
           ${saat < bas(r) + 7 ? `<button class="btn" type="button" data-vg="demo-saat" data-v="${bas(r) + 7}">Doktor 7 dk gecikti</button>` : ""}
@@ -206,6 +207,8 @@
         case "h-bitir-sor": s.bitirOnay = true; break;
         case "h-bitir-vazgec": s.bitirOnay = false; break;
         case "h-bitir": s.bitirOnay = false; s.durum = "tamamlandi"; s.doktor = "yok"; s.hasta = "yok"; medyaKapat(); olay(s, "Görüşme tamamlandı"); ctx.tamamlandi(r); ctx.odaKapat("h"); ctx.odaKapat("p"); break;
+        case "demo-bitir": // tek telefon demosu: doktor adına tamamlama (gerçekte yalnızca doktor tamamlar)
+          s.durum = "tamamlandi"; s.doktor = "yok"; s.hasta = "yok"; s.ayrilOnay = null; medyaKapat(); olay(s, "Görüşme tamamlandı (demo)"); ctx.tamamlandi(r); ctx.odaKapat("p"); break;
         case "h-katilmadi": s.durum = "katilmadi"; s.doktor = "yok"; olay(s, "Hasta katılmadı"); ctx.katilmadi(r); ctx.odaKapat("h"); break;
         default: return false;
       }
