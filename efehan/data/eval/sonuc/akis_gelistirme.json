@@ -6,7 +6,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.5,
+  "sure": 2.4,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -121,7 +121,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.1,
+  "sure": 2.0,
   "yz_cagri": 1,
   "ekran": "emergency",
   "konusma": [
@@ -308,7 +308,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.3,
+  "sure": 1.4,
   "yz_cagri": 0,
   "ekran": "chat",
   "konusma": [
@@ -395,7 +395,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.3,
+  "sure": 1.4,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [
@@ -420,7 +420,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "chat",
   "konusma": [
@@ -461,7 +461,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.4,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -543,7 +543,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -692,7 +692,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.5,
+  "sure": 1.6,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [
@@ -775,7 +775,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.8,
+  "sure": 2.9,
   "yz_cagri": 2,
   "ekran": "chat",
   "konusma": [
@@ -842,7 +842,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.8,
+  "sure": 2.9,
   "yz_cagri": 4,
   "ekran": "summary",
   "konusma": [
@@ -908,7 +908,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.3,
+  "sure": 2.1,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -990,7 +990,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 2.2,
+  "sure": 2.3,
   "yz_cagri": 3,
   "ekran": "summary",
   "konusma": [
@@ -1080,7 +1080,7 @@
   "uzman": false,
   "gecti": true,
   "hatalar": [],
-  "sure": 1.8,
+  "sure": 1.7,
   "yz_cagri": 1,
   "ekran": "chat",
   "konusma": [

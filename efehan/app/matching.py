@@ -14,7 +14,7 @@ import math
 from dataclasses import dataclass, field
 
 from .db import Patient, Repo
-from .routing import Insertion, Price, best_insertion, price_visit, LEAD_TIME_MIN, road_km
+from .routing import Insertion, Price, best_insertion, price_visit, tele_baslangic, LEAD_TIME_MIN, road_km
 
 PRICE_SENSITIVITY = 3.0    # tasarım varsayımı
 SPEED_HORIZON_MIN = 480    # tasarım varsayımı
@@ -97,8 +97,11 @@ def find_candidates(repo: Repo, service_code: str, patient: Patient, date: str,
 
         if svc.remote_possible and svc.category == "tele":
             ins = None
-            # Uzaktan: mevcut ziyaretler arasındaki ilk boşluk yeterli (v0.1 basit)
-            arrival = max(window[0], earliest)
+            # Uzaktan (görüntülü): yol yok; takvimdeki ilk boş, çakışmasız saat
+            arrival = tele_baslangic(window, repo.scheduled.get((p.id, date), []), earliest, svc.duration_min)
+            if arrival is None:
+                elim["müsaitlik"] += 1
+                continue
         else:
             if dist > max_km:
                 elim["mesafe"] += 1

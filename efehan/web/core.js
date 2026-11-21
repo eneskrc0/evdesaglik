@@ -297,7 +297,7 @@
 
   // ---------- routing.py ----------
   const CFG = {
-    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, MIN_SAVED_KM: 1.0,
+    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, TELE_TAMPON_MIN: 15, MIN_SAVED_KM: 1.0,
     TRAVEL_TL_PER_KM: 12.0, COMMISSION: 0.10, SPLIT: { hasta: 0.5, saglikci: 0.3, platform: 0.2 },
     PRICE_SENSITIVITY: 3.0, SPEED_HORIZON_MIN: 480,
   };
@@ -358,8 +358,19 @@
   }
   const round2 = (x) => Math.round(x * 100) / 100;
 
+  // Görüntülü görüşme için en erken boş saat (routing.py tele_baslangic ile aynı)
+  function teleBaslangic(window, stops, earliest, duration) {
+    const dolu = stops.map((s) => (s.uzaktan ? [s.start_min, s.start_min + s.duration_min] : [s.start_min - CFG.TELE_TAMPON_MIN, s.start_min + s.duration_min + CFG.TELE_TAMPON_MIN]))
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    let t = Math.max(window[0], earliest);
+    for (const [b0, b1] of dolu) if (t < b1 && t + duration > b0) t = b1;
+    return t + duration <= window[1] ? t : null;
+  }
   function bestInsertion(home, window, stops, target, duration, earliest, mode, cikis) {
     const [start, end] = window;
+    // görüntülü randevular rotada durak değil ama o saatte meşgul (routing.py ile aynı)
+    const uzak = stops.filter((s) => s.uzaktan).map((s) => [s.start_min, s.start_min + s.duration_min]);
+    stops = stops.filter((s) => !s.uzaktan);
     const points = [{ loc: home, ready: start }];
     for (const s of stops) points.push({ loc: [s.lat, s.lon], start: s.start_min, ready: s.start_min + s.duration_min });
     const standalone = 2 * roadKm(home, target);
@@ -372,7 +383,9 @@
       const d1 = roadKm(prev.loc, target), d2 = roadKm(target, nxtLoc);
       // yola çıkış gerçek "şimdi"den önce olamaz (cikis; verilmezse earliest - LEAD_TIME_MIN); routing.py ile aynı
       const dep = Math.max(prev.ready, cikis == null ? earliest - CFG.LEAD_TIME_MIN : cikis);
-      const arrival = Math.max(dep + travel(prev.loc, target, dep, mode), earliest);
+      let arrival = Math.max(dep + travel(prev.loc, target, dep, mode), earliest);
+      // görüntülü randevuyla çakışıyorsa ziyareti görüşmeden (+ yol payı) sonraya kaydır (routing.py ile aynı)
+      for (const [b0, b1] of uzak.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1])) if (arrival - CFG.TELE_TAMPON_MIN < b1 && arrival + duration + CFG.TELE_TAMPON_MIN > b0) arrival = b1 + CFG.TELE_TAMPON_MIN;
       const finish = arrival + duration;
       if (finish + travel(target, nxtLoc, finish, mode) > deadline) continue;
       const added = d1 + d2 - roadKm(prev.loc, nxtLoc);
@@ -439,7 +452,8 @@
       const dist = roadKm(home, target);
       let ins = null, arrival;
       if (svc.remote_possible && svc.category === "tele") {
-        arrival = Math.max(win[0], earliest);
+        arrival = teleBaslangic(win, repo.scheduled[p.id + "|" + date] || [], earliest, svc.duration_min);
+        if (arrival === null) { elim["müsaitlik"]++; continue; }
       } else {
         if (dist > maxKm) { elim.mesafe++; continue; }
         const stops = repo.scheduled[p.id + "|" + date] || [];
@@ -498,7 +512,7 @@
   }
 
   const api = {
-    normalize, parseKeywords, match, matchLive, clauses, has, gecmisEslesme, saglikIcerigi, konusmaDegerlendir, Repo, triage, requestedProfession, bestInsertion, priceVisit, findCandidates,
+    normalize, parseKeywords, match, matchLive, clauses, has, gecmisEslesme, saglikIcerigi, konusmaDegerlendir, Repo, triage, requestedProfession, bestInsertion, teleBaslangic, priceVisit, findCandidates,
     handleRequest, competenceScore, roadKm, travelMin, travel, trafikKatsayisi, yakinAcil, setYol, hhmm, LEVEL_TEXT, CFG,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

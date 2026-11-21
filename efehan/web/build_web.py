@@ -38,6 +38,8 @@ def build(template: str, app: str, out_name: str) -> Path:
         html = html.replace("/*__GUVENLIK__*/", (WEB / "guvenlik.js").read_text(encoding="utf-8"))
     if "/*__SESLI__*/" in html:
         html = html.replace("/*__SESLI__*/", (WEB / "sesli.js").read_text(encoding="utf-8"))
+    if "/*__GORUNTULU__*/" in html:
+        html = html.replace("/*__GORUNTULU__*/", (WEB / "goruntulu.js").read_text(encoding="utf-8"))
     if "/*__DENETIM__*/" in html:
         html = html.replace("/*__DENETIM__*/", (WEB / "denetim.js").read_text(encoding="utf-8"))
     if "/*__TOPLU__*/" in html:  # Enes'in toplu taşıma ağı (GTFS; enes/sim/build_transit.py) — yolculuk planı için
