@@ -229,6 +229,19 @@ with sync_playwright() as pw:
     check(gen, "mobilde yatay taşma yok")
     check(not errs, f"sayfa hatası yok {errs}")
 
+    # ---------- 16) #ikisi dar pencerede iki telefon yan yana; koyu temada hazırlık ekranı okunur ----------
+    for w in (1000, 1100):
+        pg2 = br.new_page(viewport={"width": w, "height": 900}); pg2.goto(PAGE.replace("?rol=ham", "#ikisi")); pg2.wait_for_timeout(1200)
+        bp, bh = pg2.locator("#colP").bounding_box(), pg2.locator("#colH").bounding_box()
+        check(abs(bp["y"] - bh["y"]) < 2 and bh["x"] > bp["x"] and bh["x"] + bh["width"] <= w, f"#ikisi {w} px: hasta ve çalışan telefonu yan yana (çalışan alta kaymıyor)")
+        pg2.close()
+    pg2 = br.new_page(viewport={"width": 1000, "height": 900}, color_scheme="dark"); pg2.goto(PAGE); pg2.wait_for_timeout(1200)
+    pg2.evaluate("window.KapidaTest.randevuKur('tele_muayene')"); pg2.locator("[data-vg=p-hazirlik]").click()
+    renk = pg2.evaluate("""() => [...document.querySelectorAll('#pScreen .vg-btn, #pScreen .vg-durum')].map(e => { const c = getComputedStyle(e);
+      const l = (s) => { const [r, g, b] = s.match(/\\d+/g).map(Number); return (0.299 * r + 0.587 * g + 0.114 * b); }; return Math.abs(l(c.color) - l(c.backgroundColor)); })""")
+    check(renk and min(renk) > 100, f"koyu temada hazırlık ekranı düğme/durum yazısı okunur (parlaklık farkı {[round(x) for x in renk]})")
+    pg2.close()
+
     # ---------- 15) Tek telefon (#hasta): saat düğmesi, doktor demo olarak katılır, süre sayar ----------
     pg.goto(PAGE.replace("?rol=ham", "#hasta")); pg.wait_for_timeout(1500)
     v7 = kur("tele_muayene")
