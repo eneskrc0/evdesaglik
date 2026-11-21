@@ -2004,6 +2004,17 @@
   }
   window.addEventListener("hashchange", () => { const h = (location.hash || "").replace("#", ""); if (["hasta", "calisan", "doktor", "ikisi"].includes(h)) oturumAc(h); else rolUygula(); });
   rolUygula();
+  // Görüntülü görüşme, tek telefon demosu: doktor ekranı görünmüyorsa hasta odada bekledikten 5 sn sonra doktor adına demo katılım
+  setInterval(() => VG.tick(document), 1000); // görüşme süresi yerinde güncellenir
+  const vgOto = {};
+  setInterval(() => {
+    const r = P.request; if (!r || !vgVar(r) || r.status !== "kabul" || P.vgOda !== r.id) return;
+    const s = VG.durum(r); if (s.hasta !== "bekleme" || s.doktor === "gorusmede" || s.kopuk) { delete vgOto[r.id]; return; }
+    if (!vgHastaCtx(r).tekTelefon) return;
+    vgOto[r.id] ||= Date.now();
+    if (Date.now() - vgOto[r.id] < 5000) return;
+    if (VG.doktorKatil(r)) { P.toast = `${person(vgDoktor(r)).full} görüşmeye katıldı (demo).`; renderP(); renderH(); }
+  }, 1000);
   // Yalnız hasta telefonu açıkken (ortak veri yok): çalışan ekranı görünmediği için onayı demo olarak 6 sn sonra çalışan adına ver.
   const otoOnay = {};
   setInterval(() => {
