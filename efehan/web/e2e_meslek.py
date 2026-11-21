@@ -36,6 +36,10 @@ with sync_playwright() as pw:
     btn = p.locator("[data-act=skipdoc]")
     check("hemşireye yönlendir" in btn.inner_text(), "atla düğmesi istenen mesleği söylüyor: 'Soruları geç, hemşireye yönlendir'")
     btn.click()
+    # 22.11: ne için istendiği söylenmeden aktarılmaz; bir kez sorulur, cevaptan sonra soru sormadan aktarılır
+    pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('hemşireye aktaracağım')", timeout=8000)
+    check("Seni doğru anladık mı?" not in p.inner_text(), "hemşire isteğinde önce ne için istendiği soruldu")
+    p.locator("#pInput").fill("annemin koluna iğne yapılacak"); p.locator("#pInput").press("Enter")
     pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Seni doğru anladık mı?')", timeout=8000)
     check("İstediğin sağlık çalışanı: Hemşire" in p.inner_text(), "özet ekranı hemşire isteğini gösteriyor")
     t = secenekler("var")
@@ -58,6 +62,8 @@ with sync_playwright() as pw:
     bastan("babam için fizik tedavici lazım")
     check("fizyoterapiste yönlendir" in p.locator("[data-act=skipdoc]").inner_text(), "'fizik tedavici' fizyoterapist olarak anlaşıldı")
     p.locator("[data-act=skipdoc]").click()
+    pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('fizyoterapiste aktaracağım')", timeout=8000)
+    p.locator("#pInput").fill("ameliyattan sonra yürümekte zorlanıyor"); p.locator("#pInput").press("Enter")
     pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Seni doğru anladık mı?')", timeout=8000)
     secenekler("var")
     m = meslekler()
@@ -68,6 +74,9 @@ with sync_playwright() as pw:
 
     # 3) Yazarak doğrudan yönlendirme: "direkt odyologa yönlendir"
     bastan("direkt odyologa yönlendir")
+    # 22.11: şikâyet duyulmadan doğrudan aktarılmaz, önce bir kez ne için istendiği sorulur
+    check("odyologa aktaracağım" in p.inner_text() and "Seni doğru anladık mı?" not in p.inner_text(), "şikâyet duyulmadan önce ne için istendiği soruldu")
+    p.locator("#pInput").fill("babam son aylarda iyi duymuyor"); p.locator("#pInput").press("Enter")
     pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Seni doğru anladık mı?')", timeout=8000)
     secenekler("var")
     m = meslekler()
@@ -75,6 +84,8 @@ with sync_playwright() as pw:
 
     # 4) Doktor isteği eskisi gibi çalışıyor
     bastan("direkt doktora yönlendir")
+    check("doktora aktaracağım" in p.inner_text(), "doktor isteğinde de önce şikâyet soruldu")
+    p.locator("#pInput").fill("annemin dizi ağrıyor"); p.locator("#pInput").press("Enter")
     pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Seni doğru anladık mı?')", timeout=8000)
     secenekler("bilinmiyor")
     m = meslekler()

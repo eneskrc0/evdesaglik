@@ -216,7 +216,11 @@
     await send(text);
     await new Promise((res) => { const t0 = Date.now(); const i = setInterval(() => { if ((!P.busy && P.screen !== "building") || Date.now() - t0 > 90000) { clearInterval(i); res(); } }, 80); });
     if (P.screen === "emergency") return { tur: "acil", metin: ((P.emergency && P.emergency.msg) || "Bu durum acil olabilir.") + " Ekrandaki düğmeyle hemen 112'yi arayabilirsin." };
-    if (P.screen !== "chat") return { tur: "bitti", metin: "Anlattıklarını özetledim. Ekranda kontrol edip onaylayabilirsin." };
+    if (P.screen !== "chat") {
+      const son = [...P.msgs].reverse().find((m) => m.who === "ai");
+      const aktarim = son && AKTAR_RE.test(son.text) ? son.text.replace(/\s*$/, "") + " " : "Anlattıklarını özetledim. ";
+      return { tur: "bitti", metin: aktarim + "Ekranda özeti kontrol edip devam edebilirsin." };
+    }
     const last = P.msgs[P.msgs.length - 1];
     return { tur: "devam", metin: last && last.who === "ai" ? last.text : "" };
   }
@@ -409,7 +413,7 @@
   };
 
   function transcriptText() {
-    return P.msgs.filter((m) => !m.araLaf).map((m) => `${m.who === "me" ? "Hasta/yakını" : "Asistan"}: ${m.text}${m.photo ? " [fotoğraf eklendi]" : ""}`).join("\n");
+    return P.msgs.filter((m) => !m.araLaf).map((m) => `${m.who === "me" ? "Hasta/yakını" : "Asistan"}: ${m.temiz || m.text}${m.photo ? " [fotoğraf eklendi]" : ""}`).join("\n");
   }
   async function aiReply() {
     if (CAP.server) {
@@ -466,16 +470,36 @@
     // 1) Kural motoru: her mesajda kırmızı bayrak (+ meslek, geçmiş belirti, sağlık içeriği)
     const d = degerlendir();
     if (d.acil) { acilAc(d.message, d.reasons[0], "Kural motoru"); return; }
-    // 1a) Ara laf ("beni duyuyor musun", "tekrar eder misin", "bir saniye", "merhaba"): yerel kısa cevap,
-    //     soru sayısına girmez, YZ'ye gitmez, demo sorusunu ilerletmez
-    const laf = !photos.length && window.KapidaSesli ? window.KapidaSesli.araLaf(shown) : null;
-    if (laf) {
-      const me = P.msgs[P.msgs.length - 1]; me.araLaf = true;
+    // Sıradaki soruyu yeniden sormak için: içerik yoksa "ne oldu", varsa asistanın son sorusu
+    const siradakiSoru = () => {
       const onceki = [...P.msgs].reverse().find((m) => m.who === "ai" && !m.araLaf);
       const icerikVar = P.msgs.some((m) => m.who === "me" && !m.araLaf);
-      const soru = !icerikVar ? "Ne olduğunu kendi cümlelerinle anlatır mısın?" : onceki ? (onceki.text.match(/[^.!?\n]*\?/g) || [onceki.text]).slice(-1)[0].trim() : "Devam edebilirsin.";
-      const bas = { duyma: "Evet, seni duyuyorum.", tekrar: "Tabii, tekrar ediyorum.", bekle: "Tabii, acele etme. Hazır olduğunda devam et.", selam: "Merhaba!" }[laf];
-      const cevap = laf === "bekle" ? bas : bas + " " + soru;
+      return { onceki, soru: !icerikVar ? "Ne olduğunu kendi cümlelerinle anlatır mısın?" : onceki ? (onceki.text.match(/[^.!?\n]*\?/g) || [onceki.text]).slice(-1)[0].trim() : "Devam edebilirsin." };
+    };
+    // 1-) Küfür / hakaret (22.11): karşılık verilmez, tartışılmaz, özür dilenmez. Mesajda başka bir şey yoksa YZ'ye gitmez,
+    //     soru sayısına ve rapora girmez; sağlık bilgisi de varsa ("bacağı şişti salak şey") küfür çıkarılıp sohbet sürer.
+    const me0 = P.msgs[P.msgs.length - 1];
+    const hk = !photos.length && window.KapidaSesli ? window.KapidaSesli.hakaret(shown) : { var: false, temiz: shown };
+    if (hk.temiz.trim() && hk.temiz.trim() !== shown) me0.temiz = hk.temiz.trim();
+    if (hk.var && !C.normalize(hk.temiz).split(" ").filter((w) => w && !DOLGU.has(w)).length) {
+      me0.araLaf = true; me0.hakaret = true; P.hakaretSay = (P.hakaretSay || 0) + 1;
+      const { onceki, soru } = siradakiSoru();
+      const cevap = "Bu tür sözlere yanıt vermiyorum. " + (P.msgs.some((m) => m.who === "me" && !m.araLaf) ? soru : "Sağlıkla ilgili bir derdin varsa anlat, yardımcı olayım.");
+      P.msgs.push({ who: "ai", text: cevap, quick: onceki && onceki.quick ? onceki.quick : [], araLaf: true });
+      speak(cevap); renderP(); return;
+    }
+    // 1a) Ara laf ("beni duyuyor musun", "tekrar eder misin", "bir saniye", "merhaba") ve gündelik sorular ("nasılsın",
+    //     "sen kimsin", "ne yapabilirsin", "teşekkürler", "görüşürüz"): yerel kısa cevap, soru sayısına girmez, YZ'ye gitmez,
+    //     demo sorusunu ilerletmez
+    const laf = !photos.length && window.KapidaSesli ? window.KapidaSesli.araLaf(shown) : null;
+    if (laf) {
+      me0.araLaf = true;
+      const { onceki, soru } = siradakiSoru();
+      const bas = { duyma: "Evet, seni duyuyorum.", tekrar: "Tabii, tekrar ediyorum.", bekle: "Tabii, acele etme. Hazır olduğunda devam et.", selam: "Merhaba!",
+        hal: "İyiyim, sorduğun için teşekkür ederim.", kimlik: "Ben anında sağlık'ın yapay zekâ asistanıyım. Anlattıklarını dinleyip sağlık çalışanına iletiyorum; teşhis koymam.",
+        yetenek: "Evine doktor, hemşire ya da fizyoterapist gibi bir sağlık çalışanı çağırmana yardım ediyorum. Anlattıklarını özetleyip uygun kişileri ve saatleri gösteririm.",
+        tesekkur: "Rica ederim.", veda: "Geçmiş olsun, kendine iyi bak. İhtiyacın olduğunda buradayım." }[laf];
+      const cevap = laf === "bekle" || laf === "veda" ? bas : bas + " " + soru;
       P.msgs.push({ who: "ai", text: cevap, quick: onceki && onceki.quick ? onceki.quick : [], araLaf: true });
       speak(cevap); renderP(); return;
     }
@@ -496,7 +520,7 @@
       P.msgs.push({ who: "ai", text: cevap, araLaf: true }); speak(cevap); renderP(); return;
     }
     // 1d) "Direkt doktora yönlendir" / "soru sorma": soruları geç (acil kontrolü yukarıda yapıldı)
-    if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown)) || (P.atlaBekliyor && d.saglik)) { await doktoraYonlendir(); return; }
+    if (DOKTOR_RE.test(C.normalize(shown)) || YONLENDIR_RE.test(C.normalize(shown)) || P.atlaBekliyor) { await doktoraYonlendir(); return; }
     // 1e) Geçmişte yaşanmış acil belirti ("geçen yıl bayılmıştı") ve şu anki durum söylenmedi: bir kez sor
     if (d.gecmis.length && !P.gecmisSoruldu) {
       P.gecmisSoruldu = true; P.gecmisSoru = { kodlar: d.gecmis };
@@ -506,35 +530,38 @@
     }
     // 2) YZ ya da demo
     if (P.mode === "ai") {
-      P.turns.push({ role: "user", content: shown + (photos.length ? " [fotoğraf eklendi]" : "") });
+      P.turns.push({ role: "user", content: (me0.temiz || shown) + (photos.length ? " [fotoğraf eklendi]" : "") });
       P.busy = true; renderP();
       try {
         const r = await aiReply();
         if (no !== P.sohbetNo) return; // kullanıcı bu arada yeni sohbete geçti: eski cevap yeni sohbete yazılmaz
         P.busy = false;
-        const reply = String((r && r.reply) || "Anladım. Biraz daha anlatır mısın?");
-        P.turns.push({ role: "assistant", content: reply });
+        let reply = String((r && r.reply) || "Anladım. Biraz daha anlatır mısın?");
         if (r && r.photo_notes) P.photoNotes.push(String(r.photo_notes));
         if (r && r.istenen_meslek && repo.professions[r.istenen_meslek]) P.info.yzMeslek = r.istenen_meslek;
         if (r && r.anlasilan) { const me = [...P.msgs].reverse().find((m) => m.who === "me"); if (me) me.understood = String(r.anlasilan).slice(0, 240); }
-        if (r && r.red_flag) { acilAc(reply, String(r.red_flag_reason || "Asistan acil belirti sezdi"), "Yapay zekâ"); return; }
-        P.msgs.push({ who: "ai", text: reply, quick: Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
-        speak(reply);
-        // "Doktora yönlendir" kararını protokol verir: YZ işaretlese de kullanıcı bunu açıkça istemediyse ("bilmiyorum" gibi) soruları atlama
-        if (r && r.doktora_yonlendir && acikYonlendirme(kullaniciMetni())) { P.info.doktor = true; P.info.atlaMeslek = null; await buildReport(); return; }
-        if (r && r.doktora_yonlendir) {
-          const son = P.msgs[P.msgs.length - 1];
-          if (son && son.who === "ai" && /yönlendir/i.test(son.text)) {
-            son.text = P.turns.filter((x) => x.role === "user").length <= 1 ? "Anlıyorum, birlikte bakalım. Kimin için yardım istiyorsun ve ne oldu, kısaca anlatır mısın?" : "Anladım. Biraz daha anlatır mısın, ne zamandır böyle?";
-            son.quick = []; P.turns[P.turns.length - 1].content = son.text;
-          }
+        if (r && r.red_flag) { P.turns.push({ role: "assistant", content: reply }); acilAc(reply, String(r.red_flag_reason || "Asistan acil belirti sezdi"), "Yapay zekâ"); return; }
+        // Gündelik soru ("hava nasıl", "fıkra anlat"): YZ kısa cevaplar; sağlık içeriği yoksa soru hakkından ve rapordan sayılmaz
+        if (r && r.konu === "gundelik" && !photos.length && !C.saglikIcerigi(repo, me0.temiz || shown)) { me0.araLaf = true; P.turns[P.turns.length - 1].araLaf = true; }
+        // "Doktora yönlendir" kararını protokol verir: YZ işaretlese de kullanıcı bunu açıkça istemediyse ("bilmiyorum" gibi) soruları atlama.
+        // Açıkça istediyse yerel kısa yol (önce şikâyeti bir kez duyar) kullanılır.
+        if (r && r.doktora_yonlendir && acikYonlendirme(kullaniciMetni())) { P.turns.pop(); await doktoraYonlendir(); return; }
+        const sayilan = P.turns.filter((x) => x.role === "user" && !x.araLaf);
+        const userTurns = sayilan.length;
+        // Şikâyet anlaşılmadan rapora geçme: sağlıkla ilgili bir şey anlatılmadan (anlamsız/konu dışı konuşma) rapor çıkmaz
+        const anlatti = degerlendir().saglik && sayilan.map((x) => x.content).join(" ").trim().split(/\s+/).length >= 4;
+        // "Aktarıyorum" dediyse aktarır, aktarmayacaksa bunu söylemez (22.11). Soru soran cümle aktarım değildir.
+        const aktarDiyor = AKTAR_RE.test(reply) && !/\?/.test(reply);
+        const gecis = anlatti && ((r && r.ready) || aktarDiyor || userTurns >= MAX_SORU + 1);
+        if (gecis && (/\?/.test(reply) || !aktarDiyor)) reply = kapanisCumlesi(reply);
+        else if (!gecis && (aktarDiyor || (r && r.doktora_yonlendir && AKTAR_RE.test(reply)))) {
+          reply = !anlatti ? "Seni doğru kişiye aktarabilmem için önce kısaca ne olduğunu ve kimin için istediğini anlatır mısın?" : "Anladım. Biraz daha anlatır mısın, ne zamandır böyle?";
+          if (r) r.quick_replies = [];
         }
-        // En fazla 3 soru: ilk anlatım + 3 cevaptan sonra YZ hazır demese de rapora geç
-        const userTurns = P.turns.filter((x) => x.role === "user").length;
-        // Şikâyet anlaşılmadan rapora geçme: YZ "hazır" dese de kullanıcı henüz derdini anlatmadıysa devam
-        // Sağlıkla ilgili bir şey anlatılmadan (anlamsız/konu dışı konuşma) rapor çıkmaz
-        const anlatti = d.saglik && P.turns.filter((x) => x.role === "user").map((x) => x.content).join(" ").trim().split(/\s+/).length >= 4;
-        if (((r && r.ready) && anlatti) || (userTurns >= MAX_SORU + 1 && anlatti)) { await buildReport(); return; }
+        P.turns.push({ role: "assistant", content: reply });
+        P.msgs.push({ who: "ai", text: reply, quick: !gecis && Array.isArray(r && r.quick_replies) ? r.quick_replies.slice(0, 4).map(String) : [] });
+        speak(reply);
+        if (gecis) { await buildReport(); return; }
         renderP();
       } catch (e) {
         if (no !== P.sohbetNo) return;
@@ -585,6 +612,23 @@
     };
   }
   const MAX_SORU = 3;
+  // Asistan aktarımı haber veren cümle kurdu mu? ("doktora aktarıyorum", "bilgileri hemşireye iletiyorum", "özetliyorum")
+  const AKTAR_RE = /(aktar(ıyorum|acağım|ıyoruz|acağız)|ilet(iyorum|eceğim|iyoruz|eceğiz)|yönlendir(iyorum|eceğim|iyoruz|eceğiz)|özetliyorum|bağlıyorum)/i;
+  // Rapora geçerken son söz bir soru olmasın ("Ne zamandır?" deyip ekranı değiştirmek çelişir): aktarımı söyleyen kapanış
+  function kapanisCumlesi(reply) {
+    const ad = (() => { const m = istenenMeslek(); return m && !HEKIMLER.has(m) ? meslekAdi(m).toLocaleLowerCase("tr") : "sağlık çalışanı"; })();
+    const tesekkur = /\?/.test(reply) ? "Teşekkürler, bu bilgiler yeterli." : reply.replace(/\s*$/, "");
+    return AKTAR_RE.test(tesekkur) ? tesekkur : `${tesekkur} Anlattıklarını ${ad === "sağlık çalışanı" ? "sağlık çalışanına" : yonelme(ad)} aktarıyorum; özeti ekranda görebilirsin.`;
+  }
+  // Küfür ayıklandıktan sonra geriye anlamlı bir şey kaldı mı? (normalize edilmiş dolgu kelimeleri)
+  const DOLGU = new Set(["sen", "siz", "misin", "misiniz", "musun", "musunuz", "mi", "mu", "ya", "be", "bu", "seni", "sana", "herif", "adam", "sey", "ne", "cok", "gibi", "bir", "bi", "tam", "kadar", "sin", "sun", "siniz", "o", "su", "ben", "beni", "kes", "sesini", "sus", "git", "hadi", "lan", "ulan", "oglu", "oglum", "kizim"]);
+  // Şikâyet duyuldu mu? Meslek adı, "hasta", "muayene", "kontrol", "bakım" gibi genel sözler tek başına şikâyet değildir:
+  // "doktor istiyorum", "annem hasta doktor gelsin" → önce ne olduğu sorulur (22.11)
+  const GENEL_SOZ = /(^|\s)(hasta(y[ıi]m|y[ıi]z|d[ıi]r|lar|l[ıi]k)?|hastaland[ıi]\S*|muayene\S*|kontrol\S*|tedavi\S*|rahats[ıi]z\S*|bak[ıi]m\S*|fizyoterap\S*|ergoterap\S*|odyolo\S*|diyetisyen\S*|psikolo\S*|podolo\S*|hemşire\S*|doktor\S*|hekim\S*)(?=\s|$)/gi;
+  function sikayetDuyuldu() {
+    const metin = P.msgs.filter((m) => m.who === "me" && !m.araLaf && !/^Soruları geç,/.test(m.text)).map((m) => (m.temiz || m.text).toLocaleLowerCase("tr").replace(/[.,!?;:]/g, " ")).join(" . ");
+    return C.saglikIcerigi(repo, metin.replace(GENEL_SOZ, " "));
+  }
   // Kural motoru tüm kullanıcı mesajları üzerinden (ara laflar hariç): acil, istenen meslek, geçmiş belirti, sağlık içeriği
   const degerlendir = () => C.konusmaDegerlendir(repo, P.msgs.filter((m) => m.who === "me" && !m.araLaf).map((m) => m.text), { bedridden: false, has_physician_plan: false });
   function acilAc(msg, why, src) {
@@ -616,16 +660,21 @@
   const DOKTOR_RE = /(direk|direkt|dogrudan|hemen|bir an once)\s*(bir\s*)?(doktor|hekim)|(doktor|hekim)(a|e)?\s*(yonlendir|bagla|gonder|gorusmek|bakmasini|baksin)|(doktor|hekim)\s*istiyorum|soru\s*sorma|sorulari\s*(gec|atla)|uzatma/;
   async function doktoraYonlendir() {
     const m = istenenMeslek();
-    if (!m && !degerlendir().saglik) {
-      // Kısa yol istendi ama henüz ne olduğu söylenmedi: boş rapor yerine tek bir şey sor; sonraki içerikli mesajda doğrudan geçilir
+    const ad = m && !HEKIMLER.has(m) ? meslekAdi(m) : null;
+    if (!P.atlaBekliyor && !sikayetDuyuldu()) {
+      // Kısa yol istendi ama şikâyet henüz duyulmadı: doğrudan aktarmak yerine bir kez ne olduğunu sor (22.11).
+      // Sonraki içerikli mesajda (ne söylerse söylesin) soru sormadan aktarılır.
       P.atlaBekliyor = true;
-      const t = "Tamam, soru sormayacağım. Kimin için ve ne olduğunu tek cümleyle söyle, doğrudan ileteyim.";
+      const t = ad
+        ? `Tamam, seni ${yonelme(ad)} aktaracağım. ${ad} hazırlıklı gelsin diye önce kısaca ne için ve kimin için istediğini söyler misin?`
+        : "Tamam, seni doktora aktaracağım. Doktor hazırlıklı gelsin diye önce kısaca ne olduğunu ve kimin için istediğini söyler misin?";
       P.msgs.push({ who: "ai", text: t }); speak(t); renderP(); return;
     }
-    P.info.doktor = true; P.info.atlaMeslek = m && !HEKIMLER.has(m) ? m : null;
-    const t = P.info.atlaMeslek
-      ? `Tamam, soruları geçiyorum. Seni ${yonelme(meslekAdi(m))} yönlendireceğim. ${meslekAdi(m)} doktor planıyla gelebildiği için bir sonraki ekranda doktorunun planı ya da reçetesi olup olmadığını seçmen yeterli.`
-      : "Tamam, soruları geçiyorum. Anlattıklarını doktora ileteceğim; doktor gerekirse kendisi sorar.";
+    P.atlaBekliyor = false;
+    P.info.doktor = true; P.info.atlaMeslek = ad ? m : null;
+    const t = ad
+      ? `Tamam, seni ${yonelme(ad)} aktarıyorum. ${ad} doktor planıyla gelebildiği için bir sonraki ekranda doktorunun planı ya da reçetesi olup olmadığını seçmen yeterli.`
+      : "Tamam, seni doktora aktarıyorum. Anlattıklarını doktora iletiyorum; doktor gerekirse kendisi sorar.";
     P.msgs.push({ who: "ai", text: t }); speak(t);
     await buildReport();
   }

@@ -63,7 +63,31 @@
     ["tekrar", new RegExp("^(?:(?:tekrar|bir daha|bi daha)(?: (?:eder|soyler|sorar|anlatir|okur))? ?(?:misin|misiniz|mi)?|anlamadim|duyamadim|ne dedin(?:iz)?|ne dediniz|efendim|pardon|nasil yani|ne|hi+|hm+|soruyu tekrarla(?:r misin)?)" + NEZAKET + "$")],
     ["bekle", new RegExp("^(?:(?:bir|bi) (?:saniye|dakika|dakka|dk)(?: (?:bekle|bekler misin|bekleyin|dur))?|(?:dur|sus)(?: (?:bir|bi) (?:saniye|dakika|dakka|dk))?(?: bekle)?|bekle|bekler misin|bekleyin|dusuneyim|bakayim|hatirlayayim|sus|sessiz ol)" + NEZAKET + "$")],
     ["selam", new RegExp("^(?:alo )?(?:merhaba|merhabalar|selam|selamlar|iyi gunler|gunaydin|iyi aksamlar|selamun aleykum|selamin aleykum)(?: alo)?" + NEZAKET + "$")],
+    // Gündelik sorular (22.11): "nasılsın", "sen kimsin", "ne yapabilirsin", "teşekkürler", "görüşürüz" → kısa, sıcak yerel cevap
+    ["hal", new RegExp("^(?:alo )?(?:(?:merhaba|merhabalar|selam|selamlar|iyi gunler|gunaydin|iyi aksamlar)" + NEZAKET + " )?(?:(?:sen |siz )?(?:nasilsin|nasilsiniz|nasil gidiyor|naber|ne haber|nabersin|ne var ne yok|iyi misin|iyi misiniz|keyfin nasil|keyifler nasil|nasilsin bakalim)(?: (?:bakalim|bugun))?)(?: (?:sen|siz))?" + NEZAKET + "$")],
+    ["kimlik", new RegExp("^(?:(?:sen|siz) )?(?:kimsin|kimsiniz|kim(?:sin)? sen|adin ne|ismin ne|adiniz ne|robot mu(?:sun)?|yapay zeka mi(?:sin)?|insan mi(?:sin)?|gercek (?:insan )?mi(?:sin)?|kiminle konusuyorum|seni kim yapti|kim yapti seni|makine mi(?:sin)?)(?: (?:sen|siz))?" + NEZAKET + "$")],
+    ["yetenek", new RegExp("^(?:(?:sen|siz) )?(?:ne(?:ler)? yapabilirsin|ne(?:ler)? yapabiliyorsun|ne ise yariyorsun|ne ise yararsin|bana nasil yardim edebilirsin|nasil yardimci olabilirsin|ne yapiyorsun sen|bu uygulama ne(?: ise yarar| yapar)?|nasil calisiyorsun|nasil kullanilir)(?: (?:sen|siz|bana))?" + NEZAKET + "$")],
+    ["tesekkur", new RegExp("^(?:(?:cok|cok cok) )?(?:tesekkurler|tesekkur ederim|tesekkur ederiz|sag ol|sagol|sag olun|sagolun|eyvallah|allah razi olsun|mersi|eline saglik|ellerine saglik)(?: (?:cok|canim|guzel kardesim))?" + NEZAKET + "$")],
+    ["veda", new RegExp("^(?:tamam |peki )?(?:gorusuruz|gorusmek uzere|hosca kal|hoscakal|hosca kalin|iyi geceler|bay bay|bye|allaha emanet|kendine iyi bak|kolay gelsin)" + NEZAKET + "$")],
   ];
+  // ---------- küfür / hakaret (22.11): yanıt verilmez, sohbet konuya döner ----------
+  // Kelime kökü ya da tam kelime; "şikâyet" (sikayet), "sıkıntı" (sikinti), "normal", "malzeme", "götür" (gotur) yanlışlıkla yakalanmaz.
+  const HAKARET_KOK = /^(salak|aptal|gerizekal|dangalak|embesil|ahmak|serefsiz|haysiyetsiz|orospu|orosbu|yavsak|pezevenk|siktir|kaltak|kahpe|dalyarak|yarrak|amcik|mankafa|hiyarto|aptalc|salakc|beyinsiz)/;
+  const HAKARET_TAM = new Set(["mal", "malsin", "malsiniz", "malmisin", "malmisiniz", "pic", "pust", "oc", "amk", "aq", "amq", "mk", "sikerim", "sikeyim", "sikik", "sikim", "sokayim", "got", "gotveren", "ibne", "yarak", "amina", "anani", "avradini", "gavat", "manyak", "angut", "keriz"]);
+  const KABA_EK = new Set(["lan", "ulan"]); // tek başına hakaret sayılmaz ("annem düştü lan"), yalnızca YZ'ye giden metinden çıkarılır
+  function hakaret(t) {
+    const ham = String(t || "").split(/\s+/).filter(Boolean), k = ham.map((w) => katla(w).replace(/ /g, ""));
+    let sayi = 0;
+    const temiz = [];
+    for (let i = 0; i < k.length; i++) {
+      const w = k[i];
+      if ((w === "geri" && k[i + 1] === "zekali") || (w === "malin" && k[i + 1] === "teki")) { sayi++; i++; continue; }
+      if (HAKARET_KOK.test(w) || HAKARET_TAM.has(w)) { sayi++; continue; }
+      if (KABA_EK.has(w)) continue;
+      temiz.push(ham[i]);
+    }
+    return { var: sayi > 0, temiz: temiz.join(" ") };
+  }
   function araLaf(t) {
     const k = katla(t);
     if (!k || k.split(" ").length > 7) return null;
@@ -397,7 +421,7 @@
     };
   }
 
-  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, araLaf, yarimMi, yankiMi, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
+  const api = { create, VAD, sesMetni, cumleler, halusinasyonMu, araLaf, hakaret, yarimMi, yankiMi, whisperDinleyici, tarayiciDinleyici, claudeDinleyici, konusucu };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KapidaSesli = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

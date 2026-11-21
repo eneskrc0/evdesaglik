@@ -97,7 +97,7 @@ try:
         pg.wait_for_selector(".sesli [data-quick]", timeout=8000)
         p.locator(".sesli [data-quick]").first.click()
         pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Seni doğru anladık mı?')", timeout=15000)
-        bekle_soylenen(pg, "Anlattıklarını özetledim", 10)
+        bekle_soylenen(pg, "Ekranda özeti kontrol edip", 10)  # 22.11: asistanın kendi aktarım cümlesi + bu ek okunur
         check(p.locator(".sesli").count() == 0, "3. yanıttan sonra özet ekranı açıldı, kapanış cümlesi okundu, sesli mod kapandı")
         t = p.inner_text()
         check("Topuk" in t or "topuğ" in t, "rapor sesli konuşmadan oluştu")
