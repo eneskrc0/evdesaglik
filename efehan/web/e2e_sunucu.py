@@ -60,7 +60,7 @@ try:
         pg.fill("#pInput", "babamın göğsünde baskı var terliyor"); p.locator("button[type=submit]").click()
         pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('112')", timeout=5000)
         check("Kural motoru" in p.inner_text(), "acil belirti: kural motoru 112'ye yönlendirdi")
-        # Kullanıcı "direkt doktora yönlendir" derse: soru yok, hekim ev muayenesi
+        # Kullanıcı "direkt doktora yönlendir" derse: soru yok, doktor görüntülü (21.11 ekip kararı: doktorlar yalnızca görüntülü)
         pg.goto("http://localhost:8000/kapida.html?sunucu=http://localhost:8787&rol=ham")
         pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Yapay zekâ açık')", timeout=8000)
         p.locator("[data-tile]").first.click(); pg.wait_for_selector("#pScreen .understood", timeout=8000)
@@ -70,7 +70,7 @@ try:
         check("doğrudan bir doktora yönlendiriyoruz" in p.inner_text(), "yazınca sorular atlandı, özet doktora yönlendirmeyi söylüyor")
         p.locator("[data-act=options]").click()
         t = p.inner_text()
-        check("Önce bir doktor evine gelip baksın" in t and "Dr." in t, "seçeneklerde doktorun ev ziyareti ve hekimler")
+        check(("Önce doktorla görüntülü görüş" in t or "doktor görüntülü bağlanır" in t) and "evine gelip baksın" not in t, "seçeneklerde doktor görüntülü (yatağa bağımlıysa hemşire evde); doktor eve gelmiyor")
         pg.goto("http://localhost:8000/kapida.html?sunucu=http://localhost:8787&rol=ham")
         pg.wait_for_function("document.querySelector('#pScreen').innerText.includes('Yapay zekâ açık')", timeout=8000)
         p.locator("[data-tile]").first.click(); pg.wait_for_selector("#pScreen .understood", timeout=8000)

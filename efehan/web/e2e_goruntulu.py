@@ -67,8 +67,7 @@ with sync_playwright() as pw:
     bas = v["varis"]
     ad2 = [x for x in T("() => window.KapidaTest.adaylar('tele_muayene')") if x["pid"] == dok]
     check(all(x["varis"] >= bas + 20 or x["varis"] + 20 <= bas for x in ad2), f"aynı hekime çakışan görüntülü saat önerilmiyor (dolu {bas}, yeni öneri {[x['varis'] for x in ad2]})")
-    ev = [x for x in T("() => window.KapidaTest.adaylar('ev_muayene')") if x["pid"] == dok]
-    check(all(x["varis"] >= bas + 20 + 15 or x["varis"] + 30 + 15 <= bas for x in ev), f"görüntülü görüşmenin üstüne ev ziyareti konmuyor ({[x['varis'] for x in ev] or 'aday değil'})")
+    check(T("() => window.KapidaTest.adaylar('ev_muayene')") == [], "doktor eve gitmiyor: 'Hekim ev muayenesi' için hiç aday yok")
 
     # ---------- 3) Hasta ana sayfadan görüşmeye döner; ön hazırlık; kamera düğmesiz açılmaz ----------
     p.locator("[data-act=home]").first.click()
@@ -155,11 +154,29 @@ with sync_playwright() as pw:
     check(h.locator(f"[data-vg=h-katil][data-id='{v2['id']}']").count() == 0, "iptal: hekim ekranındaki görüşme kartı kalktı")
     check("İptal edildi" in p.inner_text() or "iptal" in p.inner_text().lower(), "iptal: hasta tarafında bildirildi")
 
-    # ---------- 11) Hekimin ev muayenesi hâlâ rotaya girer ----------
-    yukle()
-    v3 = kur("ev_muayene"); onayla(v3["id"])
-    check(v3["ins"] and any(x["reqId"] == v3["id"] for x in T("pid => window.KapidaTest.rota(pid)", v3["pid"])), "ev muayenesi hekimin yol rotasında")
-    check(p.locator("#takip").count() == 1 and "Görüntülü doktor görüşmesi" not in p.inner_text(), "ev muayenesinde hasta canlı takibi var, görüntülü etiketi yok")
+    # ---------- 11) Doktor yalnızca görüntülü: "doktora bağla" görüntülüye gider; evde ziyaret yalnız hemşire vb. ----------
+    def akis(ilk, yatakta):
+        yukle(); p.locator("[data-act=start]").click(); p.locator("#pInput").fill(ilk); p.locator("#pInput").press("Enter")
+        for _ in range(14):
+            pg.wait_for_timeout(500)
+            if p.locator("[data-act=options]").count(): break
+            q = p.locator("[data-quick]")
+            if q.count():
+                h2 = q.filter(has_text="Yatağa" if yatakta else "rahat")
+                (h2.first if h2.count() else q.first).click()
+        if p.locator("#pBed").count() and p.locator("#pBed").is_checked() != yatakta: p.locator("#pBed").click()  # özet ekranındaki "yatağa bağımlı" kutusu
+        p.locator(".saatler .saat").first.click(); p.locator("[data-act=options]").click(); pg.wait_for_timeout(1000)
+        pg.evaluate("document.querySelectorAll('details.klasik').forEach(d => d.open = true)")
+        return p.inner_text(), pg.eval_on_selector_all("#pScreen .opt", "els => els.map(e => e.innerText)")
+    for ilk in ["Direkt doktora bağla beni", "Annem halsiz, doktor eve gelsin"]:
+        t, ops = akis(ilk, False)
+        check("Hekimle video görüşme" in t and ops and all("hekim" in o.lower() and "Görüntülü" in o for o in ops), f"'{ilk}' → görüntülü doktor, tüm adaylar görüntülü hekim")
+    t, ops = akis("Babam yatağa bağımlı, direkt doktora bağla", True)
+    check("Hemşire evine gelir, doktor görüntülü bağlanır" in t and ops and all("hekim" not in o.split("\n")[2].lower() for o in ops), "yatağa bağımlı + doktor isteği → hemşire evde, doktor görüntülü (eve doktor gelmiyor)")
+    check("Doktor ev ziyareti" not in (yukle() or p.inner_text()) and "Hemşire evde, doktor görüntülü" in p.inner_text(), "ana sayfada 'Doktor ev ziyareti' yok, 'Hemşire evde, doktor görüntülü' var")
+    T("() => window.KapidaTest.saat(570)")
+    v3 = kur("kan_alma", plan=True); onayla(v3["id"])
+    check(v3["ins"] and any(x["reqId"] == v3["id"] for x in T("pid => window.KapidaTest.rota(pid)", v3["pid"])) and p.locator("#takip").count() == 1, "hemşirenin ev ziyareti yine rotada, hasta canlı takip görüyor")
 
     # ---------- 12) Karma: hemşire evde (yolculuk), hekim görüntülü ----------
     yukle()

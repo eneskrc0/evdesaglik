@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .db import Patient, Repo
+from .db import HEKIM_YALNIZ_GORUNTULU, Patient, Repo
 from .text import gecmis_eslesme, match, match_live, normalize
 
 DISCLAIMER = ("Bu bir teşhis değildir; yönlendirmedir. Durum kötüleşirse ya da emin "
@@ -176,6 +176,26 @@ class TriageResult:
 
 
 def triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
+    res = _triage(repo, complaint, patient)
+    return hekim_goruntulu(res, patient) if HEKIM_YALNIZ_GORUNTULU else res
+
+
+def hekim_goruntulu(res: TriageResult, patient: Patient) -> TriageResult:
+    """Doktorlar yalnızca görüntülü (ekip kararı 21.11): 'hekim ev ziyareti' kararı görüntülüye çevrilir.
+    Yatağa bağımlı hasta: hemşire evde ölçüm yapar, doktor görüntülü bağlanır (S14). Acil kararı değişmez."""
+    if res.level != "HEKIM_EV":
+        return res
+    res.level = "TELE_HEMSIRE" if patient.bedridden else "TELE"
+    res.services = [LEVEL_DEFAULT_SERVICE[res.level]]
+    res.reasons.append("Doktorlar yalnızca görüntülü hizmet verir: " + (
+        "yatağa bağımlı hasta için hemşire evde, doktor görüntülü" if patient.bedridden else "doktor görüntülü değerlendirir"))
+    res.message = f"Önerilen: {LEVEL_TEXT[res.level]}. " + DISCLAIMER
+    if res.level == "TELE_HEMSIRE":
+        res.sources = sorted(set(res.sources) | {"S14"})
+    return res
+
+
+def _triage(repo: Repo, complaint: str, patient: Patient) -> TriageResult:
     text = normalize(complaint)
 
     # 1) Kırmızı bayraklar — her zaman önce
