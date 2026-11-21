@@ -1,24 +1,26 @@
 code,name_tr,category,duration_min,needs_physician_order,needs_prescription,remote_possible,base_fee_tl,note,source_id
-tele_muayene,Hekimle video görüşme (ön değerlendirme),tele,20,0,0,1,600,Teşhis ve plan hekimde; ev ziyareti gerekip gerekmediğine hekim karar verir,S09
-tele_hemsire_destekli,Hemşire evde + hekim videoda,tele,40,0,0,0,1400,Hemşire ölçüm yapar; hekim uzaktan değerlendirir,S14
-ev_muayene,Hekim ev muayenesi,muayene,40,0,0,0,2500,Özel sektörde evde doktor hizmeti örneği,S10
-palyatif_degerlendirme,Palyatif bakım / ağrı kontrolü değerlendirmesi,muayene,60,0,0,0,3000,Evde palyatif bakım kapsamı,S09
-recete_rapor_yenileme,Reçete / rapor yenileme görüşmesi,tele,15,0,0,1,400,Mama ilaç bez raporu yenileme evde sağlık kapsamında,S09
-kan_alma,Kan alma ve numune teslimi,hemsirelik,20,1,0,0,700,Numune alma evde sağlık kapsamında,S09
-im_enjeksiyon,Kas içi / deri altı enjeksiyon,hemsirelik,15,1,1,0,500,Reçete gerekli,S10
-iv_serum,Serum takma (IV tedavi),hemsirelik,60,1,1,0,1200,Reçete gerekli,S10
-yara_pansuman,Yara bakımı ve pansuman,hemsirelik,30,1,0,0,800,Yara ve yanık bakımı evde sağlık kapsamında,S09
-basi_yarasi_bakimi,Bası yarası bakımı ve evre takibi,hemsirelik,40,1,0,0,1000,Yatağa bağımlı hastada sık ihtiyaç,S09
-sonda_bakimi,İdrar sondası takma / bakım,hemsirelik,30,1,0,0,900,Sonda işlemleri evde sağlık kapsamında,S09
-beslenme_tupu_bakimi,Beslenme tüpü (NG / PEG) bakımı,hemsirelik,30,1,0,0,900,Sonda ve tüp işlemleri,S09
-vital_takip,Tansiyon / şeker / oksijen ölçümü ve kayıt,hemsirelik,20,1,0,0,450,Kronik hasta takibi,S14
-fizyoterapi_seansi,Evde fizyoterapi seansı,rehabilitasyon,60,1,0,0,1500,Evde fizik tedavi örneği,S10
-solunum_fizyoterapisi,Solunum fizyoterapisi,rehabilitasyon,45,1,0,0,1300,KOAH / uzun yatış sonrası,S14
+tele_muayene,Hekimle video görüşme (ön değerlendirme),tele,20,0,0,1,900,Teşhis ve plan hekimde; ev ziyareti gerekip gerekmediğine hekim karar verir,S09
+tele_hemsire_destekli,Hemşire evde + hekim videoda,tele,40,0,0,0,2000,Hemşire ölçüm yapar; hekim uzaktan değerlendirir; ≈1.100 hemşirelik + 900 hekim görüşmesi,S14
+ev_muayene,Hekim ev muayenesi,muayene,40,0,0,0,4000,Özel sektörde evde doktor hizmeti örneği,S10
+palyatif_degerlendirme,Palyatif bakım / ağrı kontrolü değerlendirmesi,muayene,60,0,0,0,5000,Evde palyatif bakım kapsamı,S09
+recete_rapor_yenileme,Reçete / rapor yenileme görüşmesi,tele,15,0,0,1,600,Mama ilaç bez raporu yenileme evde sağlık kapsamında,S09
+kan_alma,Kan alma ve numune teslimi,hemsirelik,20,1,0,0,900,Numune alma evde sağlık kapsamında; analiz ücreti dahil değil,S09
+im_enjeksiyon,Kas içi / deri altı enjeksiyon,hemsirelik,15,1,1,0,800,Reçete gerekli,S10
+iv_serum,Serum takma (IV tedavi),hemsirelik,60,1,1,0,1800,Reçete gerekli; ilaç dahil değil,S10
+yara_pansuman,Yara bakımı ve pansuman (basit yara),hemsirelik,30,1,0,0,1200,Yara ve yanık bakımı evde sağlık kapsamında; büyük/karmaşık yara ayrı değerlendirilir,S09
+basi_yarasi_bakimi,Bası yarası bakımı ve evre takibi,hemsirelik,40,1,0,0,1800,Yatağa bağımlı hastada sık ihtiyaç; taban; yara büyüklüğü ve malzemeye göre artar,S09
+sonda_bakimi,İdrar sondası bakımı,hemsirelik,30,1,0,0,900,Sonda işlemleri evde sağlık kapsamında,S09
+sonda_takma,İdrar sondası takma / değişim,hemsirelik,30,1,0,0,2500,Sonda işlemleri evde sağlık kapsamında; sonda malzemesi ayrı,S09
+beslenme_tupu_bakimi,Beslenme tüpü (NG / PEG) bakımı,hemsirelik,30,1,0,0,1300,Sonda ve tüp işlemleri; taban; tüp takma/değiştirme kapsam dışı,S09
+vital_takip,Tansiyon / şeker / oksijen ölçümü ve kayıt,hemsirelik,20,1,0,0,600,Kronik hasta takibi,S14
+fizyoterapi_seansi,Evde fizyoterapi seansı,rehabilitasyon,60,1,0,0,2000,Evde fizik tedavi örneği,S10
+solunum_fizyoterapisi,Solunum fizyoterapisi,rehabilitasyon,45,1,0,0,2000,KOAH / uzun yatış sonrası,S14
 odyolojik_tarama,Evde işitme taraması,isitme,45,1,0,0,1100,Odyolog hizmeti,S07
 isitme_cihazi_ayar,İşitme cihazı ayarı ve bakımı,isitme,40,1,0,0,900,Odyolog hizmeti,S07
 beslenme_degerlendirme,Beslenme değerlendirmesi ve plan,beslenme,45,1,0,1,1000,Diyetisyen hizmeti,S07
-yutma_degerlendirme,Yutma ve konuşma değerlendirmesi,rehabilitasyon,45,1,0,0,1300,Dil ve konuşma terapisti,S07
-ev_guvenligi_dusme,Ev güvenliği ve düşme riski düzenlemesi,rehabilitasyon,60,1,0,0,1200,Ergoterapist hizmeti,S07
+yutma_degerlendirme,Yutma ve konuşma değerlendirmesi,rehabilitasyon,45,1,0,0,2250,Dil ve konuşma terapisti; yutma ve konuşma ileride ayrı kalem olmalı,S07
+ev_guvenligi_dusme,Ev güvenliği ve düşme riski düzenlemesi,rehabilitasyon,60,1,0,0,1800,Ergoterapist hizmeti,S07
 psikolojik_destek,Psikolojik destek görüşmesi,psikoloji,50,1,0,1,1500,Klinik psikolog hizmeti,S07
-ayak_bakimi,Ayak bakımı (diyabetik ayak dahil),ayak,40,1,0,0,900,Podolog hizmeti,S07
-lohusa_izlem,Doğum sonrası anne ve bebek ev izlemi,ebelik,45,1,0,0,900,Ebe ve hemşire hizmeti; doğum sonrası izlem,S07
+ayak_bakimi,Ayak bakımı (standart),ayak,40,1,0,0,2000,Podolog hizmeti,S07
+diyabetik_ayak_bakimi,Diyabetik ayak bakımı,ayak,40,1,0,0,3200,"Podolog hizmeti; başlangıç ücreti, kapsam değerlendirilip teklif verilir. Yara varsa hekim değerlendirmesi",S07
+lohusa_izlem,Doğum sonrası anne ve bebek ev izlemi,ebelik,45,1,0,0,1500,Ebe ve hemşire hizmeti; doğum sonrası izlem,S07

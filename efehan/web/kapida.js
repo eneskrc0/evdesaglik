@@ -730,6 +730,14 @@
     if (P.info.doktor && !P.info.atlaMeslek && !t.is_emergency) {
       t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
     }
+    // Şikâyet birden fazla hizmete gidiyorsa (ör. sonda: bakım / takma-değişim; ayak: standart / diyabetik) hasta seçer.
+    // Karar (seviye, meslek) değişmez; yalnızca hizmet kalemi ve taban ücret. Açıkça söylediyse uygun olan önceden seçili.
+    if (!t.is_emergency && t.level === "PLANLI" && t.services.length > 1 && !(t.profession && !HEKIMLER.has(t.profession))) {
+      const sec = t.services, metin = C.normalize(userText);
+      const tahmin = sec.includes("sonda_takma") && /\b(takil|takma|taktir|degis|yenile|cikti|cikmis|dustu|yeni sonda)/.test(metin) ? "sonda_takma"
+        : sec.includes("diyabetik_ayak_bakimi") && /(diyabet|seker hasta)/.test(metin) ? "diyabetik_ayak_bakimi" : sec[0];
+      t = { ...t, secenekler: sec, services: [P.info.hizmet && sec.includes(P.info.hizmet) ? P.info.hizmet : tahmin] };
+    }
     // Plan varsa istenen mesleğin hizmetlerinden biri seçilebilir (ör. hemşire: iğne, pansuman, serum…)
     if (!t.is_emergency && t.level === "PLANLI" && t.profession && !HEKIMLER.has(t.profession)) {
       const h = meslekHizmetleri(t.profession);
@@ -1050,6 +1058,12 @@
     </div>`;
   }
   // Kullanıcı belirli bir meslek istediyse: ne olacağını açıkla, plan varsa hizmeti seçtir, plan yoksa nedenini söyle
+  function hizmetSecimi(t) {
+    if (!t.secenekler || t.secenekler.length < 2) return "";
+    return `<div class="card stack hizmet-secim" style="gap:8px"><b class="small">Hangisi gerekiyor?</b>
+      <div class="seg">${t.secenekler.map((x) => `<button class="chip" type="button" data-hizmet="${x}" aria-pressed="${t.services[0] === x}">${esc(svc(x).name_tr)} · ${tl(svc(x).base_fee_tl)} TL'den</button>`).join("")}</div>
+      <div class="tiny muted">${esc(svc(t.services[0]).note || "")}</div></div>`;
+  }
   function meslekKarti(t) {
     const m = t.profession;
     if (!m || HEKIMLER.has(m)) return "";
@@ -1079,7 +1093,7 @@
       ${stepsBar(3)}
       <div class="levelcard"><span class="lv-ico">${ico}</span><div class="stack" style="gap:4px"><b>${esc(head)}</b><span class="small">${esc(why)}</span>
         <span class="small muted">Hizmet: ${esc(svc(service).name_tr)} · ${svc(service).duration_min} dk</span></div></div>
-      ${meslekKarti(t)}
+      ${meslekKarti(t)}${hizmetSecimi(t)}
       <div class="seg" role="group" aria-label="Sıralama">${Object.entries(SORTS).map(([k, [l]]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>
       ${yz ? teklifKarti(yz) : ""}
       ${yz ? `<details class="klasik" id="klasikListe"${P.klasikAcik || (teklifDurumu(yz).bitti && !teklifDurumu(yz).satirlar.some((r) => r.verir)) ? " open" : ""}><summary class="small">Tüm uygun kişiler (klasik liste, ${P.cands.length})</summary><div class="stack" style="gap:10px;margin-top:10px">` : ""}

@@ -2,7 +2,7 @@ code,name_tr,keywords,level_no_plan,level_with_plan,services,priority,note,sourc
 CR_NEFES,Nefes darlığı (acil bulgu yok),nefes darlığı|nefesim daral|nefesi daral|nefes almakta zorlan,TELE,TELE,tele_muayene,90,Yatağa bağımlı hastada hemşire oksijen ölçer; kötüleşirse 112,S14
 CR_DUSTU,Düşme sonrası ağrı / kalkamama,düştü;kalkamıyor|düştü;ağrı|düştü;şiş|düştü;morar,HEKIM_EV,HEKIM_EV,ev_muayene,85,Kırık şüphesinde hekim değerlendirmesi önce gelir,S14
 CR_BASI_YARASI,Bası yarası / yatak yarası,bası yarası|yatak yarası|basınç yarası,HEKIM_EV,PLANLI,basi_yarasi_bakimi,80,Görüntüden evre takibi ileride (PIID veri seti),S14
-CR_SONDA,Sonda / kateter,sonda|kateter|idrar torbası,HEKIM_EV,PLANLI,sonda_bakimi,75,,S14
+CR_SONDA,Sonda / kateter,sonda|kateter|idrar torbası,HEKIM_EV,PLANLI,sonda_bakimi|sonda_takma,75,,S14
 CR_TUP,Beslenme tüpü (PEG / NG),peg|mama tüpü|beslenme tüpü|nazogastrik,HEKIM_EV,PLANLI,beslenme_tupu_bakimi,75,,S14
 CR_PALYATIF,Palyatif bakım / ağrı kontrolü,palyatif|ağrı kontrol|kanser;ağrı|ağrı kesici;yetmiyor,HEKIM_EV,HEKIM_EV,palyatif_degerlendirme,75,,S14
 CR_YUTMA,Yutma güçlüğü,yutma güçlüğü|yutamıyor|yutkunam,HEKIM_EV,PLANLI,yutma_degerlendirme,70,Ani başlarsa inme açısından hekim önce değerlendirmeli,S14
@@ -14,7 +14,7 @@ CR_YARA,Yara bakımı / pansuman,yara|pansuman|dikiş|dikiş al|yanık bakım|os
 CR_SOLUNUM_FIZYO,Solunum fizyoterapisi,solunum egzersiz|balgam çıkaramıyor|koah;egzersiz,TELE,PLANLI,solunum_fizyoterapisi,55,,S14
 CR_FIZYO,Fizik tedavi / rehabilitasyon,fizik tedavi|fizyoterapi|egzersiz|protez sonrası|ameliyat sonrası;yürü|felç sonrası|inme sonrası|yürüme güçlüğü|kalça protez|diz protez|kas güçsüz|hareket kısıtl|eklem sert|bel fıtığı|boyun fıtığı|omuz don|yürümekte zorlan|yürüteç|denge sorun|felçli|kırık sonrası|alçı çıktı|rehabilitasyon|egzersiz program,TELE,PLANLI,fizyoterapi_seansi,50,,S14
 CR_ISITME,İşitme kaybı,işitme|duyamıyor|duymuyor|kulağı ağır|kulağım duymuyor|az duyuyor|ağır işit|sesleri duymuyor|televizyonu yüksek|işitme test|odyometri,TELE,PLANLI,odyolojik_tarama,50,Ani işitme kaybında hekim önce,S14
-CR_AYAK,Ayak bakımı,nasır|tırnak batma|diyabetik ayak|ayak bakım|tırnak kalınlaş|mantarlı tırnak|topuk çatla|ayak tırnağ,TELE,PLANLI,ayak_bakimi,50,Diyabetik ayakta yara varsa hekim değerlendirmesi,S14
+CR_AYAK,Ayak bakımı,nasır|tırnak batma|diyabetik ayak|ayak bakım|tırnak kalınlaş|mantarlı tırnak|topuk çatla|ayak tırnağ,TELE,PLANLI,ayak_bakimi|diyabetik_ayak_bakimi,50,Diyabetik ayakta yara varsa hekim değerlendirmesi,S14
 CR_DUSME_RISKI,Düşme riski / ev güvenliği,düşme risk|sık düşüyor|tutunma|ev düzenle|evde güvenlik,TELE,PLANLI,ev_guvenligi_dusme,45,,S14
 CR_BESLENME,Beslenme / kilo kaybı,kilo kayb|iştahsız|beslenme|yemek yemiyor|zayıfladı|diyet listesi|şeker diyeti|kilo almak|kilo vermek|beslenme plan,TELE,PLANLI,beslenme_degerlendirme,40,,S14
 CR_VITAL,Tansiyon / şeker / oksijen takibi,tansiyon ölç|şeker ölç|şeker takib|tansiyon takib|oksijen ölç|saturasyon|tansiyonumu ölç|şekerimi ölç|tansiyon ölçtür|nabız ölç|tansiyonunu ölç|şekerini ölç,TELE,PLANLI,vital_takip,40,,S14
