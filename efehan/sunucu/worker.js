@@ -65,7 +65,7 @@ YANIT yalnızca şu JSON olsun:
 })(typeof globalThis !== "undefined" ? globalThis : this);
 
 const { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU } = globalThis.KAPIDA_ISTEMLER;
-const HIZMET_LISTESI = "tele_muayene: Hekimle video görüşme (ön değerlendirme)\ntele_hemsire_destekli: Hemşire evde + hekim videoda\nev_muayene: Hekim ev muayenesi\npalyatif_degerlendirme: Palyatif bakım / ağrı kontrolü değerlendirmesi\nrecete_rapor_yenileme: Reçete / rapor yenileme görüşmesi\nkan_alma: Kan alma ve numune teslimi\nim_enjeksiyon: Kas içi / deri altı enjeksiyon\niv_serum: Serum takma (IV tedavi)\nyara_pansuman: Yara bakımı ve pansuman\nbasi_yarasi_bakimi: Bası yarası bakımı ve evre takibi\nsonda_bakimi: İdrar sondası takma / bakım\nbeslenme_tupu_bakimi: Beslenme tüpü (NG / PEG) bakımı\nvital_takip: Tansiyon / şeker / oksijen ölçümü ve kayıt\nfizyoterapi_seansi: Evde fizyoterapi seansı\nsolunum_fizyoterapisi: Solunum fizyoterapisi\nodyolojik_tarama: Evde işitme taraması\nisitme_cihazi_ayar: İşitme cihazı ayarı ve bakımı\nbeslenme_degerlendirme: Beslenme değerlendirmesi ve plan\nyutma_degerlendirme: Yutma ve konuşma değerlendirmesi\nev_guvenligi_dusme: Ev güvenliği ve düşme riski düzenlemesi\npsikolojik_destek: Psikolojik destek görüşmesi\nayak_bakimi: Ayak bakımı (diyabetik ayak dahil)\nlohusa_izlem: Doğum sonrası anne ve bebek ev izlemi";
+const HIZMET_LISTESI = "tele_muayene: Hekimle video görüşme (ön değerlendirme)\ntele_hemsire_destekli: Hemşire evde + hekim videoda\nev_muayene: Hekim ev muayenesi\npalyatif_degerlendirme: Palyatif bakım / ağrı kontrolü değerlendirmesi\nrecete_rapor_yenileme: Reçete / rapor yenileme görüşmesi\nkan_alma: Kan alma ve numune teslimi\nim_enjeksiyon: Kas içi / deri altı enjeksiyon\niv_serum: Serum takma (IV tedavi)\nyara_pansuman: Yara bakımı ve pansuman (basit yara)\nbasi_yarasi_bakimi: Bası yarası bakımı ve evre takibi\nsonda_bakimi: İdrar sondası bakımı\nsonda_takma: İdrar sondası takma / değişim\nbeslenme_tupu_bakimi: Beslenme tüpü (NG / PEG) bakımı\nvital_takip: Tansiyon / şeker / oksijen ölçümü ve kayıt\nfizyoterapi_seansi: Evde fizyoterapi seansı\nsolunum_fizyoterapisi: Solunum fizyoterapisi\nodyolojik_tarama: Evde işitme taraması\nisitme_cihazi_ayar: İşitme cihazı ayarı ve bakımı\nbeslenme_degerlendirme: Beslenme değerlendirmesi ve plan\nyutma_degerlendirme: Yutma ve konuşma değerlendirmesi\nev_guvenligi_dusme: Ev güvenliği ve düşme riski düzenlemesi\npsikolojik_destek: Psikolojik destek görüşmesi\nayak_bakimi: Ayak bakımı (standart)\ndiyabetik_ayak_bakimi: Diyabetik ayak bakımı\nlohusa_izlem: Doğum sonrası anne ve bebek ev izlemi";
 
 const GOMULU = { surum: "gomulu", sohbet_kurallari: SOHBET_KURALLARI, rapor_sablonu: RAPOR_SABLONU, ses_ipucu: SES_IPUCU, hizmetler: HIZMET_LISTESI, modeller: {} };
 const AYAR_URL = "https://raw.githubusercontent.com/eneskrc0/evdesaglik/main/efehan/sunucu/ayar.json";
@@ -93,7 +93,27 @@ async function ayarlar(env) {
 }
 const modelAdi = (env, ayar, ad) => env[ad] || (ayar.modeller && ayar.modeller[ad]) || VARSAYILAN[ad];
 
-const VARSAYILAN_KOKENLER = ["https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
+const VARSAYILAN_KOKENLER = ["https://anindasaglik.com", "https://www.anindasaglik.com", "https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
+
+// Uygulamanın kendi alan adı (anindasaglik.com): bu adreslere gelen GET isteklerinde uygulama sayfası sunulur.
+// Sayfa GitHub main'deki derlenmiş dosyadan gelir (main'e her birleştirmede site ~2 dk içinde güncellenir); gövde olduğu gibi
+// akıtılır (işlemci sınırı için okunmaz). SITE_ALANLARI / SITE_URL ortam değişkeniyle değiştirilebilir.
+const SITE_ALANLARI = ["anindasaglik.com", "www.anindasaglik.com"];
+const SITE_URL = "https://raw.githubusercontent.com/eneskrc0/evdesaglik/main/efehan/web/dist/kapida.html";
+const KISA_YOLLAR = { "/hasta": "hasta", "/calisan": "calisan", "/doktor": "doktor", "/ikisi": "ikisi", "/giris": "" };
+async function site(istek, env, url, yol) {
+  if (url.hostname.startsWith("www.")) return Response.redirect("https://" + url.hostname.slice(4) + url.pathname + url.search, 301);
+  if (yol in KISA_YOLLAR) return Response.redirect(url.origin + "/" + (KISA_YOLLAR[yol] ? "#" + KISA_YOLLAR[yol] : ""), 302);
+  if (yol === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  if (yol !== "/" && yol !== "/index.html") return new Response("Sayfa bulunamadı · anindasaglik.com", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  let r;
+  try { r = await fetch(env.SITE_URL || SITE_URL, { cf: { cacheTtl: 120, cacheEverything: true } }); } catch (e) { r = null; }
+  if (!r || !r.ok) return new Response("<!doctype html><meta charset=utf-8><title>anında sağlık</title><p style='font:18px sans-serif;padding:24px'>Uygulama şu an yüklenemedi, birkaç dakika sonra tekrar dene.</p>", { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(r.body, { status: 200, headers: {
+    "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60",
+    "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "microphone=(self), camera=(self), geolocation=()", "X-Frame-Options": "SAMEORIGIN" } });
+}
 const GROQ = "https://api.groq.com/openai/v1";
 // llama-3.3-70b-versatile Groq'da 16.08.2026'da kapatıldı (ücretsiz katman); yerine Groq listesindeki qwen/qwen3.8-27b (önizleme)
 const VARSAYILAN_YEDEK = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
@@ -230,7 +250,9 @@ export default {
   async fetch(istek, env) {
     const koken = istek.headers.get("Origin");
     const izinli = koken && kokenler(env).includes(koken) ? koken : null;
-    const yol = new URL(istek.url).pathname.replace(/\/+$/, "") || "/";
+    const url = new URL(istek.url), yol = url.pathname.replace(/\/+$/, "") || "/";
+    const siteAlani = (env.SITE_ALANLARI ? env.SITE_ALANLARI.split(",").map((x) => x.trim()) : SITE_ALANLARI).includes(url.hostname);
+    if (siteAlani && (istek.method === "GET" || istek.method === "HEAD")) return site(istek, env, url, yol);
     if (istek.method === "OPTIONS") return izinli ? new Response(null, { status: 204, headers: corsBasliklari(izinli) }) : new Response(null, { status: 403 });
     if (istek.method === "GET" && yol === "/") {
       const ayar = await ayarlar(env);

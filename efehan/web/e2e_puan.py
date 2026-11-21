@@ -67,10 +67,19 @@ with sync_playwright() as pw:
     p.locator("[data-act=puanGonder]").click(); pg.wait_for_timeout(300)
     t = p.locator(".puan").inner_text()
     check("Teşekkürler" in t and "★★★★★" in t and "Nazik ve saygılı" in t, "gönderince teşekkür ve verilen puan görünüyor")
-    check("yeni ortalaması" in t, "yeni ortalama gösterildi")
+    check("tek başına gösterilmez" in t and "göremez" not in t, "hastaya puanının çalışana tek başına gösterilmeyeceği söylendi")
     h.locator("[data-tab=rota]").click() if h.locator("[data-tab=rota]").count() else None
     ht = h.inner_text()
-    check("Hasta değerlendirmeleri" in ht and "★★★★★" in ht and "Çok ilgiliydi" in ht, "çalışanın Rotam sekmesinde değerlendirme ve yorum görünüyor")
+    ort0 = h.locator(".puan-calisan .pill.good").inner_text()
+    check("Hasta değerlendirmeleri" in ht and "★★★★★" not in ht and "Çok ilgiliydi" not in ht and "1 yeni değerlendirme var" in ht,
+          "çalışan bu hastanın yıldızını ve yorumunu görmüyor; yalnızca '1 yeni değerlendirme var' (birikince eklenecek)")
+    check("Yeni değerlendirme" not in ht, "çalışana tek puan için bildirim/uyarı yok")
+    for y, e, yorum in [(2, "Geç kaldı", ""), (5, "Güven verdi", "Her şeyi anlattı"), (4, "", ""), (5, "Nazik ve saygılı", "")]:
+        pg.evaluate("([y, e, c]) => window.KapidaTest.puanEkle(window.KapidaTest.calisan(), y, e, c)", [y, e, yorum])
+    pg.wait_for_timeout(200); ht = h.locator(".puan-calisan").inner_text()
+    check("Çok ilgiliydi" in ht and "Her şeyi anlattı" in ht and "Nazik ve saygılı · 2" in ht and "★★" not in ht and "☆" not in ht and "yeni değerlendirme var" not in ht,
+          "5 değerlendirme birikince yorumlar ve etiket sayıları yıldızsız, saatsiz, hastasız özet olarak eklendi")
+    check(h.locator(".puan-calisan .pill.good").inner_text() != ort0, f"ortalama toplu güncellendi ({ort0} → {h.locator('.puan-calisan .pill.good').inner_text()})")
     check("Ayşe" not in h.locator(".puan-calisan").inner_text(), "çalışana hastanın adı gösterilmiyor")
     check("★" in h.locator(".h-head").inner_text(), "çalışan başlığında puanı yazıyor")
     h.locator(".puan-calisan").screenshot(path=str(D.parent / "puan_calisan.png"))
@@ -95,7 +104,8 @@ with sync_playwright() as pw:
     check(p.locator("[data-puan-etiket='Geç kaldı']").count() == 1 and p.locator("[data-puan-etiket][aria-pressed=true]").count() == 0, "2 yıldıza inince olumsuz etiketler çıktı, önceki seçim temizlendi")
     p.locator("[data-puan-etiket='Geç kaldı']").click(); p.locator("[data-act=puanGonder]").click()
     check("kalite ekibi" in p.locator(".puan").inner_text(), "düşük puanda kalite ekibi incelemesi söylendi")
-    check("inceliyor" in h.inner_text(), "çalışan ekranında 'kalite ekibi inceliyor' notu")
+    h.locator("[data-tab=rota]").click() if h.locator("[data-tab=rota]").count() else None
+    check("★★☆☆☆" not in h.inner_text() and "Geç kaldı" not in h.inner_text(), "düşük puan ve etiketi çalışana o ziyaretle eşleşecek şekilde gösterilmiyor")
     p.locator("[data-act=home]").first.click()
     check("ziyaretini puanla" not in p.inner_text() and "★★" in p.locator(".randevularim").inner_text(), "puan verilince ana sayfadaki davet kalktı, Randevularım'da verilen puan yazıyor")
     check(not errs, f"sayfa hatası yok {errs}")

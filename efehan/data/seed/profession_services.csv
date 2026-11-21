@@ -13,6 +13,7 @@ hemsire,iv_serum,S11
 hemsire,yara_pansuman,S11
 hemsire,basi_yarasi_bakimi,S11
 hemsire,sonda_bakimi,S11
+hemsire,sonda_takma,S11
 hemsire,beslenme_tupu_bakimi,S11
 hemsire,vital_takip,S11
 ebe,kan_alma,S07
@@ -27,5 +28,6 @@ dil_konusma,yutma_degerlendirme,S07
 ergoterapist,ev_guvenligi_dusme,S07
 klinik_psikolog,psikolojik_destek,S07
 podolog,ayak_bakimi,S07
+podolog,diyabetik_ayak_bakimi,S07
 ebe,lohusa_izlem,S07
 hemsire,lohusa_izlem,S11

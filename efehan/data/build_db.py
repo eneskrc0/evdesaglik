@@ -46,6 +46,8 @@ EXTRA_PROVIDER_COUNTS = {
     "dil_konusma": 2, "ergoterapist": 2, "klinik_psikolog": 2, "podolog": 2,
 }
 YENI_HIZMETLER = {"lohusa_izlem"}
+# 21.11 fiyat araştırmasıyla ikiye ayrılan hizmetler (Arda): kendi rastgele dizileri var → mevcut veriler (lohusa dahil) değişmez
+EK_HIZMETLER_2111 = {"sonda_takma", "diyabetik_ayak_bakimi"}
 # Sentetik sağlayıcı sayıları (meslek -> kişi)
 PROVIDER_COUNTS = {
     "hemsire": 14, "hekim": 6, "uzman_hekim": 2, "ebe": 2, "fizyoterapist": 5,
@@ -124,6 +126,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
     plan += [(prof, PROVIDER_COUNTS[prof] + i, True) for prof, count in EXTRA_PROVIDER_COUNTS.items() for i in range(1, count + 1)]
     rng_ek = random.Random(seed + 2000)
     rng_yeni = random.Random(seed + 3000)
+    rng_2111 = random.Random(seed + 5000)
     for prof, i, ek in plan:
         rng = rng_ek if ek else rng_main
         pick_district = lambda: rng.choices(d_names, weights=d_weights)[0]  # noqa: E731
@@ -146,14 +149,15 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
         if prof == "hemsire":
             # Her hemşire her işi yapmıyor: deneyim sinyali farklılaşsın
             # (yeni eklenen hizmetler ayrı diziyle seçilir; eski çalışanların hizmetleri değişmesin)
-            eski = [s for s in services if s not in YENI_HIZMETLER]
+            eski = [s for s in services if s not in YENI_HIZMETLER and s not in EK_HIZMETLER_2111]
             chosen = [s for s in eski if rng.random() < 0.7] or eski[:3]
             chosen += [s for s in services if s in YENI_HIZMETLER and rng_yeni.random() < 0.5]
+            chosen += [s for s in services if s in EK_HIZMETLER_2111 and rng_2111.random() < 0.5]
         else:
             chosen = services
         prov_info.append((pid, d_name, chosen))
         for s in chosen:
-            visits = int((rng_yeni if s in YENI_HIZMETLER else rng).paretovariate(1.5) * years * 2)
+            visits = int((rng_2111 if s in EK_HIZMETLER_2111 else rng_yeni if s in YENI_HIZMETLER else rng).paretovariate(1.5) * years * 2)
             conn.execute("INSERT INTO provider_services VALUES (?,?,?)", (pid, s, visits))
 
         # Müsaitlik: sabah, öğleden sonra ya da tam gün
@@ -164,7 +168,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
         if rng.random() < 0.6:
             t = start + rng.randint(0, 60)
             for _ in range(rng.randint(1, 3)):
-                svc = rng.choice([x for x in chosen if x not in YENI_HIZMETLER] or chosen)
+                svc = rng.choice([x for x in chosen if x not in YENI_HIZMETLER and x not in EK_HIZMETLER_2111] or chosen)
                 dur = conn.execute(
                     "SELECT duration_min FROM services WHERE code=?", (svc,)
                 ).fetchone()[0]
@@ -202,7 +206,7 @@ def build_synthetic(conn: sqlite3.Connection, seed: int = 42) -> None:
         if rng2.random() < 0.6:
             t = start + rng2.randint(0, 60)
             for _ in range(rng2.randint(1, 3)):
-                svc = rng2.choice([x for x in chosen if x not in YENI_HIZMETLER] or chosen)
+                svc = rng2.choice([x for x in chosen if x not in YENI_HIZMETLER and x not in EK_HIZMETLER_2111] or chosen)
                 dur = conn.execute("SELECT duration_min FROM services WHERE code=?", (svc,)).fetchone()[0]
                 if t + dur > end - 30:
                     break
