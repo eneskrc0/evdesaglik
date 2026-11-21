@@ -381,12 +381,12 @@
     ["kan_alma", "Kan alma", "Doktorun istediği tahlil için evden kan aldırmak istiyorum", "Evde veya iş yerinde kan alma hizmeti"],
     ["iv_serum", "Serum takma", "Doktorun yazdığı serumu evde taktırmak istiyorum", "Doktorun yazdığı serum evde, hemşire eşliğinde"],
     ["fizyoterapi_seansi", "Evde fizik tedavi", "Ameliyat sonrası evde fizik tedavi istiyorum", "Ameliyat sonrası ve hareket kısıtlılığında"],
-    ["ev_muayene", "Doktor ev ziyareti", "Babam hasta, doktorun eve gelip bakmasını istiyorum", "Doktor eve gelip muayene eder"],
     ["tele_muayene", "Görüntülü doktor", "Doktorla görüntülü görüşmek istiyorum", "Evden çıkmadan doktorla görüntülü görüşme"],
+    ["tele_hemsire_destekli", "Hemşire evde, doktor görüntülü", "Babam yatağa bağımlı, hemşire gelsin doktor görüntülü baksın", "Evden çıkamayan hasta için: hemşire gelir, doktor görüntülü bağlanır"],
   ];
 
   // ---------- YZ ----------
-  const SERVICE_LIST = Object.values(repo.services).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
+  const SERVICE_LIST = Object.values(repo.services).filter((s) => !repo.hekim_evde.has(s.code)).map((s) => `${s.code}: ${s.name_tr}`).join("\n");
   // İstemler tek kaynaktan (istemler.js): Claude sürümü ve sunucu aynı talimatları kullanır.
   const CHAT_RULES = window.KAPIDA_ISTEMLER.SOHBET_KURALLARI;
   const reportPrompt = (transcript) => window.KAPIDA_ISTEMLER.raporIstemi(transcript, P.photoNotes, SERVICE_LIST);
@@ -492,7 +492,7 @@
     if (!photos.length && !d.saglik && /( fiyat| ucret| ne kadar| kac para| kac lira| kac tl)/.test(C.normalize(shown))) {
       P.msgs[P.msgs.length - 1].araLaf = true;
       const f = (c) => `${svc(c).name_tr.toLocaleLowerCase("tr")} ${svc(c).base_fee_tl} TL`;
-      const cevap = `Başlangıç fiyatları: ${["ev_muayene", "tele_muayene", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
+      const cevap = `Başlangıç fiyatları: ${["tele_muayene", "tele_hemsire_destekli", "yara_pansuman", "kan_alma", "fizyoterapi_seansi"].filter((c) => repo.services[c]).map(f).join(", ")}. Kesin fiyatı sağlık çalışanının teklifi belirler. Kimin için ve ne için istediğini söylersen sana uygun kişileri ve saatleri gösteririm.`;
       P.msgs.push({ who: "ai", text: cevap, araLaf: true }); speak(cevap); renderP(); return;
     }
     // 1d) "Direkt doktora yönlendir" / "soru sorma": soruları geç (acil kontrolü yukarıda yapıldı)
@@ -571,7 +571,7 @@
     const bed = /yatağa/.test(bedA) ? true : /rahat/.test(bedA) ? false : null;
     const t = C.triage(repo, all, { bedridden: !!bed, has_physician_plan: plan === "var" });
     const route = repo.routes.find((r) => r.code === t.route);
-    const code = route ? route.service_list[0] : "ev_muayene";
+    const code = route ? route.service_list[0] : "tele_muayene";
     return {
       kim_icin: a[1] || "belirtilmedi", yas_araligi: /70/.test(a[1] || "") ? "70 üstü" : "belirtilmedi",
       sikayet: a[0] || "belirtilmedi", hastanin_kendi_sozleri: a[0] || "belirtilmedi", baslangic: a[2] || "belirtilmedi", seyir: /kötüleş/.test(a[2] || "") ? "kötüleşiyor (beyan)" : "belirtilmedi",
@@ -641,7 +641,7 @@
       if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
       rep = demoReport();
     }
-    if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
+    if (!repo.services[rep.hizmet_onerisi] || repo.hekim_evde.has(rep.hizmet_onerisi)) rep.hizmet_onerisi = "tele_muayene"; // doktor eve gitmez
     if (!repo.professions[rep.istenen_meslek]) rep.istenen_meslek = istenenMeslek() || "";
     if (P.info.doktor && P.info.atlaMeslek) {
       const ad = meslekAdi(P.info.atlaMeslek);
@@ -650,8 +650,8 @@
       rep.hasta_icin_ozet = `İsteğin üzerine seni ${yonelme(ad)} yönlendiriyoruz.` + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " İletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = [`Ayrıntılar ${yonelme(ad)} ziyarette sorulacak (kullanıcı soruları geçti)`, ...(rep.eksik_bilgiler || [])];
     } else if (P.info.doktor) {
-      rep.hizmet_onerisi = "ev_muayene";
-      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi.";
+      rep.hizmet_onerisi = P.info.bed ? "tele_hemsire_destekli" : "tele_muayene";
+      rep.oneri_gerekcesi = "Hasta/yakını soruları geçip doğrudan doktor değerlendirmesi istedi (doktor görüntülü bağlanır).";
       rep.hasta_icin_ozet = "İsteğin üzerine seni doğrudan bir doktora yönlendiriyoruz." + (rep.sikayet && rep.sikayet !== "belirtilmedi" ? " Doktora iletilecek: " + rep.sikayet + "." : "");
       rep.eksik_bilgiler = ["Ayrıntılar doktor tarafından sorulacak (kullanıcı soruları geçti)", ...(rep.eksik_bilgiler || [])];
     }
@@ -730,14 +730,17 @@
       // Kural motoru kalıp bulamadı: YZ'nin hizmet önerisini mevzuat kuralıyla süz
       const s = svc(sug);
       let level, services;
-      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "HEKIM_EV" : "TELE"; services = [level === "HEKIM_EV" ? "ev_muayene" : "tele_muayene"]; }
+      if (s.needs_physician_order && !pt.has_physician_plan) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; }
+      else if (repo.hekim_evde.has(sug)) { level = pt.bedridden ? "TELE_HEMSIRE" : "TELE"; services = [level === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"]; } // doktor eve gitmez
       else if ((repo.profession_services.hekim || new Set()).has(sug)) { level = s.remote_possible ? "TELE" : "HEKIM_EV"; services = [sug]; }
       else { level = "PLANLI"; services = [sug]; }
       if (level === "TELE" && pt.bedridden && sug !== "recete_rapor_yenileme") { level = "TELE_HEMSIRE"; services = ["tele_hemsire_destekli"]; }
       t = { ...t, level, services, route: "YZ:" + sug, reasons: ["Asistanın hizmet önerisi: " + s.name_tr] };
     }
     if (P.info.doktor && !P.info.atlaMeslek && !t.is_emergency) {
-      t = { ...t, level: "HEKIM_EV", services: ["ev_muayene"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin."] };
+      // Doktorlar yalnızca görüntülü: doğrudan doktor isteği görüntülü görüşmedir; evden çıkamayan hastaya hemşire gelir, doktor görüntülü bağlanır
+      const lv = pt.bedridden ? "TELE_HEMSIRE" : "TELE";
+      t = { ...t, level: lv, services: [lv === "TELE" ? "tele_muayene" : "tele_hemsire_destekli"], route: "KULLANICI:doktor", profession: "hekim", reasons: ["İsteğin üzerine doğrudan doktora yönlendirildin (doktor görüntülü bağlanır)."] };
     }
     // Şikâyet birden fazla hizmete gidiyorsa (ör. sonda: bakım / takma-değişim; ayak: standart / diyabetik) hasta seçer.
     // Karar (seviye, meslek) değişmez; yalnızca hizmet kalemi ve taban ücret. Açıkça söylediyse uygun olan önceden seçili.
@@ -770,8 +773,8 @@
     const prof = istenen && !HEKIMLER.has(istenen) && level === "PLANLI" ? meslekAdi(istenen).toLocaleLowerCase("tr") : (() => { const ps = [...repo.professionsFor(service)].filter((x) => x !== "hekim" && x !== "uzman_hekim"); return ps.length ? repo.professions[ps[0]].name_tr.toLowerCase() : "sağlık çalışanı"; })();
     return {
       PLANLI: [ICO.home, `Bir ${prof} evine gelir`, "Doktorunun planı olduğu için doğrudan uygun sağlık çalışanını gönderebiliyoruz."],
-      HEKIM_EV: [ICO.steth, "Önce bir doktor evine gelip baksın", "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
-      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Kısa bir görüntülü görüşmeyle doktor durumu değerlendirir; gerekirse eve hemşire ya da doktor gönderir."],
+      HEKIM_EV: [ICO.steth, "Önce doktor değerlendirsin" /* doktorlar yalnızca görüntülü: bu seviye artık TELE/TELE_HEMSIRE’ye çevrilir */, "Hemşire ya da fizyoterapist ancak doktor planıyla gelebilir (yönetmelik). Doktor gerekirse planı yazar."],
+      TELE: [ICO.video, "Önce doktorla görüntülü görüş", "Doktor evine gelmez; kısa bir görüntülü görüşmeyle durumu değerlendirir. Gerekirse plan yazar, eve hemşire ya da başka bir sağlık çalışanı gelir."],
       TELE_HEMSIRE: [ICO.bed, "Hemşire evine gelir, doktor görüntülü bağlanır", "Evden çıkamayan hasta için: hemşire ölçümleri yapar, doktor aynı anda görüntülü değerlendirir."],
     }[level];
   }
@@ -2361,6 +2364,7 @@
       repo.providers[pid].rating = Math.round(puanOrtalama(pid).ort * 10) / 10; renderH(); } };
   // Prova kurulumu (yalnızca testler): seçilen hizmet için ilk (ya da verilen) adayla randevu oluşturur — arayüzdeki onay akışının aynısı (confirmBooking)
   window.KapidaTest.randevuKur = async (code, o = {}) => {
+    P.info.plan = o.plan ? "var" : "bilinmiyor"; P.info.bed = !!o.yatakta;
     P.pt = patientPoint(); P.info.gun = 0; P.info.when = o.when ?? 570; P.sort = "onerilen";
     P.triage = { level: svc(code).category === "tele" ? (uzaktanHizmet(code) ? "TELE" : "TELE_HEMSIRE") : "PLANLI", services: [code] };
     P.report = cannedReport(code);

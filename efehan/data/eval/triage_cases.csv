@@ -21,7 +21,7 @@ T19,Çocuğum yanlışlıkla ilaç içti,0,0,ZEHIR_114,RF_ZEHIR,
 T20,Babam çamaşır suyu içmiş,0,0,ZEHIR_114,RF_ZEHIR,
 T21,Artık yaşamak istemiyorum,0,0,ACIL_112,RF_KENDINE_ZARAR,
 T22,Annemin sırtında bası yarası var pansuman lazım,1,1,PLANLI,CR_BASI_YARASI,
-T23,annemin yatak yarasi kotulesti,1,0,HEKIM_EV,CR_BASI_YARASI,plan yok -> hekim
+T23,annemin yatak yarasi kotulesti,1,0,TELE_HEMSIRE,CR_BASI_YARASI,plan yok -> hekim; 21.11 ekip kararı: doktor yalnız görüntülü (eskiden HEKIM_EV)
 T24,Babamın sondası tıkandı değiştirilmesi lazım,1,1,PLANLI,CR_SONDA,
 T25,PEG tüpünün etrafı kızardı,1,1,PLANLI,CR_TUP,
 T26,Doktorun yazdığı serumu evde taktırmak istiyorum,0,1,PLANLI,CR_SERUM,
@@ -35,12 +35,12 @@ T33,Babam son zamanlarda duymuyor,0,0,TELE,CR_ISITME,
 T34,Annem yemek yemiyor kilo kaybı var,1,1,PLANLI,CR_BESLENME,
 T35,Babamın yutma güçlüğü var,1,1,PLANLI,CR_YUTMA,
 T36,Ev düzenlemesi lazım babam sık düşüyor,0,1,PLANLI,CR_DUSME_RISKI,
-T37,Annem düştü kalkamıyor kalçası ağrıyor,1,0,HEKIM_EV,CR_DUSTU,
+T37,Annem düştü kalkamıyor kalçası ağrıyor,1,0,TELE_HEMSIRE,CR_DUSTU,21.11 ekip kararı: doktor yalnız görüntülü (eskiden HEKIM_EV)
 T38,Diyabetik ayak bakımı istiyorum,0,1,PLANLI,CR_AYAK,
 T39,Babamın tansiyon takibi yapılsın,1,1,PLANLI,CR_VITAL,
 T40,Uzun zamandır kaygılıyım uyuyamıyorum,0,0,TELE,CR_PSIKO,
 T41,Annemin mama raporunu yenilemem lazım,1,0,TELE,CR_RECETE,yatalakta da uzaktan
-T42,Kanser hastası babamın ağrısı ağrı kesiciye rağmen geçmiyor,1,0,HEKIM_EV,CR_PALYATIF,
+T42,Kanser hastası babamın ağrısı ağrı kesiciye rağmen geçmiyor,1,0,TELE_HEMSIRE,CR_PALYATIF,21.11 ekip kararı: doktor yalnız görüntülü (eskiden HEKIM_EV)
 T43,Ateşim var boğazım ağrıyor,0,0,TELE,CR_AKUT_HAFIF,
 T44,Annemin ateşi var öksürüyor,1,0,TELE_HEMSIRE,CR_AKUT_HAFIF,
 T45,ishal ve kusma var,0,0,TELE,CR_AKUT_HAFIF,
@@ -54,7 +54,7 @@ T52,fizyoterapist istiyorum,0,0,TELE,CR_FIZYO,plan yok → önce hekim (S08)
 T53,odyolog istiyorum babam için,0,1,PLANLI,MI_ODYOLOG,meslek isteği
 T54,babamın kulağı ağır işitiyor,0,1,PLANLI,CR_ISITME,
 T55,lohusayım ebe lazım,0,1,PLANLI,CR_LOHUSA,
-T56,yaram var ama doktor gelsin,0,1,HEKIM_EV,CR_YARA,kullanıcı doktor istedi
+T56,yaram var ama doktor gelsin,0,1,TELE,CR_YARA,kullanıcı doktor istedi; 21.11 ekip kararı: doktor yalnız görüntülü (eskiden HEKIM_EV)
 T57,doktorla görüntülü görüşmek istiyorum,0,0,TELE,MI_HEKIM_TELE,
 T58,pansuman için hemşire istiyorum,0,1,PLANLI,CR_YARA,
 T59,dedem tek başına giyinemiyor banyo yapamıyor,0,1,PLANLI,CR_GUNLUK_YASAM,ergoterapist
