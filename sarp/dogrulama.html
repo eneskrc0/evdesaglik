@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>anında sağlık · Mesleki doğrulama</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+/* Kapıda (anında sağlık) tasarım dili: beyaz zemin, tek vurgu kırmızı, ince gri kartlar, iki telefon yan yana. */
+:root{--stage:#f2f2f3;--phone:#fff;--ink:#141414;--muted:#6d6d72;--line:#e7e7ea;--soft:#f5f5f6;--brand:#e5211b;--brand-ink:#fff;--brand-soft:#fdecea;
+  --saffron:#f2a516;--saffron-soft:#fff4dc;--coral:#b8141a;--coral-soft:#fbe6e6;--good:#1f7a46;--good-soft:#e4f4ea;
+  --shadow:0 1px 2px rgba(20,20,20,.04),0 4px 14px rgba(20,20,20,.05);--font:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--stage);color:var(--ink);font:15px/1.5 var(--font)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
+h1,h2,h3{margin:0;letter-spacing:-.01em}
+.topbar{max-width:900px;margin:0 auto;padding:18px 20px 6px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:26px;letter-spacing:-.035em}
+.logo .marka{width:34px;height:34px;flex:none}
+.topbar .sub{font-size:13px;color:var(--muted)}
+.switch{display:none;background:var(--phone);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+.switch button{border:0;background:transparent;border-radius:999px;padding:7px 14px;font-weight:600;color:var(--muted)}
+.switch button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.rol-kapi{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;width:100%}
+.rol-kapi a{font-size:13px;color:var(--brand);font-weight:700;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:#fff}
+.rol-kapi a.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.durum{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--soft);color:var(--muted)}
+.durum.on{background:var(--good-soft);color:var(--good)}
+.stage{display:flex;justify-content:center;gap:36px;padding:10px 16px 28px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:10px;align-items:center}
+.col .cap{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.phone{width:390px;height:820px;background:var(--phone);border-radius:52px;border:11px solid #121214;box-shadow:0 0 0 2px #c9c9ce,0 30px 60px rgba(20,20,20,.16);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.phone::before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;border-radius:20px;background:#121214;z-index:3}
+.statusbar{height:50px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0;font-size:15px;font-weight:700;flex:none}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.foot-note{max-width:900px;margin:0 auto;padding:0 20px 30px;font-size:13px;color:var(--muted);text-align:center}
+@media (max-width:860px){.switch{display:inline-flex}.stage{padding:6px 0 20px}.col{width:100%;padding:0 10px}.col.hide-m{display:none}.col .cap{display:none}
+  .phone{width:100%;max-width:440px;height:calc(100vh - 150px);min-height:600px;border-width:0;border-radius:22px;box-shadow:0 8px 30px rgba(13,50,52,.12)}.statusbar,.phone::before{display:none}}
+.tek .switch,.tek .rol-kapi{display:none}
+.pad{padding:16px 18px}.stack{display:flex;flex-direction:column;gap:12px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+.muted{color:var(--muted)}.small{font-size:13px}.tiny{font-size:12px}
+.card{background:var(--phone);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.card.soft{background:var(--soft);border-color:transparent;box-shadow:none}
+.btn{border:1px solid var(--line);background:var(--phone);border-radius:14px;padding:12px 16px;font-weight:700;min-height:48px;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
+.btn.coral{background:var(--coral);border-color:var(--coral);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--brand);padding:8px 6px;min-height:auto}
+.btn.mini{min-height:36px;padding:6px 12px;font-size:13px;border-radius:11px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--brand-soft);color:var(--brand);white-space:nowrap}
+.pill.sun{background:var(--saffron-soft);color:#8a5a00}.pill.good{background:var(--good-soft);color:var(--good)}.pill.coral{background:var(--coral-soft);color:var(--coral)}.pill.plain{background:var(--soft);color:var(--muted)}
+.back{border:0;background:none;font-weight:700;color:var(--brand);padding:4px 0;display:inline-flex;align-items:center;gap:4px;font-size:16px;align-self:flex-start}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 4px;flex:none}
+.appbar .logo{font-size:23px}.appbar .logo .marka{width:34px;height:34px}
+.note{background:var(--saffron-soft);border-radius:14px;padding:10px 12px;font-size:13px}
+.note.red{background:var(--coral-soft);color:#7f1014}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:14px;padding:10px 16px;font-size:13px;font-weight:600;z-index:60;opacity:0;transition:.2s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.v{display:flex;flex-direction:column;min-height:100%;font-size:17px;line-height:1.45}
+.v-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line);font-size:17px}
+.v-body{padding:18px;display:flex;flex-direction:column;gap:16px;flex:1}
+.v-h{font-size:25px;line-height:1.2;font-weight:800}
+.v-steps{display:flex;gap:6px}.v-steps span{flex:1;height:6px;border-radius:3px;background:var(--line)}.v-steps span.on{background:var(--brand)}
+.v-steplabel{font-size:15px;font-weight:600;color:var(--muted);margin-top:-8px}
+.v-field{display:flex;flex-direction:column;gap:7px}
+.v-label{font-weight:700;font-size:17px}
+.v-inp{width:100%;min-height:52px;border:1.5px solid var(--line);background:var(--soft);border-radius:14px;padding:10px 14px;font-size:17px}
+.v-inp.mono{font-family:var(--mono);letter-spacing:.06em}
+.v-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.v-choice{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;font-weight:600}
+.v-choice input{width:22px;height:22px;accent-color:var(--brand);flex:none;margin:0}
+.v-choice:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.v-err{margin:0;color:var(--coral);font-weight:600;font-size:15px}
+.v-hint{font-size:14px;color:var(--muted);margin:-2px 0 0}
+.v-drop{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;text-align:center;min-height:96px;border:2px dashed var(--line);border-radius:16px;padding:14px;cursor:pointer;color:var(--brand);background:var(--soft);font-weight:700}
+.v-drop span{font-size:14px;color:var(--muted);font-weight:500}
+.v-drop:hover,.v-drop.over{border-color:var(--brand);background:var(--brand-soft)}
+.v-drop.big{min-height:110px;border-color:var(--brand)}
+.v-doc{border:1.5px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.v-doc.ok{border-color:var(--good)}.v-doc.bad{border-color:var(--coral)}
+.v-doc-h{display:flex;gap:10px;align-items:center}
+.v-file-ico{width:44px;height:44px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.barkod{background:var(--soft);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.barkod .lbl{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.barkod .code{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.05em;word-break:break-all;line-height:1.25}
+.v-sum{display:grid;grid-template-columns:1fr;gap:2px;margin:0}.v-sum dt{color:var(--muted);font-size:14px;margin-top:8px}.v-sum dt:first-child{margin-top:0}.v-sum dd{margin:0;font-weight:600}
+.v-check{display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:16px}
+.v-check input{width:24px;height:24px;accent-color:var(--brand);flex:none;margin:1px 0 0}
+.v-done{width:64px;height:64px;border-radius:20px;background:var(--good-soft);color:var(--good);display:grid;place-items:center;font-size:34px;font-weight:800}
+.v-notice{margin:0;padding:12px 18px 16px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.v-banner{border:1.5px solid var(--saffron);background:var(--saffron-soft);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+.v-banner.good{border-color:var(--good);background:var(--good-soft)}.v-banner.coral{border-color:var(--coral);background:var(--coral-soft)}
+.flagl{list-style:none;margin:0;padding:0;font-size:13px}.flagl li{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line)}
+.profil{background:var(--phone);border:1px solid var(--line);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.who{display:flex;gap:14px;align-items:center}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--saffron-soft);color:#7a4f00;display:grid;place-items:center;font-weight:800;font-size:20px;flex:none}
+.profil-ad{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.req{border:1px solid var(--line);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--phone);width:100%;box-shadow:var(--shadow);color:var(--ink)}
+.req.new{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset,var(--shadow)}
+.req b{font-size:16px}
+.lockmsg{font-size:13px;color:var(--muted)}
+.earn{font-size:22px;font-weight:800;color:var(--brand);letter-spacing:-.02em}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none;margin:4px 16px 0}
+.tabs button{flex:1;border:0;background:none;padding:11px 4px;font-weight:700;font-size:15px;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--brand)}
+.badge{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:10px;background:var(--brand);color:#fff;font-size:11px;margin-left:5px;padding:0 6px}
+.tcbox{font-family:var(--mono);font-size:20px;font-weight:600;letter-spacing:.08em}
+.cmp{display:flex;flex-direction:column;gap:6px}
+.cmp .r{border-radius:12px;padding:8px 10px;background:var(--soft);font-size:13px}
+.cmp .r.bad{background:var(--coral-soft)}.cmp .r.ok{background:var(--good-soft)}.cmp .r.miss{background:var(--saffron-soft)}
+.cmp .r .t{display:flex;justify-content:space-between;font-weight:700}
+.cmp .r.bad .s{color:var(--coral)}.cmp .r.ok .s{color:var(--good)}.cmp .r.miss .s{color:#8a5a00}
+.cmp .r .v2{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+.levelcard{border-radius:20px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+.levelcard .lv{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-weight:800;font-size:20px;flex:none;color:#fff}
+.levelcard.good{background:var(--good-soft)}.levelcard.good .lv{background:var(--good)}
+.levelcard.coral{background:var(--coral-soft)}.levelcard.coral .lv{background:var(--coral)}
+.levelcard.sun{background:var(--saffron-soft)}.levelcard.sun .lv{background:var(--saffron)}
+.levelcard.plain{background:var(--soft)}.levelcard.plain .lv{background:var(--muted)}
+.levelcard b{font-size:16px;display:block}
+.hbar{position:sticky;bottom:0;background:var(--phone);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;z-index:2}
+.hbar .btn{flex:1}
+.democtl{width:390px;max-width:100%;border:1px dashed var(--muted);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;background:var(--phone)}
+.democtl h3{font-size:14px}
+.democtl table{width:100%;border-collapse:collapse;font-size:12px}.democtl td,.democtl th{text-align:left;padding:4px;border-bottom:1px solid var(--line)}
+.hero{background:linear-gradient(160deg,#f6f6f7 0%,#ececee 100%);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.hero h1{font-size:24px;line-height:1.18;font-weight:800;letter-spacing:-.02em}
+.svc{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--phone);border:1px solid var(--line);border-radius:18px;padding:13px 14px;box-shadow:var(--shadow);color:var(--ink)}
+.svc .si{width:40px;height:40px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;flex:none}
+.svc b{font-size:16px;display:block}.svc span{font-size:13px;color:var(--muted)}
+.ilac{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}.ilac:first-child{border-top:0}
+.chk{display:flex;flex-direction:column;gap:2px}
+.chk label{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:15px;border-top:1px solid var(--line);cursor:pointer}
+.chk label:first-child{border-top:0}
+.chk input{width:22px;height:22px;accent-color:var(--good);flex:none;margin:1px 0 0}
+.warnbox{border:1.5px solid var(--coral);background:var(--coral-soft);border-radius:16px;padding:12px;font-size:14px}
+details.nasil{max-width:900px;margin:0 auto 30px;padding:0 20px}
+details.nasil>summary{cursor:pointer;font-weight:700;color:var(--brand);text-align:center;list-style:none}
+details.nasil .card{margin-top:10px;font-size:14px}
+details.nasil table{width:100%;border-collapse:collapse;font-size:13px}details.nasil td,details.nasil th{text-align:left;padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="marka" viewBox="0 0 40 40"><path d="M4 36 L17.5 5.5 Q20 0.5 22.5 5.5 L36 36 Q37.5 39 34 38.5 Q24 31 19 33 Q12 35.5 6.5 38.5 Q2.6 39.5 4 36z" fill="#e5211b"/><path d="M12.5 31.5 Q19 21 27.5 23.5 Q22 25.5 19.5 31" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/></symbol>
+</defs></svg>
+<div class="topbar">
+  <div>
+    <div class="logo"><svg class="marka" viewBox="0 0 40 40" aria-hidden="true"><use href="#marka"/></svg>anında sağlık</div>
+    <div class="sub">Mesleki doğrulama ve reçete doğrulama · önce yapay zeka, sonra kişisel kontrol · <span class="durum" id="storeChip">bağlanıyor…</span></div>
+  </div>
+  <div class="switch" role="group" aria-label="Görünüm">
+    <button type="button" data-show="h" aria-pressed="false">Hasta</button>
+    <button type="button" data-show="w" aria-pressed="true">Çalışan</button>
+    <button type="button" data-show="g" aria-pressed="false" data-g="1">Görevli</button>
+  </div>
+  <div class="rol-kapi"><a href="#hasta">Yalnız hasta</a><a href="#calisan">Yalnız çalışan</a><a href="#gorevli" data-g="1">Yalnız görevli</a><a href="#recete">Reçete akışı · hasta + çalışan</a><a href="#mesleki" data-g="1">Mesleki doğrulama · çalışan + görevli</a><a href="#hepsi" data-g="1">Üçü yan yana</a></div>
+</div>
+<div class="stage">
+  <div class="col" id="colH">
+    <div class="cap">Hasta / yakını</div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span>●●● ▮</span></div><div class="screen" id="hScreen"></div></div>
+  </div>
+  <div class="col" id="colW">
+    <div class="cap">Sağlık çalışanı</div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span>●●● ▮</span></div><div class="screen" id="wScreen"></div></div>
+  </div>
+  <div class="col hide-m" id="colG">
+    <div class="cap">Doğrulama görevlisi</div>
+    <div class="phone"><div class="statusbar"><span>09:30</span><span>●●● ▮</span></div><div class="screen" id="gScreen"></div></div>
+    <section class="democtl" id="kapidaCtl" aria-label="Kapıda'ya giden liste"></section>
+  </div>
+</div>
+<p class="foot-note">Hasta reçeteli bir hizmet (serum, kas içi iğne, sonda) istediğinde reçetesini ekler: önce yapay zeka reçeteyi okuyup ön kontrol yapar, sonra sağlık çalışanı kapıda hastanın e-Nabız'ındaki asıl kaydı görerek kendisi doğrular; doğrulanmayan reçeteyle uygulama yapılmaz. Gerçek sağlık bilgisi girmeyin.</p>
+<p class="foot-note">Sağlık çalışanı ilk girişte mesleki başvurusunu e-Devlet barkodlu belgelerle yapar; başvuru onaylanmadan görev kabul edemez. Görevli, sistemin çıkardığı barkodla e-Devlet'te sorgular ve indirdiği asıl belgeyi bırakır; sistem iki belgeyi alan alan karşılaştırıp kararı önerir.</p>
+<details class="nasil"><summary>Nasıl çalışır · kişisel veri · Kapıda bağlantısı</summary>
+  <div class="card">
+    <p style="margin-top:0">Belgenin fotoğrafına bakarak "bu kesin gerçek" denemez. Kararın dayanağı <b>devletin kaydıdır</b>: başvuranın yüklediği belge, görevlinin e-Devlet'ten kendisinin indirdiği asıl belgeyle karşılaştırılır. Ayıklamayı, karşılaştırmayı ve kararı önermeyi sistem yapar; görevli yalnızca devletin kaydına bakıp asıl belgeyi getirir.</p>
+    <table>
+      <tr><th>Adım</th><th>Kim</th><th>Ne olur</th></tr>
+      <tr><td>Başvuru</td><td>Çalışan</td><td>YÖK Mezun Belgesi ve diploma tescil belgesini (uzman hekim ise uzmanlık belgesini de) e-Devlet'ten PDF olarak yükler. Barkod karekoddan ya da metinden okunur; barkodsuz başvuru gönderilemez.</td></tr>
+      <tr><td>Ön kontrol</td><td>Sistem</td><td>Alanları okur; T.C. algoritması, ad uyumu, tarih mantığı, düzenleme yazılımı izi ve karekodun adresini kontrol eder. Yalnızca bilgi verir, belgeyi tek başına düşürmez.</td></tr>
+      <tr><td>Kaynak sorgusu</td><td>Görevli</td><td>"e-Devlet'te aç"a basar; barkodu ve T.C.'yi kopyalayıp sorgular, asıl belgeyi PDF indirir.</td></tr>
+      <tr><td>Karşılaştırma</td><td>Sistem</td><td>Ad, T.C., okul, bölüm, tarih ve barkod tek tek karşılaştırılır. Hepsi tutarsa "Kaynakta bulundu" kendiliğinden işaretlenir; farklı alan kırmızı görünür ve "Reddet" önerilir.</td></tr>
+      <tr><td>Karar</td><td>Görevli</td><td>Onaylanan çalışanın görev kabul kilidi açılır ve Kapıda'ya giden onaylı listeye eklenir. Reddedilene "Belgeniz doğrulanamadı" bildirimi gösterilir.</td></tr>
+    </table>
+    <p><b>Kişisel veri.</b> T.C. kimlik numarası kayıtlarda yalnızca maskeli tutulur; eşleştirme için geri çevrilemeyen bir özet kullanılır. Görevlinin e-Devlet sorgusu için tam numara, karar verilene kadar yalnızca görevlinin okuyabildiği alanda geçici durur; onay ya da ret anında silinir (karara bağlanmayanlarda 7 gün sonra). Yüklenen PDF'ler saklanmaz; tarayıcıda işlenir.</p>
+    <p><b>Reçete doğrulama.</b> Yalnızca reçete ya da hekim istemi gerektiren hizmetlerde devreye girer (Kapıda'da hastanın "doktorun planı / reçetesi var" dediği nokta). 1) Hasta e-reçete numarasını yazar ve e-Nabız "Reçetelerim" ekranının görüntüsünü, PDF'ini ya da kağıt reçetenin fotoğrafını ekler. 2) Yapay zeka reçete no, hasta adı, tarih, hekim, reçete türü ve ilaçları okur; girilen numarayla, hasta adıyla, istenen hizmetle ve tarih mantığıyla karşılaştırır; kontrole tabi (kırmızı, yeşil, turuncu, mor) reçeteyi işaretler; düzenleme izine bakar. İlacın ya da dozun tıbben uygunluğunu değerlendirmez. 3) Talebi kabul eden çalışan kapıda hastanın e-Nabız'ını görerek reçete no, ilaç, doz, tarih ve kimliği kontrol listesiyle doğrular; isterse e-Devlet/e-Nabız'dan alınan asıl reçete PDF'ini bırakıp alan alan karşılaştırır. Doğrulanmayan reçeteyle uygulama yapılmaz, hasta hekimine yönlendirilir.</p>
+    <p style="margin-bottom:0"><b>Kapıda bağlantısı.</b> Onaylı liste JSON olarak indirilir: <code>kimlik_anahtari</code> = SHA-256("bdv1:" + T.C.) ilk 20 hane, <code>ad_soyad</code>, <code>meslek</code>, <code>tc_maskeli</code>, <code>onay_tarihi</code>, <code>basvuru_no</code>, <code>durum</code>. Kapıda aynı anahtarı kendi tarafında üretip çalışanın görev kabul kilidini açar.</p>
+  </div>
+</details>
+<div class="toast" id="toast"></div>
+
+<script>
+// ================= Tanımlar =================
+const DOCS={
+  yok_mezun:{ad:"YÖK Mezun Belgesi",alt:"e-Devlet · barkodlu PDF",veren:"Yükseköğretim Kurulu",alanlar:["ad_soyad","tc_kimlik","universite","fakulte_bolum","mezuniyet_tarihi","barkod_no"],
+    kaynak:{btn:"e-Devlet'te aç",url:"https://www.turkiye.gov.tr/belge-dogrulama",ipucu:"Barkodu ve T.C.'yi girip sorgulayın; açılan belgeyi PDF indirip aşağı bırakın."}},
+  tescil:{ad:"Diploma Tescil Belgesi",alt:"Sağlık Bakanlığı · e-imzalı / barkodlu",veren:"T.C. Sağlık Bakanlığı",alanlar:["ad_soyad","tc_kimlik","unvan","tescil_no","belge_tarihi","barkod_no"],
+    kaynak:{btn:"Bakanlık doğrulaması",url:"https://www.turkiye.gov.tr/saglik-bakanligi",ipucu:"Sağlık Bakanlığı \"Elektronik Belge Yönetim Sistemi Evrak Doğrulama\" ile sorgulayıp asıl belgeyi PDF indirin."}},
+  uzmanlik:{ad:"Tıpta Uzmanlık Belgesi",alt:"Sağlık Bakanlığı · e-imzalı / barkodlu",veren:"T.C. Sağlık Bakanlığı",alanlar:["ad_soyad","tc_kimlik","uzmanlik_dali","tescil_no","belge_tarihi","barkod_no"],
+    kaynak:{btn:"Bakanlık doğrulaması",url:"https://www.turkiye.gov.tr/saglik-bakanligi",ipucu:"Elektronik Belge Yönetim Sistemi Evrak Doğrulama ile sorgulayıp asıl belgeyi PDF indirin."}}
+};
+const PROFS=[["hekim","Hekim"],["hemsire","Hemşire"],["ebe","Ebe"],["fizyoterapist","Fizyoterapist"],["dis","Diş hekimi"],["diger","Diğer"]];
+const profText=f=>f.prof==="hekim"?(f.hekimType==="uzman"?"Uzman hekim"+(f.specialty?" · "+f.specialty:""):"Pratisyen hekim"):f.prof==="diger"?(f.profOther||"Diğer"):((PROFS.find(p=>p[0]===f.prof)||[])[1]||"");
+const REQ=f=>f.prof==="hekim"&&f.hekimType==="uzman"?["yok_mezun","tescil","uzmanlik"]:["yok_mezun","tescil"];
+const FL={ad_soyad:"Ad soyad",tc_kimlik:"T.C. kimlik no",universite:"Okul",fakulte_bolum:"Bölüm",mezuniyet_tarihi:"Mezuniyet tarihi",belge_tarihi:"Belge tarihi",barkod_no:"Barkod",unvan:"Unvan",tescil_no:"Tescil no",uzmanlik_dali:"Uzmanlık dalı"};
+const SAFE_HOSTS=["turkiye.gov.tr","saglik.gov.tr","yok.gov.tr","edu.tr","gov.tr"];
+const EDIT_TOOLS=["Photoshop","GIMP","Canva","Pixelmator","Affinity","Paint.NET","PicsArt","Fotor","iLovePDF","Smallpdf","Sejda","PDFescape","PDF-XChange","Nitro","PDFelement","Foxit PhantomPDF","Inkscape","CorelDRAW","Microsoft Word","LibreOffice"];
+const LV={kritik:["coral","Kritik"],yuksek:["coral","Yüksek"],orta:["sun","Orta"],bilgi:["plain","Bilgi"],ok:["good","Olumlu"]};
+const DURUM={bekliyor:["sun","İnceleme bekliyor"],onaylandi:["good","Onaylandı"],reddedildi:["coral","Doğrulanamadı"]};
+
+// ================= Yardımcılar =================
+const $=id=>document.getElementById(id);
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("on"),2800)}
+const trUp=s=>(s||"").toLocaleUpperCase("tr-TR");
+const norm=s=>trUp(s).replace(/[^A-ZÇĞİÖŞÜ0-9]/g,"");
+const normB=s=>(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function mask(t){t=(t||"").replace(/\D/g,"");return t.length===11?t.slice(0,3)+"*****"+t.slice(8):""}
+function pDate(s){if(!s)return null;let m=String(s).match(/(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=String(s).match(/(\d{4})-(\d{2})-(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3]):null}
+function fmtD(x){const d=new Date(x);return isNaN(d)?"–":d.toLocaleDateString("tr-TR")}
+function fmtDT(x){const d=new Date(x);return isNaN(d)?"–":d.toLocaleString("tr-TR",{dateStyle:"short",timeStyle:"short"})}
+function tcValid(tc){if(!/^[1-9]\d{10}$/.test(tc))return false;const d=tc.split("").map(Number);
+  const d10=((d[0]+d[2]+d[4]+d[6]+d[8])*7-(d[1]+d[3]+d[5]+d[7]))%10;return((d10+10)%10)===d[9]&&d.slice(0,10).reduce((a,b)=>a+b,0)%10===d[10]}
+async function sha(s,n){try{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,n)}
+  catch(e){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return("x"+(h>>>0).toString(16)).slice(0,n)}}
+const tcKey=tc=>{tc=(tc||"").replace(/\D/g,"");return tc.length===11?sha("bdv1:"+tc,20):Promise.resolve("")};
+function sim(a,b){if(!a||!b)return 0;const m=[];for(let i=0;i<=a.length;i++){m[i]=[i];for(let j=1;j<=b.length;j++)m[i][j]=i?Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1)):j}return 1-m[a.length][b.length]/Math.max(a.length,b.length)}
+const fl=(lv,code,text)=>({lv,code,text});
+const newId=p=>p+"-"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
+async function copy(t,msg){try{await navigator.clipboard.writeText(t);toast(msg||"Kopyalandı")}catch(e){toast("Kopyalanamadı; elle seçip kopyalayın")}}
+const initials=s=>(s||"?").trim().split(/\s+/).map(x=>x[0]).slice(0,2).join("").toLocaleUpperCase("tr-TR");
+
+// ================= Belge okuma =================
+async function readFile(f,maxPages=3){
+  const isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name);const buf=await f.arrayBuffer();
+  const out={isPdf,type:f.type,canvases:[],text:"",info:{},pages:0,raw:"",hash:""};
+  try{const h=await crypto.subtle.digest("SHA-256",buf);out.hash=[...new Uint8Array(h)].slice(0,12).map(b=>b.toString(16).padStart(2,"0")).join("")}catch(e){}
+  const u8=new Uint8Array(buf);const lim=Math.min(u8.length,6e6);for(let i=0;i<lim;i+=65536)out.raw+=String.fromCharCode.apply(null,u8.subarray(i,Math.min(lim,i+65536)));
+  if(isPdf){
+    if(!window.pdfjsLib)throw new Error("PDF okuyucu yüklenemedi");
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;out.pages=pdf.numPages;
+    try{out.info=(await pdf.getMetadata()).info||{}}catch(e){}
+    for(let p=1;p<=Math.min(maxPages,pdf.numPages);p++){
+      const page=await pdf.getPage(p);
+      try{const tc=await page.getTextContent();out.text+=tc.items.map(i=>i.str).join(" ")+"\n"}catch(e){}
+      const v0=page.getViewport({scale:1});const sc=Math.min(2.4,1700/Math.max(v0.width,v0.height));const vp=page.getViewport({scale:sc});
+      const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+      await page.render({canvasContext:x,viewport:vp}).promise;out.canvases.push(c);
+    }
+  } else {
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("Dosya okunamadı"));i.src=URL.createObjectURL(f)});
+    const s=Math.min(1,1700/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+    const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);out.canvases.push(c);out.pages=1;
+  }
+  out.qr=readQR(out.canvases);out.sig=/\/ByteRange\s*\[/.test(out.raw)||/\/Type\s*\/Sig\b/.test(out.raw);
+  return out;
+}
+function readQR(cvs){
+  if(!window.jsQR)return null;
+  for(const cv of cvs)for(const s of [1,0.7,0.45]){const w=Math.round(cv.width*s),h=Math.round(cv.height*s),t=document.createElement("canvas");t.width=w;t.height=h;
+    const c=t.getContext("2d");c.drawImage(cv,0,0,w,h);const r=jsQR(c.getImageData(0,0,w,h).data,w,h);if(r&&r.data)return r.data}
+  return null;
+}
+function barkodFrom(doc,aiVal){
+  if(doc.qr){
+    try{const u=new URL(doc.qr);for(const[k,v]of u.searchParams)if(/barkod|belge|dogrulama|kod|no/i.test(k)&&normB(v).length>=8)return{v:v.toUpperCase().trim(),src:"karekod"}}catch(e){
+      if(/^[A-Z0-9ÇĞİÖŞÜ\-\s]{8,40}$/i.test(doc.qr.trim()))return{v:doc.qr.trim().toUpperCase(),src:"karekod"}}
+  }
+  const t=doc.text||"";
+  let m=t.match(/(?:Barkod|Doğrulama|Dogrulama|Belge\s*Doğrulama)\s*(?:No|Numarası|Kodu)?\s*[:：]?\s*([A-Z0-9ÇĞİÖŞÜ][A-Z0-9ÇĞİÖŞÜ\-]{7,40})/i);
+  if(m)return{v:m[1].toUpperCase(),src:"metin"};
+  m=t.match(/\b[A-Z]{2,6}(?:-[A-Z0-9]{3,8}){2,6}\b/);if(m)return{v:m[0].toUpperCase(),src:"metin"};
+  if(aiVal&&normB(aiVal).length>=6)return{v:String(aiVal).toUpperCase().trim(),src:"yapay zeka"};
+  return null;
+}
+const tcFromText=t=>((t||"").match(/\b[1-9]\d{10}\b/g)||[]).find(tcValid)||"";
+
+// ================= Yapay zeka =================
+const CAP={db:null,user:null,sample:null,dl:null};
+async function aiFields(docType,doc,{withImages=true}={}){
+  if(!CAP.sample)return null;
+  const t=DOCS[docType];const keys=t.alanlar;
+  const images=withImages?(await Promise.all(doc.canvases.slice(0,2).map(c=>new Promise(r=>c.toBlob(r,"image/jpeg",0.85))))):[];
+  const prompt=`Türkiye'de sağlık personeli belgelerini inceleyen bir doğrulama uzmanısın. Belge "${t.ad}" olarak sunuldu (veren: ${t.veren}).
+${doc.text.trim()?`Belgenin PDF metin katmanı:\n"""${doc.text.slice(0,6000)}"""\n`:""}${images.length?"Belgenin görüntüleri ektedir.":""}
+1) Şu alanları belgede yazdığı gibi oku: ${keys.map(k=>FL[k]).join(", ")}. Tarihleri GG.AA.YYYY yaz. Okuyamadığını null bırak, tahmin etme.
+2) ${images.length?"Düzenleme belirtisi olabilecek görsel bulguları yaz (yazı tipi/hiza farkı, yapıştırma görünümü, eksik karekod/barkod, belge tipinin beyan edilenle uyuşmaması). Kesin hüküm verme.":"Görsel bulgu listesini boş bırak."}
+Yalnızca şu JSON'u döndür: {"belge_tipi_uyumlu":boolean,"alanlar":{${keys.map(k=>`"${k}":string|null`).join(",")}},"bulgular":[{"onem":"dusuk|orta|yuksek","aciklama":string}],"ozet":string}`;
+  return await CAP.sample.json(prompt,{images,modelTier:"default"});
+}
+
+// ================= Ön kontrol =================
+async function precheck(docType,doc,beyan){
+  const flags=[];
+  const found=EDIT_TOOLS.filter(x=>doc.raw.toLowerCase().includes(x.toLowerCase()));
+  if(found.length)flags.push(fl(found.every(x=>/Word|LibreOffice/.test(x))?"orta":"yuksek","edit_tool",`Dosyada düzenleme/tasarım yazılımı izi: ${found.join(", ")}. e-Devlet çıktısında beklenmez.`));
+  if(!doc.isPdf)flags.push(fl("orta","not_pdf","Belge PDF değil, görüntü olarak yüklenmiş. e-Devlet'ten PDF indirilmesi istenir."));
+  if(doc.isPdf){
+    const eofs=(doc.raw.match(/%%EOF/g)||[]).length;
+    if(doc.sig)flags.push(fl("ok","esig","PDF'te elektronik imza alanı var."));
+    if(eofs>1&&!doc.sig)flags.push(fl("orta","pdf_incremental",`PDF oluşturulduktan sonra ${eofs-1} kez değiştirilmiş görünüyor.`));
+    if(!doc.text.trim())flags.push(fl("orta","no_text","PDF'te metin katmanı yok (taranmış görüntü). e-Devlet çıktıları genellikle metin içerir."));
+  } else if(/jpe?g/i.test(doc.type||"")){
+    const e=await elaStats(doc.canvases[0]);
+    if(e.outRatio>0.01&&e.outRatio<0.08&&e.max>e.med*10&&e.max>6)flags.push(fl("orta","ela_region","Görüntünün bir bölgesinde sıkıştırma farkı var; o bölge sonradan değiştirilmiş olabilir (fotoğraflarda yanlış alarm verebilir)."));
+  }
+  if(doc.qr){let host="";try{host=new URL(doc.qr).hostname.toLowerCase()}catch(e){}
+    if(host){const ok=SAFE_HOSTS.some(h=>host===h||host.endsWith("."+h));flags.push(ok?fl("ok","qr_safe",`Karekod resmi adrese gidiyor: ${host}`):fl("kritik","qr_unsafe",`Karekod resmi olmayan bir siteye gidiyor: ${host}.`))}}
+  let ai=null;try{ai=await aiFields(docType,doc)}catch(e){flags.push(fl("bilgi","",`Yapay zeka okuması yapılamadı (${(e&&e.message)||e}).`))}
+  const A=(ai&&ai.alanlar)||{};
+  if(!A.tc_kimlik)A.tc_kimlik=tcFromText(doc.text)||null;
+  if(ai){if(ai.belge_tipi_uyumlu===false)flags.push(fl("yuksek","type_mismatch",`Yüklenen dosya "${DOCS[docType].ad}" gibi görünmüyor.`));
+    (ai.bulgular||[]).forEach(b=>b.onem!=="dusuk"&&flags.push(fl(b.onem==="yuksek"?"yuksek":"orta","ai_visual",b.aciklama)))}
+  const tcDoc=String(A.tc_kimlik||"").replace(/\D/g,"");
+  if(tcDoc&&!tcValid(tcDoc))flags.push(fl("kritik","tc_invalid","Belgedeki T.C. kimlik no algoritma kontrolünden geçmiyor."));
+  if(tcDoc&&beyan.tc&&tcDoc!==beyan.tc)flags.push(fl("kritik","tc_mismatch","Belgedeki T.C. kimlik no, başvurudaki numarayla aynı değil."));
+  if(A.ad_soyad&&beyan.ad&&sim(norm(A.ad_soyad),norm(beyan.ad))<0.85)flags.push(fl("kritik","name_mismatch",`Belgedeki ad (${A.ad_soyad}) başvurudaki adla uyuşmuyor.`));
+  ["mezuniyet_tarihi","belge_tarihi"].forEach(k=>{const d=pDate(A[k]);if(d&&d>new Date())flags.push(fl("kritik","date_future",`${FL[k]} gelecekte.`))});
+  const bk=barkodFrom(doc,A.barkod_no);
+  const alanlar={};Object.keys(A).forEach(k=>{if(k!=="tc_kimlik"&&A[k])alanlar[k]=String(A[k]).slice(0,200)});
+  if(bk)alanlar.barkod_no=bk.v;
+  const W={kritik:40,yuksek:20,orta:8};const risk=Math.min(100,flags.reduce((a,f)=>a+(W[f.lv]||0),0));
+  return{flags,alanlar,tcDoc,barkod:bk,risk,ozet:(ai&&ai.ozet)||""};
+}
+function elaStats(cv){return new Promise(res=>{const w=cv.width,h=cv.height,src=cv.getContext("2d").getImageData(0,0,w,h).data;const img=new Image();
+  img.onload=()=>{const t=document.createElement("canvas");t.width=w;t.height=h;const tc=t.getContext("2d");tc.drawImage(img,0,0);const re=tc.getImageData(0,0,w,h).data;
+    const B=32,bw=Math.ceil(w/B),bh=Math.ceil(h/B),bs=new Float32Array(bw*bh),bc=new Float32Array(bw*bh);
+    for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2){const i=(y*w+x)*4;const d=(Math.abs(src[i]-re[i])+Math.abs(src[i+1]-re[i+1])+Math.abs(src[i+2]-re[i+2]))/3;const b=Math.floor(y/B)*bw+Math.floor(x/B);bs[b]+=d;bc[b]++}
+    const m=Array.from(bs,(s,i)=>s/(bc[i]||1)).filter(v=>v>0.05).sort((a,b)=>a-b);const med=m[Math.floor(m.length/2)]||0.01,max=m[m.length-1]||0;
+    res({med,max,outRatio:m.filter(v=>v>Math.max(med*5,2)).length/Math.max(1,bs.length)})};img.onerror=()=>res({med:0,max:0,outRatio:0});img.src=cv.toDataURL("image/jpeg",0.9)})}
+
+// ================= Depolama =================
+let ME=null,IS_G=false,SHARED=false,MYDOC=null,APPS=[],CASES=[],ONAYLI=[],MYT=null,TALEPLER=[];
+const LS={get:k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function setChip(t,on){const c=$("storeChip");c.textContent=t;c.classList.toggle("on",!!on)}
+async function init(){
+  try{CAP.user=await claude.use("user")}catch(e){}
+  try{CAP.db=await claude.use("db")}catch(e){}
+  try{CAP.sample=await claude.use("sample")}catch(e){}
+  try{CAP.dl=await claude.use("downloads")}catch(e){}
+  if(CAP.user){try{ME=await CAP.user.id()}catch(e){}try{IS_G=!!(await CAP.user.canEdit())}catch(e){}}
+  if(CAP.db&&ME){
+    SHARED=true;setChip(IS_G?"görevli hesabı":"çalışan hesabı",true);
+    CAP.db.doc("apps/"+ME).onSnapshot(s=>{MYDOC=s.exists?s.data():null;onData()},()=>{});
+    CAP.db.doc("talepler/"+ME).onSnapshot(s=>{MYT=s.exists?s.data():null;onData()},()=>{});
+    if(IS_G){
+      CAP.db.collection("apps").onSnapshot(s=>{APPS=[];s.docs.forEach(d=>{const b=(d.data()||{}).basvurular||{};Object.values(b).forEach(a=>a&&a.id&&APPS.push({...a,uid:d.id}))});APPS.sort((a,b)=>b.ts-a.ts);onData();purgeOld()},e=>toast("Başvurular okunamadı: "+(e.message||e.code)));
+      CAP.db.collection("talepler").onSnapshot(s=>{TALEPLER=[];s.docs.forEach(d=>{const b=(d.data()||{}).talepler||{};Object.values(b).forEach(t=>t&&t.id&&TALEPLER.push({...t,uid:d.id}))});TALEPLER.sort((a,b)=>b.ts-a.ts);onData()},()=>{});
+      CAP.db.collection("cases").onSnapshot(s=>{CASES=s.docs.map(d=>({...d.data(),id:d.id}));onData()},()=>{});
+      CAP.db.collection("onayli").onSnapshot(s=>{ONAYLI=s.docs.map(d=>({...d.data(),key:d.id}));onData()},()=>{});
+    }
+  } else {SHARED=false;IS_G=true;ME="yerel";setChip("yerel deneme · bu tarayıcı");loadLocal()}
+  applyRoute();onData();
+}
+function loadLocal(){const d=LS.get("bd7")||{apps:{},cases:{},onayli:{}};d.talepler=d.talepler||{};MYDOC={basvurular:d.apps};MYT={talepler:d.talepler};
+  TALEPLER=Object.values(d.talepler).map(t=>({...t,uid:"yerel"})).sort((a,b)=>b.ts-a.ts);
+  APPS=Object.values(d.apps).map(a=>({...a,uid:"yerel"})).sort((a,b)=>b.ts-a.ts);CASES=Object.values(d.cases);ONAYLI=Object.entries(d.onayli).map(([k,v])=>({...v,key:k}))}
+function local(fn){const d=LS.get("bd7")||{apps:{},cases:{},onayli:{}};d.talepler=d.talepler||{};fn(d);LS.set("bd7",d);loadLocal();onData()}
+async function addApplication(entry){
+  if(!SHARED){local(d=>d.apps[entry.id]=entry);return}
+  const ref=CAP.db.doc("apps/"+ME);const s=await ref.get();
+  if(s.exists)await ref.update({basvurular:{[entry.id]:entry},ts:Date.now()});else await ref.set({basvurular:{[entry.id]:entry},ts:Date.now()});
+}
+async function patchApplication(uid,id,patch){if(!SHARED){local(d=>{if(d.apps[id])Object.assign(d.apps[id],patch)});return}await CAP.db.doc("apps/"+uid).update({basvurular:{[id]:patch}})}
+async function addTalep(t){
+  if(!SHARED){local(d=>d.talepler[t.id]=t);return}
+  const ref=CAP.db.doc("talepler/"+ME);const s=await ref.get();
+  if(s.exists)await ref.update({talepler:{[t.id]:t},ts:Date.now()});else await ref.set({talepler:{[t.id]:t},ts:Date.now()});
+}
+async function patchTalep(uid,id,patch){if(!SHARED){local(d=>{if(d.talepler[id])Object.assign(d.talepler[id],patch)});return}await CAP.db.doc("talepler/"+uid).update({talepler:{[id]:patch}})}
+async function putCase(c){if(!SHARED){local(d=>d.cases[c.id]=c);return}await CAP.db.collection("cases").doc(c.id).set(c)}
+async function putOnayli(key,v){if(!SHARED){local(d=>d.onayli[key]=v);return}await CAP.db.collection("onayli").doc(key).set(v)}
+async function delOnayli(key){if(!SHARED){local(d=>delete d.onayli[key]);return}await CAP.db.collection("onayli").doc(key).delete()}
+function writeErr(e){toast(e&&e.code==="invalid_argument"?"Bu işlem için yetkiniz yok.":e&&e.code==="quota_exceeded"?"Kayıt alanı doldu.":"Kaydedilemedi: "+((e&&e.message)||e))}
+let PURGED=false;
+async function purgeOld(){if(PURGED||!SHARED||!IS_G)return;PURGED=true;const lim=Date.now()-7*864e5;for(const a of APPS)if(a.tc_gecici&&a.ts<lim){try{await patchApplication(a.uid,a.id,{tc_gecici:null})}catch(e){}}}
+function onData(){if(W.view!=="wizard")renderW();if(H.view!=="form")renderH();renderG();renderKapida()}
+
+// ================= Rol kapısı =================
+const ROUTES={hasta:["H"],calisan:["W"],gorevli:["G"],recete:["H","W"],mesleki:["W","G"],hepsi:["H","W","G"]};
+function applyRoute(){
+  let h=(location.hash||"").slice(1);if(!ROUTES[h])h=IS_G?"hepsi":"recete";if(!IS_G&&ROUTES[h].includes("G"))h="recete";
+  const show=ROUTES[h];
+  document.querySelectorAll(".rol-kapi a").forEach(a=>{a.hidden=!!a.dataset.g&&!IS_G;a.classList.toggle("on",a.getAttribute("href")==="#"+h)});
+  document.querySelectorAll(".switch button").forEach(b=>{b.hidden=!show.includes(b.dataset.show.toUpperCase())});
+  [["H","colH"],["W","colW"],["G","colG"]].forEach(([k,id])=>{$(id).hidden=!show.includes(k)});
+  mobileShow(show.includes("W")?"W":show[0]);
+}
+function mobileShow(k){[["H","colH"],["W","colW"],["G","colG"]].forEach(([x,id])=>$(id).classList.toggle("hide-m",x!==k));
+  document.querySelectorAll(".switch button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.show.toUpperCase()===k))}
+window.addEventListener("hashchange",applyRoute);
+document.querySelectorAll(".switch button").forEach(b=>b.onclick=()=>mobileShow(b.dataset.show.toUpperCase()));
+
+// ================= SAĞLIK ÇALIŞANI =================
+const W={rxc:{},talep:null,view:"panel",step:1,f:{ad:"",tc:"",prof:"",hekimType:"",specialty:"",profOther:"",ilet:""},slots:{},decl:false,err:{}};
+const myApps=()=>Object.values((MYDOC&&MYDOC.basvurular)||{}).filter(a=>a&&a.id).sort((a,b)=>b.ts-a.ts);
+const appbar=()=>`<div class="appbar"><div class="logo"><svg class="marka" viewBox="0 0 40 40"><use href="#marka"/></svg>anında sağlık</div></div>`;
+function renderW(){
+  const el=$("wScreen");const last=myApps()[0];
+  if(W.view==="wizard"){el.innerHTML=wizardHtml();return}
+  if(W.view==="talep"){const t=TALEPLER.find(x=>x.id===W.talep);if(t){const st=el.scrollTop;el.innerHTML=talepDetay(t);el.scrollTop=st;return}W.view="panel"}
+  if(W.view==="sent"){el.innerHTML=`<div class="v"><div class="v-top"><b>Mesleki doğrulama</b><button class="btn ghost" data-act="toPanel">Panele dön</button></div><div class="v-body" style="align-items:flex-start">
+    <div class="v-done">✓</div><div class="v-h">Başvurun alındı</div><p style="margin:0">Görevli belgelerini e-Devlet'teki asıl kayıtla karşılaştıracak. Sonuç burada ve panelinde görünecek.</p>
+    <div class="card soft" style="width:100%"><dl class="v-sum"><dt>Başvuru no</dt><dd>${esc(W.lastId||"")}</dd><dt>Durum</dt><dd><span class="pill sun">İnceleme bekliyor</span></dd></dl></div>
+    <button class="btn primary block" data-act="toPanel">Panele dön</button></div></div>`;return}
+  const st=last?last.durum||"bekliyor":"yok";const ok=st==="onaylandi";
+  const name=last?last.ad:(W.f.ad||"Sağlık çalışanı");
+  const banner=st==="yok"?`<div class="v-banner"><b>Görev kabul edebilmek için mesleki doğrulama gerekli.</b><span>e-Devlet'ten barkodlu YÖK Mezun Belgeni ve diploma tescil belgeni hazırla; yaklaşık 3 dakika sürer.</span><button class="btn primary" data-act="startWizard">Doğrulamayı başlat</button></div>`
+    :st==="bekliyor"?`<div class="v-banner"><b>Başvurun inceleniyor.</b><span>Görevli belgelerini devletin kaydıyla karşılaştırıyor. Onaylanınca görev kabul edebilirsin.</span><span class="tiny muted">${esc(last.id)} · ${fmtDT(last.ts)}</span></div>`
+    :st==="onaylandi"?`<div class="v-banner good"><b>Belgelerin doğrulandı.</b><span>e-Devlet'teki asıl kayıtla eşleşti. Artık görev kabul edebilirsin.</span></div>`
+    :`<div class="v-banner coral"><b>Belgen doğrulanamadı.</b><span>${esc(last.karar_notu||"Belge devletin kaydıyla doğrulanamadı.")} Bilgilerini kontrol edip e-Devlet'ten yeniden indirdiğin belgelerle tekrar başvurabilirsin.</span><button class="btn primary" data-act="startWizard">Yeniden başvur</button></div>`;
+  el.innerHTML=appbar()+`<div class="pad stack">
+    <div class="profil"><div class="who"><div class="avatar">${esc(initials(name))}</div><div><div class="profil-ad">${esc(name)}</div>
+      <div class="row" style="margin-top:4px"><span class="pill ${(DURUM[st]||["plain"])[0]}">${st==="yok"?"Başvuru yapılmadı":DURUM[st][1]}</span>${last?`<span class="tiny muted">${esc(last.meslek)}</span>`:""}</div></div></div></div>
+    ${banner}
+    <div class="row between"><h3 style="font-size:19px;font-weight:800">Gelen talepler</h3>${TALEPLER.length?`<span class="pill">${TALEPLER.filter(t=>t.durum==="yeni").length} yeni</span>`:`<span class="pill plain">Örnek</span>`}</div>
+    ${TALEPLER.length?TALEPLER.slice(0,12).map(t=>talepCard(t,ok)).join(""):reqCard("Evde pansuman · yara bakımı","Bornova · 2,4 km","Bugün 11:30","650 ₺",ok)+reqCard("Reçeteli serum","Karşıyaka · 5,1 km","Bugün 14:00","900 ₺",ok)}
+    ${SHARED&&!IS_G?`<div class="tiny muted">Hastaların gerçek taleplerini görmek için sayfa sahibinden Düzenleyici (çalışan/görevli) yetkisi gerekir.</div>`:""}
+    ${myApps().length>1?`<details><summary class="small muted" style="cursor:pointer">Önceki başvurular (${myApps().length-1})</summary>${myApps().slice(1).map(a=>`<div class="row between small" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(a.id)} · ${fmtD(a.ts)}</span><span class="pill ${DURUM[a.durum||"bekliyor"][0]}">${DURUM[a.durum||"bekliyor"][1]}</span></div>`).join("")}</details>`:""}
+  </div><p class="v-notice">Belgeler tarayıcında işlenir, dosyalar saklanmaz. T.C. numaran kayıtlarda maskeli tutulur.</p>`;
+}
+function reqCard(t,y,s,p,ok){return `<div class="req ${ok?"new":""}"><b>${t}</b><span class="small muted">${y} · ${s}</span>
+  <div class="row between"><span class="earn">${p}</span>${ok?`<button class="btn primary mini" data-act="kabul">Kabul et</button>`:`<button class="btn mini" disabled>Kabul et</button>`}</div>
+  ${ok?"":`<span class="lockmsg">🔒 Mesleki doğrulama onaylanınca açılır</span>`}</div>`}
+function wizardHtml(){
+  const f=W.f,e=W.err,s=W.step;
+  const top=`<div class="v-top"><b>Mesleki doğrulama</b><button class="btn ghost" data-act="toPanel">Panele dön</button></div>`;
+  const steps=`<div class="v-steps">${[1,2,3].map(i=>`<span class="${i<=s?"on":""}"></span>`).join("")}</div><div class="v-steplabel">Adım ${s} / 3 · ${["Mesleğini belirt","Belgelerini ekle","Başvurunu gönder"][s-1]}</div>`;
+  let body="";
+  if(s===1){
+    body=`<div class="v-h">Mesleğini belirt</div>
+    <label class="v-field"><span class="v-label">Ad soyad</span><input class="v-inp" data-f="ad" value="${esc(f.ad)}" autocomplete="name">${e.ad?`<p class="v-err">${e.ad}</p>`:""}</label>
+    <label class="v-field"><span class="v-label">T.C. kimlik no</span><input class="v-inp mono" data-f="tc" value="${esc(f.tc)}" maxlength="11" inputmode="numeric" autocomplete="off"><p class="v-hint">Kayıtlarda yalnızca maskeli tutulur.</p>${e.tc?`<p class="v-err">${e.tc}</p>`:""}</label>
+    <fieldset class="v-field" style="border:0;padding:0;margin:0"><legend class="v-label" style="margin-bottom:7px">Meslek</legend><div class="v-choices">${PROFS.map(([k,l])=>`<label class="v-choice"><input type="radio" name="prof" data-f="prof" value="${k}" ${f.prof===k?"checked":""}>${l}</label>`).join("")}</div>${e.prof?`<p class="v-err">${e.prof}</p>`:""}</fieldset>
+    ${f.prof==="hekim"?`<fieldset class="v-field" style="border:0;padding:0;margin:0"><legend class="v-label" style="margin-bottom:7px">Hekimlik</legend><div class="v-choices">${[["pratisyen","Pratisyen"],["uzman","Uzman"]].map(([k,l])=>`<label class="v-choice"><input type="radio" name="ht" data-f="hekimType" value="${k}" ${f.hekimType===k?"checked":""}>${l}</label>`).join("")}</div>${e.hekimType?`<p class="v-err">${e.hekimType}</p>`:""}</fieldset>`:""}
+    ${f.prof==="hekim"&&f.hekimType==="uzman"?`<label class="v-field"><span class="v-label">Uzmanlık alanı</span><input class="v-inp" data-f="specialty" value="${esc(f.specialty)}">${e.specialty?`<p class="v-err">${e.specialty}</p>`:""}</label>`:""}
+    ${f.prof==="diger"?`<label class="v-field"><span class="v-label">Mesleğinin adı</span><input class="v-inp" data-f="profOther" value="${esc(f.profOther)}">${e.profOther?`<p class="v-err">${e.profOther}</p>`:""}</label>`:""}
+    <label class="v-field"><span class="v-label">İletişim <span class="muted" style="font-weight:500">(isteğe bağlı)</span></span><input class="v-inp" data-f="ilet" value="${esc(f.ilet)}" placeholder="e-posta ya da telefon"></label>
+    <button class="btn primary block" data-act="next1" style="min-height:56px">Devam et</button>`;
+  } else if(s===2){
+    body=`<button class="back" data-act="prev">‹ Geri</button><div class="v-h">Belgelerini ekle</div>
+    <p style="margin:0">Belgeleri <b>e-Devlet'ten PDF olarak</b> indirip ekle. Diploma fotoğrafı kabul edilmez; barkodu okunmayan belgeyle başvuru tamamlanmaz.</p>
+    ${REQ(f).map(k=>slotHtml(k)).join("")}
+    <button class="btn primary block" data-act="next2" style="min-height:56px" ${REQ(f).every(k=>W.slots[k]&&W.slots[k].barkod)?"":"disabled"}>Devam et</button>`;
+  } else {
+    body=`<button class="back" data-act="prev">‹ Geri</button><div class="v-h">Başvurunu gönder</div>
+    <div class="card soft"><dl class="v-sum"><dt>Ad soyad</dt><dd>${esc(f.ad)}</dd><dt>T.C. kimlik no</dt><dd>${mask(f.tc)}</dd><dt>Meslek</dt><dd>${esc(profText(f))}</dd>
+      ${REQ(f).map(k=>`<dt>${DOCS[k].ad}</dt><dd style="font-family:var(--mono);font-size:15px">${esc(W.slots[k].barkod.v)}</dd>`).join("")}</dl></div>
+    <label class="v-check"><input type="checkbox" data-f="decl" ${W.decl?"checked":""}><span>Belgelerin bana ait olduğunu ve e-Devlet'ten indirildiğini beyan ederim. Görevlinin bu belgeleri devletin kaydıyla karşılaştırmasına izin veriyorum.</span></label>
+    <button class="btn primary block" data-act="send" style="min-height:56px" ${W.decl?"":"disabled"}>Başvuruyu gönder</button>`;
+  }
+  return `<div class="v">${top}<div class="v-body">${steps}${body}</div><p class="v-notice">Belgeler tarayıcında işlenir, dosyalar saklanmaz.</p></div>`;
+}
+function slotHtml(k){
+  const d=DOCS[k],s=W.slots[k];
+  let inner;
+  if(!s)inner=`<div class="v-drop" data-drop="${k}" tabindex="0">+ PDF ekle<span>sürükle bırak ya da dokun</span></div>`;
+  else if(s.busy)inner=`<div class="v-drop"><span class="spin"></span><span>Okunuyor, barkod aranıyor…</span></div>`;
+  else if(s.error)inner=`<div class="note red">Okunamadı: ${esc(s.error)}</div><div class="v-drop" data-drop="${k}">Başka dosya seç</div>`;
+  else{const bad=s.flags.filter(x=>x.lv==="kritik"||x.lv==="yuksek");
+    inner=`<div class="v-doc-h"><div class="v-file-ico">${s.isPdf?"PDF":"IMG"}</div><div style="min-width:0;flex:1"><b style="overflow-wrap:anywhere;font-size:15px">${esc(s.dosya)}</b></div><button class="btn ghost" data-drop="${k}" style="font-size:14px">Değiştir</button></div>
+    ${s.barkod?`<div class="barkod"><span class="lbl">Barkod · ${esc(s.barkod.src)} ile okundu</span><span class="code">${esc(s.barkod.v)}</span></div>`
+      :`<div class="note red"><b>Barkod okunamadı.</b> e-Devlet'ten indirdiğin PDF'i doğrudan ekle (fotoğraf ya da ekran görüntüsü değil). Belgede barkod varsa aşağıya yazabilirsin.</div>
+       <div class="row"><input class="v-inp mono" style="flex:1;min-height:44px" id="man-${k}" placeholder="Barkod numarası"><button class="btn mini primary" data-act="manual" data-k="${k}">Ekle</button></div>`}
+    ${bad.length?`<ul class="flagl">${bad.map(x=>`<li><span class="pill ${LV[x.lv][0]}">${LV[x.lv][1]}</span><span>${esc(x.text)}</span></li>`).join("")}</ul>`:""}`}
+  return `<div class="v-doc ${s&&s.barkod?"ok":s&&!s.busy&&(s.error||!s.barkod)?"bad":""}"><div><b style="font-size:17px">${d.ad}</b><div class="tiny muted">${d.alt}</div></div>${inner}<input type="file" hidden accept="application/pdf,image/*" data-slot="${k}"></div>`;
+}
+function check1(){const f=W.f,e={};if(f.ad.trim().length<3)e.ad="Ad soyadını yaz.";if(!tcValid(f.tc))e.tc=f.tc?"T.C. kimlik numarası geçersiz.":"T.C. kimlik numaranı yaz.";
+  if(!f.prof)e.prof="Mesleğini seç.";if(f.prof==="hekim"&&!f.hekimType)e.hekimType="Pratisyen mi, uzman mı seç.";if(f.prof==="hekim"&&f.hekimType==="uzman"&&!f.specialty.trim())e.specialty="Uzmanlık alanını yaz.";
+  if(f.prof==="diger"&&!f.profOther.trim())e.profOther="Mesleğinin adını yaz.";W.err=e;return!Object.keys(e).length}
+async function slotFile(k,file){
+  W.slots[k]={busy:true};renderW();
+  try{const doc=await readFile(file);const pc=await precheck(k,doc,{ad:W.f.ad,tc:W.f.tc});W.slots[k]={dosya:file.name,hash:doc.hash,isPdf:doc.isPdf,sig:doc.sig,...pc}}
+  catch(e){W.slots[k]={error:(e&&e.message)||String(e)}}
+  renderW();
+}
+const WACT={
+  startWizard(){W.view="wizard";W.step=1;W.slots={};W.decl=false;W.err={};const l=myApps()[0];if(l&&!W.f.ad)W.f.ad=l.ad;renderW();$("wScreen").scrollTop=0},
+  toPanel(){W.view="panel";renderW()},
+  prev(){W.step--;renderW();$("wScreen").scrollTop=0},
+  next1(){if(check1()){W.step=2;W.slots=Object.fromEntries(Object.entries(W.slots).filter(([k])=>REQ(W.f).includes(k)))}renderW();$("wScreen").scrollTop=0},
+  next2(){W.step=3;renderW();$("wScreen").scrollTop=0},
+  manual(b){const k=b.dataset.k,v=$("man-"+k).value.trim();if(normB(v).length<6){toast("Geçerli bir barkod yaz");return}
+    const s=W.slots[k];s.barkod={v:v.toUpperCase(),src:"elle girildi"};s.alanlar.barkod_no=s.barkod.v;s.flags.push(fl("bilgi","manual_barkod","Barkod belgeden okunamadı; başvuran elle girdi."));renderW()},
+  async send(b){b.disabled=true;b.innerHTML='<span class="spin"></span> Gönderiliyor';const f=W.f;const key=await tcKey(f.tc);
+    const docs=REQ(f).map(k=>{const s=W.slots[k];return{tur:k,dosya:s.dosya,dosya_hash:s.hash,barkod:s.barkod.v,barkod_kaynak:s.barkod.src,alanlar:s.alanlar,pdf:s.isPdf,eimza:!!s.sig,risk:s.risk,ozet:s.ozet,
+      flags:s.flags.map(x=>({lv:x.lv,code:x.code||"",text:String(x.text).slice(0,300)}))}});
+    const entry={id:newId("BSV"),ts:Date.now(),ad:f.ad.trim(),meslek:profText(f),iletisim:f.ilet.trim(),tc_maskeli:mask(f.tc),tc_key:key,tc_gecici:f.tc,belgeler:docs,durum:"bekliyor",on_risk:Math.max(...docs.map(d=>d.risk))};
+    try{await addApplication(entry);W.lastId=entry.id;W.view="sent";W.slots={};W.f.tc="";W.decl=false;renderW()}catch(e){writeErr(e);b.disabled=false;b.textContent="Başvuruyu gönder"}},
+  kabul(){toast("Görev kabul edildi (örnek talep)")}
+};
+(function wireW(){const el=$("wScreen");
+  el.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(b){if(!b.disabled&&WACT[b.dataset.act])WACT[b.dataset.act](b);return}
+    const d=e.target.closest("[data-drop]");if(d){const inp=el.querySelector(`input[data-slot="${d.dataset.drop}"]`);inp&&inp.click()}});
+  el.addEventListener("input",e=>{const k=e.target.dataset.f;if(!k)return;if(e.target.type==="checkbox"){W[k]=e.target.checked;renderW();return}
+    if(e.target.type==="radio"){W.f[k]=e.target.value;if(k==="prof")W.f.hekimType="";renderW();return}W.f[k]=e.target.value});
+  el.addEventListener("change",e=>{const k=e.target.dataset.slot;if(k&&e.target.files[0])slotFile(k,e.target.files[0])});
+  el.addEventListener("dragover",e=>{const d=e.target.closest("[data-drop]");if(d){e.preventDefault();d.classList.add("over")}});
+  el.addEventListener("dragleave",e=>{const d=e.target.closest("[data-drop]");if(d)d.classList.remove("over")});
+  el.addEventListener("drop",e=>{const d=e.target.closest("[data-drop]");if(d){e.preventDefault();e.dataTransfer.files[0]&&slotFile(d.dataset.drop,e.dataTransfer.files[0])}});
+})();
+
+// ================= GÖREVLİ =================
+const G={view:"list",tab:"bekliyor",open:null,cmp:{}};
+function renderG(){
+  const el=$("gScreen");if(!IS_G){el.innerHTML="";return}
+  if(G.view==="detail"){const a=APPS.find(x=>x.id===G.open);if(a){const st=el.scrollTop;el.innerHTML=detailHtml(a);el.scrollTop=st;return}G.view="list"}
+  const n=k=>k==="recete"?TALEPLER.filter(t=>t.recete&&!["recete_dogrulandi","recete_dogrulanamadi"].includes(t.durum)).length:APPS.filter(a=>(a.durum||"bekliyor")===k).length;
+  const list=APPS.filter(a=>(a.durum||"bekliyor")===G.tab);
+  if(G.tab==="recete"){el.innerHTML=appbar()+`<div class="pad" style="padding-bottom:4px"><div class="muted" style="font-size:15px">Doğrulama masası</div><h2 style="font-size:26px;font-weight:800;letter-spacing:-.03em">Reçete denetimi</h2></div>
+    <div class="tabs" role="tablist">${[["bekliyor","Bekleyen"],["onaylandi","Onaylı"],["reddedildi","Ret"],["recete","Reçete"]].map(([k,l])=>`<button role="tab" aria-selected="${G.tab===k}" data-act="tab" data-k="${k}">${l}${n(k)?`<span class="badge">${n(k)}</span>`:""}</button>`).join("")}</div>
+    <div class="pad stack">${rxDenetim()}</div>`;return}
+  el.innerHTML=appbar()+`<div class="pad" style="padding-bottom:4px"><div class="muted" style="font-size:15px">Doğrulama masası</div><h2 style="font-size:26px;font-weight:800;letter-spacing:-.03em">Başvurular</h2></div>
+    <div class="tabs" role="tablist">${[["bekliyor","Bekleyen"],["onaylandi","Onaylı"],["reddedildi","Ret"],["recete","Reçete"]].map(([k,l])=>`<button role="tab" aria-selected="${G.tab===k}" data-act="tab" data-k="${k}">${l}${n(k)?`<span class="badge">${n(k)}</span>`:""}</button>`).join("")}</div>
+    <div class="pad stack">${list.length?list.map(a=>`<button class="req ${(a.durum||"bekliyor")==="bekliyor"?"new":""}" data-act="open" data-id="${esc(a.id)}">
+      <div class="row between" style="width:100%"><b>${esc(a.ad)}</b>${riskPill(a.on_risk)}</div>
+      <span class="small muted">${esc(a.meslek)} · ${esc(a.tc_maskeli)}</span>
+      <span class="small">${(a.belgeler||[]).map(d=>esc((DOCS[d.tur]||{ad:d.tur}).ad)).join(" · ")}</span>
+      <span class="tiny muted">${esc(a.id)} · ${fmtDT(a.ts)}</span></button>`).join(""):`<div class="card soft small muted" style="text-align:center">Bu sekmede başvuru yok.</div>`}
+    <div class="card soft small"><b>Görevlinin işi · kişi başı ~1 dakika</b><ol style="margin:6px 0 0;padding-left:18px"><li>Başvuruyu aç; barkod hazır gelir.</li><li>"e-Devlet'te aç"; barkodu ve T.C.'yi kopyalayıp sorgula.</li><li>Asıl belgeyi PDF indirip kutuya bırak.</li><li>Yeşilse onayla; kırmızıysa ya da kayıt çıkmazsa reddet.</li><li>Tescil ve uzmanlık için aynısını Bakanlık evrak doğrulamasında yap.</li></ol></div></div>`;
+}
+const riskPill=r=>r>=40?`<span class="pill coral">Şüpheli ön kontrol</span>`:r>=20?`<span class="pill sun">Dikkat</span>`:`<span class="pill good">Ön kontrol temiz</span>`;
+function detailHtml(a){
+  const decided=a.durum&&a.durum!=="bekliyor";
+  return `<div class="v-top"><button class="back" data-act="list">‹ Başvurular</button><span class="pill ${DURUM[a.durum||"bekliyor"][0]}">${DURUM[a.durum||"bekliyor"][1]}</span></div>
+  <div class="pad stack">
+    <div class="profil"><div class="who"><div class="avatar">${esc(initials(a.ad))}</div><div style="min-width:0"><div class="profil-ad">${esc(a.ad)}</div><div class="small muted">${esc(a.meslek)}${a.iletisim?" · "+esc(a.iletisim):""}</div></div></div>
+      <div class="card soft" style="padding:10px 12px"><div class="tiny muted" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em">T.C. kimlik no · yalnızca sorgu için</div>
+      ${a.tc_gecici?`<div class="row between"><span class="tcbox">${esc(a.tc_gecici)}</span><button class="btn mini" data-act="cpTc">Kopyala</button></div><div class="tiny muted">Karar verildiğinde kalıcı olarak silinir.</div>`:`<span class="tcbox">${esc(a.tc_maskeli)}</span><div class="tiny muted">Tam numara silindi.</div>`}</div></div>
+    ${(a.belgeler||[]).map((d,i)=>gDoc(a,d,i,decided)).join("")}
+    ${decisionHtml(a)}
+  </div>${decided?"":`<div class="hbar"><button class="btn coral" data-act="red">Reddet</button><button class="btn good" data-act="onay" ${allOk(a)?"":"disabled"}>Onayla</button></div>`}`;
+}
+function gDoc(a,d,i,decided){
+  const t=DOCS[d.tur]||{ad:d.tur,kaynak:{url:"#",btn:"Aç",ipucu:""}};const pf=(d.flags||[]).filter(f=>f.lv!=="ok");
+  return `<div class="v-doc ${verdictCls(a,i)}"><div class="row between"><div><b style="font-size:17px">${t.ad}</b><div class="tiny muted">${esc(d.dosya)}</div></div>${riskPill(d.risk)}</div>
+    <div class="barkod"><span class="lbl">Barkod · ${esc(d.barkod_kaynak)}</span><span class="code">${esc(d.barkod)}</span>
+      <div class="row"><button class="btn mini" data-act="cpB" data-i="${i}">Kopyala</button><a class="btn mini primary" href="${t.kaynak.url}" target="_blank" rel="noopener">${t.kaynak.btn} ↗</a></div></div>
+    <div class="tiny muted">${esc(t.kaynak.ipucu)}</div>
+    ${pf.length?`<details><summary class="tiny muted" style="cursor:pointer">Ön kontrol bulguları (${pf.length}) · bilgi amaçlı, kararı tek başına belirlemez</summary><ul class="flagl">${pf.map(f=>`<li><span class="pill ${(LV[f.lv]||LV.bilgi)[0]}">${(LV[f.lv]||LV.bilgi)[1]}</span><span>${esc(f.text)}</span></li>`).join("")}</ul></details>`:""}
+    ${decided?"":`<div class="v-drop big" data-gdrop="${i}" tabindex="0">Asıl belgeyi bırak<span>e-Devlet / Bakanlık sorgusunda açılan belgenin PDF'i</span></div><input type="file" hidden accept="application/pdf,image/*" data-gslot="${i}">
+      <button class="btn ghost" data-act="nf" data-i="${i}" style="align-self:flex-start;font-size:14px">Sorguda kayıt çıkmadı</button>`}
+    ${cmpHtml(a,i)}</div>`;
+}
+function cmpVerdict(c){if(!c)return null;if(c.notFound)return"notfound";if(c.error||c.busy||!c.rows)return null;
+  if(c.rows.some(r=>r.st==="bad"))return"bad";if(c.rows.filter(r=>["ad_soyad","tc_kimlik","barkod_no"].includes(r.k)).some(r=>r.st!=="ok"))return"partial";return c.rows.some(r=>r.st==="miss")?"okpartial":"ok"}
+const cmpOf=(a,i)=>G.cmp[a.id+"#"+i];
+function verdictCls(a,i){const v=cmpVerdict(cmpOf(a,i));return v==="ok"||v==="okpartial"?"ok":v==="bad"||v==="notfound"?"bad":""}
+const allOk=a=>(a.belgeler||[]).every((_,i)=>["ok","okpartial"].includes(cmpVerdict(cmpOf(a,i))));
+function cmpHtml(a,i){
+  const c=cmpOf(a,i);
+  if(!c){const cs=CASES.find(x=>x.id===a.id);const sv=cs&&cs.belgeler&&cs.belgeler[i];
+    return sv?`<div class="levelcard ${["ok","okpartial"].includes(sv.sonuc)?"good":"coral"}"><div class="lv">${["ok","okpartial"].includes(sv.sonuc)?"✓":"✗"}</div><div><b>${sv.sonuc==="notfound"?"Kaynakta kayıt çıkmadı":["ok","okpartial"].includes(sv.sonuc)?"Kaynakta bulundu":"Fark vardı"}</b><span class="small">${esc(sv.ozet||"")}</span></div></div>`:""}
+  if(c.busy)return`<div class="small muted"><span class="spin"></span> Asıl belge okunuyor ve karşılaştırılıyor…</div>`;
+  if(c.error)return`<div class="note red">Asıl belge okunamadı: ${esc(c.error)}</div>`;
+  if(c.notFound)return`<div class="levelcard coral"><div class="lv">✗</div><div><b>Kaynakta kayıt çıkmadı</b><span class="small">Barkod ve T.C. ile sorguda belge bulunamadı. Reddet önerilir.</span></div></div>`;
+  const v=cmpVerdict(c);
+  const h={ok:["good","✓","Kaynakta bulundu","Tüm alanlar asıl belgeyle eşleşti."],okpartial:["good","✓","Kaynakta bulundu","Ad, T.C. ve barkod eşleşti; bazı alanlar okunamadı."],
+    partial:["sun","?","Karşılaştırma eksik","Ad, T.C. ya da barkod asıl belgeden okunamadı. PDF'i yeniden indirip bırak ya da gözle kontrol et."],bad:["coral","✗","Fark var","Kırmızı alanlar asıl belgeyle uyuşmuyor. Reddet önerilir."]}[v];
+  return `<div class="levelcard ${h[0]}"><div class="lv">${h[1]}</div><div><b>${h[2]}</b><span class="small">${h[3]}</span></div></div>
+    <div class="cmp">${c.rows.map(r=>`<div class="r ${r.st}"><div class="t"><span>${FL[r.k]}</span><span class="s">${r.st==="ok"?"✓ Eşleşti":r.st==="bad"?"✗ Farklı":"? Okunamadı"}</span></div>
+      ${r.st==="ok"?`<div class="v2">${esc(r.of)}</div>`:`<div class="v2"><span class="muted">Başvuru:</span> ${esc(r.ap||"–")}</div><div class="v2"><span class="muted">Kaynak:</span> ${esc(r.of||"–")}</div>`}</div>`).join("")}</div>
+    <div class="tiny muted">Asıl belge: ${esc(c.dosya)}${c.cues.length?" · "+esc(c.cues.join(" · ")):""}</div>`;
+}
+function decisionHtml(a){
+  if(a.durum&&a.durum!=="bekliyor"){const cs=CASES.find(x=>x.id===a.id)||{};
+    return `<div class="levelcard ${a.durum==="onaylandi"?"good":"coral"}"><div class="lv">${a.durum==="onaylandi"?"✓":"✗"}</div><div><b>${a.durum==="onaylandi"?"Onaylandı · Kapıda listesinde":"Reddedildi"}</b><span class="small">${fmtDT(cs.karar_ts||a.karar_ts)}${a.karar_notu?" · "+esc(a.karar_notu):""}</span></div></div>
+      <button class="btn mini" data-act="undo" style="align-self:flex-start">Kararı geri al</button>`}
+  const vs=(a.belgeler||[]).map((_,i)=>cmpVerdict(cmpOf(a,i)));const ok=vs.every(v=>v==="ok"||v==="okpartial");const bad=vs.some(v=>v==="bad"||v==="notfound");
+  const sug=bad?["coral","✗","Öneri: Reddet","En az bir belge devletin kaydıyla uyuşmuyor ya da kaynakta yok."]:ok?["good","✓","Öneri: Onayla","Tüm belgeler kaynakta bulundu ve eşleşti."]:["plain","…","Asıl belgeler bekleniyor",`${vs.filter(v=>!v||v==="partial").length} belgenin asıl belgesi karşılaştırılmadı.`];
+  return `<div class="levelcard ${sug[0]}"><div class="lv">${sug[1]}</div><div><b>${sug[2]}</b><span class="small">${sug[3]}</span></div></div>
+    <label class="v-field" style="font-size:15px"><span style="font-weight:700">Ret nedeni <span class="muted" style="font-weight:500">(başvurana gösterilir)</span></span>
+      <select class="v-inp" id="rn" style="font-size:15px;min-height:46px"><option>Belge devletin kaydıyla doğrulanamadı.</option><option>Belgedeki bilgiler kaynak kayıtla uyuşmuyor.</option><option>e-Devlet / Bakanlık sorgusunda belge bulunamadı.</option><option>Barkodlu belge geçersiz ya da süresi dolmuş.</option></select></label>
+    ${a.iletisim?`<button class="btn mini" data-act="cpMsg" style="align-self:flex-start">"Belgeniz doğrulanamadı" mesajını kopyala</button>`:""}`;
+}
+async function officialDrop(a,i,f){
+  const d=a.belgeler[i];const key=a.id+"#"+i;G.cmp[key]={busy:true};renderG();
+  try{
+    const doc=await readFile(f,2);
+    let A={};try{const r=await aiFields(d.tur,doc,{withImages:!doc.text.trim()});A=(r&&r.alanlar)||{}}catch(e){}
+    if(!A.tc_kimlik)A.tc_kimlik=tcFromText(doc.text)||null;
+    const bk=barkodFrom(doc,A.barkod_no);if(bk)A.barkod_no=bk.v;
+    const rows=[];
+    for(const k of (DOCS[d.tur]||{alanlar:[]}).alanlar){
+      let ap,of=A[k]||"",st;
+      if(k==="tc_kimlik"){const otc=String(of).replace(/\D/g,"");const okey=otc?await tcKey(otc):"";ap=a.tc_gecici||a.tc_maskeli;st=!otc?"miss":(okey===a.tc_key?"ok":"bad");of=otc?(a.tc_gecici?otc:mask(otc)):""}
+      else{ap=(d.alanlar||{})[k]||"";
+        if(!ap||!of)st="miss";
+        else if(k==="barkod_no"||k==="tescil_no")st=normB(ap)===normB(of)?"ok":"bad";
+        else if(/tarihi$/.test(k)){const x=pDate(ap),y=pDate(of);st=x&&y?(x.getTime()===y.getTime()?"ok":"bad"):(norm(ap)===norm(of)?"ok":"miss")}
+        else st=sim(norm(ap),norm(of))>=(k==="ad_soyad"?0.92:0.85)||norm(of).includes(norm(ap))||norm(ap).includes(norm(of))?"ok":"bad"}
+      rows.push({k,ap,of,st});
+    }
+    const nr=rows.find(r=>r.k==="ad_soyad");if(nr&&nr.of&&sim(norm(a.ad),norm(nr.of))<0.92)nr.st="bad";
+    const cues=[];if(/turkiye\.gov\.tr|e-?devlet/i.test(doc.text+doc.raw))cues.push("e-Devlet kaynaklı");if(doc.sig)cues.push("e-imza alanı var");if(!doc.isPdf)cues.push("PDF değil");
+    if(doc.hash&&doc.hash===d.dosya_hash)cues.push("başvurudaki dosyanın birebir aynısı");
+    G.cmp[key]={rows,dosya:f.name,cues};
+  }catch(e){G.cmp[key]={error:(e&&e.message)||String(e)}}
+  renderG();
+}
+async function decide(a,durum,btn){
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}
+  const note=durum==="reddedildi"?(($("rn")||{}).value||"Belge devletin kaydıyla doğrulanamadı."):"Tüm belgeler kaynakta bulundu ve eşleşti.";
+  const belgeler=(a.belgeler||[]).map((d,i)=>{const c=cmpOf(a,i)||{};const v=cmpVerdict(c);
+    return{tur:d.tur,barkod:d.barkod,sonuc:v||"yok",ozet:c.notFound?"Sorguda kayıt çıkmadı":c.rows?c.rows.filter(r=>r.st!=="ok").map(r=>`${FL[r.k]}: ${r.st==="bad"?"farklı":"okunamadı"}`).join(", ")||"Tüm alanlar eşleşti":"",asil_dosya:c.dosya||""}});
+  try{
+    await putCase({id:a.id,uid:a.uid,ad:a.ad,meslek:a.meslek,tc_maskeli:a.tc_maskeli,tc_key:a.tc_key,karar:durum,karar_notu:note,karar_ts:Date.now(),karar_by:ME,on_risk:a.on_risk||0,belgeler});
+    if(durum==="onaylandi")await putOnayli(a.tc_key||a.id,{ad_soyad:a.ad,meslek:a.meslek,tc_maskeli:a.tc_maskeli,onay_tarihi:new Date().toISOString(),basvuru_no:a.id,durum:"onayli"});
+    else{const o=ONAYLI.find(o=>o.basvuru_no===a.id);if(o)try{await delOnayli(o.key)}catch(e){}}
+    await patchApplication(a.uid,a.id,{durum,karar_notu:durum==="reddedildi"?note:"",karar_ts:Date.now(),tc_gecici:null});
+    toast(durum==="onaylandi"?"Onaylandı · çalışanın görev kabul kilidi açıldı":"Reddedildi · başvurana bildirildi");G.view="list";renderG();
+  }catch(e){writeErr(e);renderG()}
+}
+const GACT={
+  tab(b){G.tab=b.dataset.k;renderG()},
+  open(b){G.view="detail";G.open=b.dataset.id;renderG();$("gScreen").scrollTop=0},
+  list(){G.view="list";renderG();$("gScreen").scrollTop=0},
+  cpTc(){const a=APPS.find(x=>x.id===G.open);a&&copy(a.tc_gecici,"T.C. kopyalandı")},
+  cpB(b){const a=APPS.find(x=>x.id===G.open);a&&copy(a.belgeler[+b.dataset.i].barkod,"Barkod kopyalandı")},
+  nf(b){const a=APPS.find(x=>x.id===G.open);G.cmp[a.id+"#"+b.dataset.i]={notFound:true};renderG()},
+  onay(b){const a=APPS.find(x=>x.id===G.open);a&&decide(a,"onaylandi",b)},
+  red(b){const a=APPS.find(x=>x.id===G.open);a&&decide(a,"reddedildi",b)},
+  cpMsg(){const a=APPS.find(x=>x.id===G.open);a&&copy(`Sayın ${a.ad}, ${a.id} numaralı başvurunuzdaki belgeleriniz doğrulanamadı. ${$("rn").value} Bilgilerinizi kontrol edip e-Devlet'ten yeniden indirdiğiniz belgelerle tekrar başvurabilirsiniz.`,"Mesaj kopyalandı")},
+  async undo(){const a=APPS.find(x=>x.id===G.open);if(!a)return;
+    try{await patchApplication(a.uid,a.id,{durum:"bekliyor",karar_notu:"",karar_ts:null});const o=ONAYLI.find(o=>o.basvuru_no===a.id);if(o)await delOnayli(o.key);
+      Object.keys(G.cmp).forEach(k=>k.startsWith(a.id+"#")&&delete G.cmp[k]);toast("Karar geri alındı. Tam T.C. silindiği için sorguda başvurandan yeniden alınmalı.")}catch(e){writeErr(e)}}
+};
+(function wireG(){const el=$("gScreen");
+  el.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(b){if(!b.disabled&&GACT[b.dataset.act])GACT[b.dataset.act](b);return}
+    const d=e.target.closest("[data-gdrop]");if(d){const inp=el.querySelector(`input[data-gslot="${d.dataset.gdrop}"]`);inp&&inp.click()}});
+  el.addEventListener("change",e=>{const i=e.target.dataset.gslot;const a=APPS.find(x=>x.id===G.open);if(i!=null&&a&&e.target.files[0])officialDrop(a,+i,e.target.files[0])});
+  el.addEventListener("dragover",e=>{const d=e.target.closest("[data-gdrop]");if(d){e.preventDefault();d.classList.add("over")}});
+  el.addEventListener("dragleave",e=>{const d=e.target.closest("[data-gdrop]");if(d)d.classList.remove("over")});
+  el.addEventListener("drop",e=>{const d=e.target.closest("[data-gdrop]");const a=APPS.find(x=>x.id===G.open);if(d&&a){e.preventDefault();e.dataTransfer.files[0]&&officialDrop(a,+d.dataset.gdrop,e.dataTransfer.files[0])}});
+})();
+
+// ================= REÇETE DOĞRULAMA MODÜLÜ =================
+// Altyapı: hizmet katalogunda rx:true olan her hizmet bu modülü tetikler. Akış: hasta reçeteyi ekler → YZ ön kontrol (rxPrecheck)
+// → talep kaydı (talepler/{hasta}) → çalışan kabul eder → kapıda kişisel kontrol (kontrol listesi + isteğe bağlı asıl reçete karşılaştırması) → sonuç.
+const SERVICES=[
+  {k:"iv_serum",ad:"Reçeteli serum",alt:"Hekimin yazdığı serumu evde taktır",rx:true,form:"damar içi (IV) uygulanan serum ya da ilaç",ico:"IV",fiyat:"900 ₺"},
+  {k:"im_enjeksiyon",ad:"Reçeteli kas içi iğne",alt:"Reçeteli iğneni evde yaptır",rx:true,form:"kas içi (IM) uygulanan enjeksiyonluk ilaç",ico:"IM",fiyat:"450 ₺"},
+  {k:"sonda",ad:"Sonda bakımı",alt:"Hekim istemiyle sonda bakımı / değişimi",rx:true,form:"sonda bakımı ya da sonda seti istemi",ico:"SB",fiyat:"750 ₺"},
+  {k:"pansuman",ad:"Pansuman · yara bakımı",alt:"Reçete gerekmez",rx:false,ico:"PN",fiyat:"650 ₺"}];
+const svcOf=k=>SERVICES.find(s=>s.k===k)||{ad:k,rx:false};
+const RX_TURU={normal:"Normal (beyaz)",kirmizi:"Kırmızı",yesil:"Yeşil",turuncu:"Turuncu",mor:"Mor",belirsiz:"Belirtilmemiş"};
+const TDURUM={yeni:["sun","Çalışan bekleniyor"],kabul:["plain","Kabul edildi · kapıda kontrol edilecek"],recete_dogrulandi:["good","Reçete kapıda doğrulandı"],recete_dogrulanamadi:["coral","Reçete doğrulanamadı · uygulama yapılmadı"]};
+const ILCELER=["Bornova","Karşıyaka","Konak","Buca","Bayraklı","Çiğli","Karabağlar","Gaziemir","Balçova","Narlıdere"];
+
+async function aiRecete(doc,svc,{withImages=true}={}){
+  if(!CAP.sample)return null;
+  const images=withImages?(await Promise.all(doc.canvases.slice(0,2).map(c=>new Promise(r=>c.toBlob(r,"image/jpeg",0.85))))):[];
+  const prompt=`Türkiye'de evde sağlık hizmetinde REÇETE BELGESİ doğrulayan bir uzmansın. Hasta "${svc.ad}" hizmeti için bu reçeteyi sundu (beklenen: ${svc.form||"hekim istemi"}).
+${doc.text.trim()?`Belgenin metin katmanı:\n"""${doc.text.slice(0,6000)}"""\n`:""}${images.length?"Belgenin görüntüleri ektedir (e-Nabız Reçetelerim ekranı, e-Devlet çıktısı ya da kağıt reçete olabilir).":""}
+Görevin yalnızca BELGEYİ okumak ve tutarlılığını değerlendirmek. İlacın, dozun ya da tedavinin tıbben uygun olup olmadığını DEĞERLENDİRME, tedavi önerme.
+1) Okunanları belgede yazdığı gibi yaz; okuyamadığını null bırak, tahmin etme. Tarihleri GG.AA.YYYY yaz.
+2) "hizmetle_uyumlu": reçetede istenen hizmetle (${svc.form||"-"}) uyumlu bir kalem var mı? Emin değilsen null.
+3) Düzenleme belirtisi olabilecek görsel bulguları yaz (yazı tipi/hiza farkı, yapıştırma görünümü, eksik reçete no, okunmayan imza/kaşe). Kesin hüküm verme.
+Yalnızca şu JSON'u döndür: {"recete_no":string|null,"hasta_ad_soyad":string|null,"tc_kimlik":string|null,"recete_tarihi":string|null,"hekim_ad_soyad":string|null,"hekim_tescil_no":string|null,"tesis":string|null,"recete_turu":"normal|kirmizi|yesil|turuncu|mor|belirsiz","ilaclar":[{"ad":string,"doz":string|null,"kullanim":string|null,"adet":string|null}],"belge_kaynagi":"e-nabiz|e-devlet|kagit|diger","hizmetle_uyumlu":boolean|null,"bulgular":[{"onem":"dusuk|orta|yuksek","aciklama":string}],"ozet":string}`;
+  return await CAP.sample.json(prompt,{images,modelTier:"default"});
+}
+async function rxPrecheck(doc,svc,beyan){
+  const flags=[];
+  const found=EDIT_TOOLS.filter(x=>doc.raw.toLowerCase().includes(x.toLowerCase()));
+  if(found.length)flags.push(fl("yuksek","edit_tool",`Dosyada düzenleme/tasarım yazılımı izi: ${found.join(", ")}.`));
+  if(doc.isPdf){const eofs=(doc.raw.match(/%%EOF/g)||[]).length;if(eofs>1&&!doc.sig)flags.push(fl("orta","pdf_incremental","PDF oluşturulduktan sonra değiştirilmiş görünüyor."))}
+  let ai=null;try{ai=await aiRecete(doc,svc)}catch(e){flags.push(fl("bilgi","",`Yapay zeka okuması yapılamadı (${(e&&e.message)||e}).`))}
+  const A=ai||{};
+  if(!A.recete_no){const m=(doc.text||"").match(/(?:e-?Reçete|Reçete)\s*(?:No|Numarası)\s*[:：]?\s*([A-Z0-9]{5,12})/i);if(m)A.recete_no=m[1]}
+  const no=normB(A.recete_no),bno=normB(beyan.rxNo);
+  if(!no&&!bno)flags.push(fl("kritik","rx_no_yok","Reçete numarası yok. e-Reçete numarası olmayan reçeteyle talep oluşturulamaz."));
+  else if(!no)flags.push(fl("orta","rx_no_okunmadi","Reçete numarası belgeden okunamadı; yazdığın numara kapıda kontrol edilecek."));
+  else if(bno&&no!==bno)flags.push(fl("kritik","rx_no_fark",`Yazdığın reçete numarası (${beyan.rxNo}) belgedekiyle (${A.recete_no}) aynı değil.`));
+  if(A.hasta_ad_soyad&&beyan.hasta&&sim(norm(A.hasta_ad_soyad),norm(beyan.hasta))<0.85)flags.push(fl("yuksek","rx_hasta_fark",`Reçetedeki hasta (${A.hasta_ad_soyad}) talepteki hastayla aynı değil.`));
+  const tcd=String(A.tc_kimlik||"").replace(/\D/g,"");if(tcd.length===11&&!tcValid(tcd))flags.push(fl("kritik","tc_invalid","Reçetedeki T.C. kimlik no geçersiz."));
+  const d=pDate(A.recete_tarihi);const gun=d?Math.floor((Date.now()-d)/864e5):null;
+  if(d&&gun<0)flags.push(fl("kritik","rx_ileri_tarih","Reçete tarihi gelecekte."));
+  else if(d&&gun>30)flags.push(fl("orta","rx_eski",`Reçete ${gun} gün önce yazılmış; güncelliği hekimle teyit edilmeli.`));
+  else if(!d)flags.push(fl("orta","rx_tarih_yok","Reçete tarihi okunamadı."));
+  if(!A.hekim_ad_soyad)flags.push(fl("orta","rx_hekim_yok","Reçeteyi yazan hekim okunamadı."));
+  const ilaclar=(A.ilaclar||[]).filter(x=>x&&x.ad).slice(0,12);
+  if(!ilaclar.length)flags.push(fl("yuksek","rx_ilac_yok","Reçetede ilaç ya da istem okunamadı."));
+  if(["kirmizi","yesil","turuncu","mor"].includes(A.recete_turu))flags.push(fl("yuksek","rx_kontrollu",`${RX_TURU[A.recete_turu]} reçete: kontrole tabi ilaç. Evde uygulama öncesi hekim teyidi gerekir.`));
+  if(A.hizmetle_uyumlu===false)flags.push(fl("orta","rx_hizmet_uyumsuz",`Reçetede "${svc.ad}" hizmetiyle uyumlu bir kalem görünmüyor.`));
+  (A.bulgular||[]).forEach(b=>b.onem!=="dusuk"&&flags.push(fl(b.onem==="yuksek"?"yuksek":"orta","ai_visual",b.aciklama)));
+  if(A.belge_kaynagi==="e-nabiz"||A.belge_kaynagi==="e-devlet")flags.push(fl("ok","rx_kaynak",`Belge ${A.belge_kaynagi==="e-nabiz"?"e-Nabız":"e-Devlet"} ekranından alınmış görünüyor.`));
+  const W2={kritik:40,yuksek:20,orta:8};const risk=Math.min(100,flags.reduce((a,f)=>a+(W2[f.lv]||0),0));
+  const sonuc=flags.some(f=>f.lv==="kritik")?"supheli":risk>=20?"dikkat":"uygun";
+  return{flags,risk,sonuc,ozet:A.ozet||"",alan:{recete_no:(A.recete_no||beyan.rxNo||"").toUpperCase(),hasta_ad_soyad:A.hasta_ad_soyad||"",tc_maskeli:mask(tcd),recete_tarihi:A.recete_tarihi||"",
+    hekim_ad_soyad:A.hekim_ad_soyad||"",hekim_tescil_no:A.hekim_tescil_no||"",tesis:A.tesis||"",recete_turu:A.recete_turu||"belirsiz",belge_kaynagi:A.belge_kaynagi||"diger"},
+    ilaclar:ilaclar.map(x=>({ad:String(x.ad).slice(0,80),doz:x.doz?String(x.doz).slice(0,40):"",kullanim:x.kullanim?String(x.kullanim).slice(0,60):"",adet:x.adet?String(x.adet).slice(0,20):""}))};
+}
+const RXS={uygun:["good","✓","Yapay zeka ön kontrolü: uygun","Reçete okundu, belirgin bir tutarsızlık yok. Kesin doğrulama kapıda yapılır."],
+  dikkat:["sun","!","Yapay zeka ön kontrolü: dikkat","Bazı alanlar eksik ya da teyit gerektiriyor. Çalışan kapıda bunlara özellikle bakar."],
+  supheli:["coral","✗","Yapay zeka ön kontrolü: şüpheli","Reçetede ciddi tutarsızlık var. Reçeteni ve numarasını kontrol et ya da doktoruna danış."]};
+function rxReport(r,{full=true}={}){
+  const s=RXS[r.sonuc]||RXS.dikkat;const a=r.alan||{};
+  return `<div class="levelcard ${s[0]}"><div class="lv">${s[1]}</div><div><b>${s[2]}</b><span class="small">${s[3]}</span></div></div>
+  ${a.recete_no?`<div class="barkod"><span class="lbl">e-Reçete numarası</span><span class="code">${esc(a.recete_no)}</span>${full?`<div class="row"><button class="btn mini" data-act="cpRx" data-v="${esc(a.recete_no)}">Kopyala</button></div>`:""}</div>`:""}
+  <div class="card soft"><dl class="v-sum" style="font-size:14px">${[["Hasta",a.hasta_ad_soyad],["T.C.",a.tc_maskeli],["Reçete tarihi",a.recete_tarihi],["Hekim",[a.hekim_ad_soyad,a.hekim_tescil_no].filter(Boolean).join(" · ")],["Tesis",a.tesis],["Reçete türü",RX_TURU[a.recete_turu]||a.recete_turu]].filter(x=>x[1]).map(x=>`<dt>${x[0]}</dt><dd>${esc(x[1])}</dd>`).join("")}</dl></div>
+  ${(r.ilaclar||[]).length?`<div class="card"><b style="font-size:15px">İlaçlar / istemler</b>${r.ilaclar.map(x=>`<div class="ilac"><span><b style="font-size:14px">${esc(x.ad)}</b>${x.kullanim?`<br><span class="tiny muted">${esc(x.kullanim)}</span>`:""}</span><span class="small muted" style="text-align:right">${esc([x.doz,x.adet].filter(Boolean).join(" · "))}</span></div>`).join("")}</div>`:""}
+  ${(r.flags||[]).filter(f=>f.lv!=="bilgi"||f.text).length?`<ul class="flagl">${r.flags.map(f=>`<li><span class="pill ${(LV[f.lv]||LV.bilgi)[0]}">${(LV[f.lv]||LV.bilgi)[1]}</span><span>${esc(f.text)}</span></li>`).join("")}</ul>`:""}`;
+}
+
+// ---------- HASTA telefonu ----------
+const H={view:"home",step:1,svc:null,f:{hasta:"",ilce:"Bornova",zaman:"Bugün öğleden sonra",rxNo:""},rx:null,ack:false,consent:false,err:{}};
+const myTalepler=()=>Object.values((MYT&&MYT.talepler)||{}).filter(t=>t&&t.id).sort((a,b)=>b.ts-a.ts);
+function renderH(){
+  const el=$("hScreen");
+  if(H.view==="form"){el.innerHTML=hForm();return}
+  if(H.view==="sent"){el.innerHTML=`<div class="v"><div class="v-top"><b>Talep</b><button class="btn ghost" data-act="hHome">Ana sayfa</button></div><div class="v-body" style="align-items:flex-start">
+    <div class="v-done">✓</div><div class="v-h">Talebin iletildi</div><p style="margin:0">${H.lastRx?"Reçeten yapay zeka ön kontrolünden geçti. Gelen sağlık çalışanı kapıda e-Nabız'ındaki reçeteni görerek doğrulayacak; telefonunda e-Nabız açık olsun.":"Uygun sağlık çalışanı talebini kabul edince haber vereceğiz."}</p>
+    <button class="btn primary block" data-act="hHome">Ana sayfaya dön</button></div></div>`;return}
+  const mt=myTalepler();
+  el.innerHTML=appbar()+`<div class="pad stack">
+    <div class="hero"><span class="muted">Merhaba</span><h1>Evde hangi hizmete ihtiyacın var?</h1><span class="small muted">Reçete gerektiren hizmetlerde reçeteni ekleyeceğiz.</span></div>
+    ${SERVICES.map(s=>`<button class="svc" data-act="hStart" data-k="${s.k}"><div class="si">${s.ico}</div><div style="flex:1"><b>${s.ad}</b><span>${s.alt}</span></div>${s.rx?`<span class="pill">Reçete</span>`:""}</button>`).join("")}
+    ${mt.length?`<div class="row between" style="margin-top:6px"><h3 style="font-size:19px;font-weight:800">Taleplerim</h3></div>${mt.map(t=>`<div class="req"><div class="row between"><b>${esc(svcOf(t.hizmet).ad)}</b><span class="pill ${(TDURUM[t.durum]||TDURUM.yeni)[0]}">${(TDURUM[t.durum]||TDURUM.yeni)[1]}</span></div>
+      <span class="small muted">${esc(t.ilce)} · ${esc(t.zaman)}${t.recete?" · Reçete "+esc(t.recete.alan.recete_no||""):""}</span>
+      ${t.durum==="recete_dogrulanamadi"?`<div class="note red">${esc(t.kontrol&&t.kontrol.not||"Reçeten kapıda doğrulanamadı; uygulama yapılmadı. Lütfen doktoruna danış.")}</div>`:""}</div>`).join("")}`:""}
+  </div><p class="v-notice">Prototip · gerçek sağlık bilgisi girmeyin. Reçete dosyası saklanmaz; yalnızca okunan alanlar paylaşılır.</p>`;
+}
+function hForm(){
+  const s=svcOf(H.svc),f=H.f,e=H.err;const total=s.rx?3:2;const st=H.step;
+  const top=`<div class="v-top"><b>${esc(s.ad)}</b><button class="btn ghost" data-act="hHome">Vazgeç</button></div>`;
+  const steps=`<div class="v-steps">${Array.from({length:total},(_,i)=>`<span class="${i<st?"on":""}"></span>`).join("")}</div><div class="v-steplabel">Adım ${st} / ${total} · ${(s.rx?["Hasta ve zaman","Reçeteni ekle","Gönder"]:["Hasta ve zaman","Gönder"])[st-1]}</div>`;
+  let body="";
+  if(st===1){body=`<div class="v-h">Kimin için, ne zaman?</div>
+    <label class="v-field"><span class="v-label">Hastanın adı soyadı</span><input class="v-inp" data-hf="hasta" value="${esc(f.hasta)}">${e.hasta?`<p class="v-err">${e.hasta}</p>`:""}<p class="v-hint">Reçetedeki adla aynı olmalı.</p></label>
+    <label class="v-field"><span class="v-label">İlçe</span><select class="v-inp" data-hf="ilce">${ILCELER.map(x=>`<option ${f.ilce===x?"selected":""}>${x}</option>`).join("")}</select></label>
+    <label class="v-field"><span class="v-label">Zaman</span><select class="v-inp" data-hf="zaman">${["Bugün öğleden önce","Bugün öğleden sonra","Yarın öğleden önce","Yarın öğleden sonra"].map(x=>`<option ${f.zaman===x?"selected":""}>${x}</option>`).join("")}</select></label>
+    <button class="btn primary block" data-act="hNext1" style="min-height:56px">Devam et</button>`}
+  else if(s.rx&&st===2){const r=H.rx;const blocked=r&&r.flags&&r.flags.some(x=>x.code==="rx_no_yok");
+    body=`<button class="back" data-act="hPrev">‹ Geri</button><div class="v-h">Reçeteni ekle</div>
+    <p style="margin:0">Bu hizmet doktor reçetesi ister. e-Nabız'da <b>Reçetelerim</b> ekranının görüntüsünü ya da PDF'ini ekle; kağıt reçetenin fotoğrafı da olur.</p>
+    <label class="v-field"><span class="v-label">e-Reçete numarası</span><input class="v-inp mono" data-hf="rxNo" value="${esc(f.rxNo)}" placeholder="ör. 1A2B3C4" autocomplete="off"><p class="v-hint">Doktorun ya da e-Nabız'ın verdiği numara.</p></label>
+    ${!r?`<div class="v-drop" data-hdrop="1" tabindex="0">+ Reçete ekle<span>görüntü ya da PDF · sürükle bırak ya da dokun</span></div>`
+      :r.busy?`<div class="v-drop"><span class="spin"></span><span>Yapay zeka reçeteni okuyor…</span></div>`
+      :r.error?`<div class="note red">Okunamadı: ${esc(r.error)}</div><div class="v-drop" data-hdrop="1">Başka dosya seç</div>`
+      :`<div class="v-doc-h"><div class="v-file-ico">RX</div><div style="flex:1;min-width:0"><b style="font-size:15px;overflow-wrap:anywhere">${esc(r.dosya)}</b></div><button class="btn ghost" data-hdrop="1" style="font-size:14px">Değiştir</button></div>${rxReport(r,{full:false})}
+        ${r.sonuc==="supheli"&&!blocked?`<label class="v-check"><input type="checkbox" data-hf="ack" ${H.ack?"checked":""}><span>Uyarıları gördüm; reçetem doğru. Çalışan kapıda kontrol etsin.</span></label>`:""}`}
+    <input type="file" hidden accept="image/*,application/pdf" data-hslot="1">
+    <button class="btn primary block" data-act="hNext2" style="min-height:56px" ${r&&!r.busy&&!r.error&&!blocked&&(r.sonuc!=="supheli"||H.ack)?"":"disabled"}>Devam et</button>`}
+  else{body=`<button class="back" data-act="hPrev">‹ Geri</button><div class="v-h">Talebini gönder</div>
+    <div class="card soft"><dl class="v-sum"><dt>Hizmet</dt><dd>${esc(s.ad)}</dd><dt>Hasta</dt><dd>${esc(f.hasta)}</dd><dt>Yer ve zaman</dt><dd>${esc(f.ilce)} · ${esc(f.zaman)}</dd>
+      ${s.rx&&H.rx?`<dt>e-Reçete</dt><dd style="font-family:var(--mono)">${esc(H.rx.alan.recete_no)}</dd><dt>Ön kontrol</dt><dd><span class="pill ${RXS[H.rx.sonuc][0]}">${RXS[H.rx.sonuc][2].replace("Yapay zeka ön kontrolü: ","")}</span></dd>`:""}</dl></div>
+    ${s.rx?`<label class="v-check"><input type="checkbox" data-hf="consent" ${H.consent?"checked":""}><span>Reçete bilgilerimin talebi kabul eden sağlık çalışanıyla paylaşılmasına ve kapıda e-Nabız'ımdaki reçetenin kontrol edilmesine izin veriyorum.</span></label>`:""}
+    <button class="btn primary block" data-act="hSend" style="min-height:56px" ${!s.rx||H.consent?"":"disabled"}>Talebi gönder</button>`}
+  return `<div class="v">${top}<div class="v-body">${steps}${body}</div><p class="v-notice">Prototip · gerçek sağlık bilgisi girmeyin. Yapay zeka teşhis koymaz, ilacın uygunluğunu değerlendirmez; yalnızca reçete belgesini kontrol eder.</p></div>`;
+}
+async function hRxFile(file){
+  H.rx={busy:true};H.ack=false;renderH();
+  try{const doc=await readFile(file,2);const r=await rxPrecheck(doc,svcOf(H.svc),{hasta:H.f.hasta,rxNo:H.f.rxNo});H.rx={dosya:file.name,hash:doc.hash,...r};
+    if(!H.f.rxNo&&r.alan.recete_no)H.f.rxNo=r.alan.recete_no}
+  catch(e){H.rx={error:(e&&e.message)||String(e)}}
+  renderH();
+}
+const HACT={
+  hStart(b){H.view="form";H.step=1;H.svc=b.dataset.k;H.rx=null;H.ack=false;H.consent=false;H.err={};renderH();$("hScreen").scrollTop=0},
+  hHome(){H.view="home";renderH()},
+  hPrev(){H.step--;renderH()},
+  hNext1(){if(H.f.hasta.trim().length<3){H.err={hasta:"Hastanın adını soyadını yaz."};renderH();return}H.err={};H.step=2;renderH();$("hScreen").scrollTop=0},
+  hNext2(){H.step=3;renderH();$("hScreen").scrollTop=0},
+  async hSend(b){b.disabled=true;b.innerHTML='<span class="spin"></span>';const s=svcOf(H.svc);
+    const t={id:newId("TLP"),ts:Date.now(),hizmet:s.k,hasta:H.f.hasta.trim(),ilce:H.f.ilce,zaman:H.f.zaman,durum:"yeni",
+      recete:s.rx&&H.rx?{alan:H.rx.alan,ilaclar:H.rx.ilaclar,flags:H.rx.flags.map(f=>({lv:f.lv,code:f.code||"",text:String(f.text).slice(0,300)})),sonuc:H.rx.sonuc,risk:H.rx.risk,ozet:H.rx.ozet,dosya_hash:H.rx.hash,hasta_onay:H.ack}:null};
+    try{await addTalep(t);H.lastRx=!!t.recete;H.view="sent";H.f.rxNo="";H.rx=null;renderH()}catch(e){writeErr(e);b.disabled=false;b.textContent="Talebi gönder"}},
+  cpRx(b){copy(b.dataset.v,"Reçete no kopyalandı")}
+};
+(function wireH(){const el=$("hScreen");
+  el.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(b){if(!b.disabled&&HACT[b.dataset.act])HACT[b.dataset.act](b);return}
+    const d=e.target.closest("[data-hdrop]");if(d){const i=el.querySelector("input[data-hslot]");i&&i.click()}});
+  el.addEventListener("input",e=>{const k=e.target.dataset.hf;if(!k)return;if(e.target.type==="checkbox"){H[k]=e.target.checked;renderH();return}H.f[k]=e.target.value});
+  el.addEventListener("change",e=>{if(e.target.dataset.hslot&&e.target.files[0])hRxFile(e.target.files[0]);const k=e.target.dataset.hf;if(k&&e.target.tagName==="SELECT")H.f[k]=e.target.value});
+  el.addEventListener("dragover",e=>{const d=e.target.closest("[data-hdrop]");if(d){e.preventDefault();d.classList.add("over")}});
+  el.addEventListener("dragleave",e=>{const d=e.target.closest("[data-hdrop]");if(d)d.classList.remove("over")});
+  el.addEventListener("drop",e=>{const d=e.target.closest("[data-hdrop]");if(d){e.preventDefault();e.dataTransfer.files[0]&&hRxFile(e.dataTransfer.files[0])}});
+})();
+
+// ---------- ÇALIŞAN: talep kartı, detay ve kapıda kişisel kontrol ----------
+const workerOk=()=>{const l=myApps()[0];return!!l&&l.durum==="onaylandi"};
+const RXCHK=[["kimlik","Hastanın kimliğine baktım; ad soyad reçetedekiyle aynı."],["enabiz","Hastanın e-Nabız › Reçetelerim ekranında bu reçete numarası var."],
+  ["ilac","İlaç adı, dozu ve kullanım şekli e-Nabız'daki reçeteyle aynı."],["tarih","Reçete tarihi ve yazan hekim e-Nabız'da görünüyor, güncel."],["kutu","Evdeki ilaç kutusu reçetedeki ilaçla aynı, son kullanma tarihi geçmemiş."]];
+function talepCard(t,ok){const s=svcOf(t.hizmet);const r=t.recete;const mine=t.kabul_eden===ME;
+  return `<button class="req ${t.durum==="yeni"?"new":""}" data-act="wTalep" data-id="${esc(t.id)}"><div class="row between" style="width:100%"><b>${esc(s.ad)}</b><span class="earn" style="font-size:18px">${s.fiyat||""}</span></div>
+    <span class="small muted">${esc(t.ilce)} · ${esc(t.zaman)} · ${esc(t.hasta)}</span>
+    <div class="row">${r?`<span class="pill ${RXS[r.sonuc][0]}">Reçete · ${RXS[r.sonuc][2].replace("Yapay zeka ön kontrolü: ","YZ ")}</span>`:`<span class="pill plain">Reçete gerekmez</span>`}<span class="pill ${(TDURUM[t.durum]||TDURUM.yeni)[0]}">${mine&&t.durum==="kabul"?"Sende · kapıda kontrol et":(TDURUM[t.durum]||TDURUM.yeni)[1]}</span></div>
+    ${!ok&&t.durum==="yeni"?`<span class="lockmsg">🔒 Kabul için mesleki doğrulama gerekli</span>`:""}</button>`}
+function talepDetay(t){
+  const s=svcOf(t.hizmet),r=t.recete,ok=workerOk(),mine=t.kabul_eden===ME,done=["recete_dogrulandi","recete_dogrulanamadi"].includes(t.durum);
+  const c=W.rxc[t.id]||(W.rxc[t.id]={chk:{},cmp:null,not:""});
+  const allChk=RXCHK.every(([k])=>c.chk[k]);const cmpV=c.cmp&&c.cmp.rows?(c.cmp.rows.some(x=>x.st==="bad")?"bad":"ok"):null;
+  let body=`<div class="profil"><div class="who"><div class="avatar">${esc(initials(t.hasta))}</div><div><div class="profil-ad">${esc(t.hasta)}</div><div class="small muted">${esc(s.ad)} · ${esc(t.ilce)} · ${esc(t.zaman)}</div></div></div></div>`;
+  if(r)body+=`<h3 style="font-size:17px;font-weight:800">1 · Yapay zeka ön kontrolü</h3>${rxReport(r)}`;
+  else body+=`<div class="card soft small">Bu hizmet reçete gerektirmiyor.</div>`;
+  if(t.durum==="yeni"){
+    body+=ok?"":`<div class="v-banner"><b>🔒 Kabul edemezsin.</b><span>Görev kabul etmek için önce mesleki doğrulaman onaylanmalı.</span><button class="btn primary" data-act="toPanelStart">Doğrulamayı başlat</button></div>`;
+  } else if(r&&mine&&!done){
+    body+=`<h3 style="font-size:17px;font-weight:800">2 · Kapıda kişisel kontrol</h3>
+    <div class="card soft small">Hastadan telefonunda <b>e-Nabız › Reçetelerim</b> ekranını açmasını iste. Reçete no <b style="font-family:var(--mono)">${esc(r.alan.recete_no||"–")}</b> ve aşağıdaki ilaçlarla karşılaştır. Hekimi merak edersen <a href="https://www.turkiye.gov.tr/saglik-bakanligi" target="_blank" rel="noopener">Doktor Bilgi Bankası ↗</a></div>
+    <div class="card chk">${RXCHK.map(([k,l])=>`<label><input type="checkbox" data-rxchk="${k}" ${c.chk[k]?"checked":""}><span>${l}</span></label>`).join("")}</div>
+    <div class="v-drop" data-rxdrop="1" tabindex="0">İsteğe bağlı: asıl reçeteyi bırak<span>e-Devlet "e-Reçete Bilgileri Sorgulama" ya da e-Nabız PDF'i; alan alan karşılaştırılır</span></div><input type="file" hidden accept="application/pdf,image/*" data-rxslot="1">
+    ${c.cmp?c.cmp.busy?`<div class="small muted"><span class="spin"></span> Asıl reçete okunuyor…</div>`:c.cmp.error?`<div class="note red">${esc(c.cmp.error)}</div>`:`<div class="levelcard ${cmpV==="ok"?"good":"coral"}"><div class="lv">${cmpV==="ok"?"✓":"✗"}</div><div><b>${cmpV==="ok"?"Asıl reçeteyle eşleşti":"Asıl reçeteyle fark var"}</b><span class="small">${esc(c.cmp.dosya)}</span></div></div><div class="cmp">${c.cmp.rows.map(x=>`<div class="r ${x.st}"><div class="t"><span>${x.l}</span><span class="s">${x.st==="ok"?"✓ Eşleşti":x.st==="bad"?"✗ Farklı":"? Okunamadı"}</span></div>${x.st==="ok"?`<div class="v2">${esc(x.of)}</div>`:`<div class="v2"><span class="muted">Talep:</span> ${esc(x.ap||"–")}</div><div class="v2"><span class="muted">Asıl:</span> ${esc(x.of||"–")}</div>`}</div>`).join("")}</div>`:""}
+    <label class="v-field" style="font-size:15px"><span style="font-weight:700">Not <span class="muted" style="font-weight:500">(doğrulanamazsa hastaya gösterilir)</span></span><input class="v-inp" style="font-size:15px;min-height:46px" data-rxnot="1" value="${esc(c.not)}" placeholder="ör. e-Nabız'da bu numarayla reçete yok"></label>`;
+  } else if(done){const k=t.kontrol||{};
+    body+=`<div class="levelcard ${t.durum==="recete_dogrulandi"?"good":"coral"}"><div class="lv">${t.durum==="recete_dogrulandi"?"✓":"✗"}</div><div><b>${(TDURUM[t.durum]||[])[1]}</b><span class="small">${fmtDT(k.ts)}${k.not?" · "+esc(k.not):""}${k.karsilastirma?" · asıl reçete: "+esc(k.karsilastirma):""}</span></div></div>`;
+  } else if(t.durum==="kabul"&&!mine){body+=`<div class="card soft small">Bu talebi başka bir çalışan kabul etti.</div>`}
+  else if(!r&&mine){body+=`<div class="card soft small">Reçetesiz hizmet; kapıda ek kontrol gerekmez.</div>`}
+  const bar=t.durum==="yeni"?`<div class="hbar"><button class="btn primary" data-act="wKabul" ${ok?"":"disabled"}>${ok?"Kabul et":"🔒 Kabul et"}</button></div>`
+    :r&&mine&&!done?`<div class="hbar"><button class="btn coral" data-act="rxRed">Doğrulanamadı</button><button class="btn good" data-act="rxOk" ${allChk&&cmpV!=="bad"?"":"disabled"}>Reçete doğrulandı</button></div>`:"";
+  return `<div class="v-top"><button class="back" data-act="wBack">‹ Talepler</button><span class="pill ${(TDURUM[t.durum]||TDURUM.yeni)[0]}">${(TDURUM[t.durum]||TDURUM.yeni)[1]}</span></div><div class="pad stack">${body}</div>${bar}`;
+}
+async function rxOfficial(t,file){
+  const c=W.rxc[t.id];c.cmp={busy:true};renderW();
+  try{const doc=await readFile(file,2);let A={};try{A=(await aiRecete(doc,svcOf(t.hizmet),{withImages:!doc.text.trim()}))||{}}catch(e){}
+    const a=t.recete.alan;const rows=[];
+    const add=(l,ap,of,fn)=>rows.push({l,ap,of,st:!ap||!of?"miss":fn(ap,of)?"ok":"bad"});
+    add("e-Reçete no",a.recete_no,(A.recete_no||"").toUpperCase(),(x,y)=>normB(x)===normB(y));
+    add("Hasta",a.hasta_ad_soyad||t.hasta,A.hasta_ad_soyad,(x,y)=>sim(norm(x),norm(y))>=0.9);
+    add("Reçete tarihi",a.recete_tarihi,A.recete_tarihi,(x,y)=>{const p=pDate(x),q=pDate(y);return p&&q&&p.getTime()===q.getTime()});
+    add("Hekim",a.hekim_ad_soyad,A.hekim_ad_soyad,(x,y)=>sim(norm(x),norm(y))>=0.85);
+    const io=(A.ilaclar||[]).map(x=>x&&x.ad).filter(Boolean);
+    (t.recete.ilaclar||[]).forEach(x=>{const m=io.find(y=>sim(norm(y),norm(x.ad))>=0.8||norm(y).includes(norm(x.ad).slice(0,8)));rows.push({l:"İlaç",ap:x.ad,of:m||"",st:io.length?(m?"ok":"bad"):"miss"})});
+    io.filter(y=>!(t.recete.ilaclar||[]).some(x=>sim(norm(y),norm(x.ad))>=0.8||norm(y).includes(norm(x.ad).slice(0,8)))).forEach(y=>rows.push({l:"İlaç (yalnız asılda)",ap:"",of:y,st:"bad"}));
+    c.cmp={rows,dosya:file.name};
+  }catch(e){c.cmp={error:"Asıl reçete okunamadı: "+((e&&e.message)||e)}}
+  renderW();
+}
+const RXW={
+  wTalep(b){W.view="talep";W.talep=b.dataset.id;W.rxc=W.rxc||{};renderW();$("wScreen").scrollTop=0},
+  wBack(){W.view="panel";renderW();$("wScreen").scrollTop=0},
+  toPanelStart(){W.view="panel";WACT.startWizard()},
+  cpRx(b){copy(b.dataset.v,"Reçete no kopyalandı")},
+  async wKabul(b){const t=TALEPLER.find(x=>x.id===W.talep);if(!t||!workerOk())return;b.disabled=true;
+    try{await patchTalep(t.uid,t.id,{durum:"kabul",kabul_eden:ME,kabul_ts:Date.now()});toast(t.recete?"Kabul edildi · kapıda reçeteyi doğrula":"Kabul edildi")}catch(e){writeErr(e);b.disabled=false}},
+  async rxOk(b){await rxDecide("recete_dogrulandi",b)},async rxRed(b){await rxDecide("recete_dogrulanamadi",b)}
+};
+Object.assign(WACT,RXW);
+async function rxDecide(durum,b){const t=TALEPLER.find(x=>x.id===W.talep);if(!t)return;const c=W.rxc[t.id]||{chk:{}};b.disabled=true;
+  const kar=c.cmp&&c.cmp.rows?(c.cmp.rows.some(x=>x.st==="bad")?"fark var":"eşleşti"):"";
+  const not=durum==="recete_dogrulanamadi"?(c.not||"Reçeten kapıda doğrulanamadı; uygulama yapılmadı. Lütfen doktoruna danış."):(c.not||"");
+  try{await patchTalep(t.uid,t.id,{durum,kontrol:{ts:Date.now(),by:ME,liste:RXCHK.filter(([k])=>c.chk[k]).map(([k])=>k),karsilastirma:kar,not}});
+    toast(durum==="recete_dogrulandi"?"Reçete doğrulandı · uygulamaya geçebilirsin":"Doğrulanamadı · uygulama yapılmayacak, hasta bilgilendirildi")}catch(e){writeErr(e);b.disabled=false}}
+(function wireRx(){const el=$("wScreen");
+  el.addEventListener("change",e=>{const k=e.target.dataset.rxchk;if(k){(W.rxc[W.talep]||(W.rxc[W.talep]={chk:{},cmp:null,not:""})).chk[k]=e.target.checked;renderW();return}
+    if(e.target.dataset.rxslot&&e.target.files[0]){const t=TALEPLER.find(x=>x.id===W.talep);t&&rxOfficial(t,e.target.files[0])}});
+  el.addEventListener("input",e=>{if(e.target.dataset.rxnot&&W.rxc[W.talep])W.rxc[W.talep].not=e.target.value});
+  el.addEventListener("click",e=>{if(e.target.closest("[data-act]"))return;const d=e.target.closest("[data-rxdrop]");if(d){const i=el.querySelector("input[data-rxslot]");i&&i.click()}});
+  el.addEventListener("dragover",e=>{const d=e.target.closest("[data-rxdrop]");if(d){e.preventDefault();d.classList.add("over")}});
+  el.addEventListener("drop",e=>{const d=e.target.closest("[data-rxdrop]");const t=TALEPLER.find(x=>x.id===W.talep);if(d&&t){e.preventDefault();e.dataTransfer.files[0]&&rxOfficial(t,e.dataTransfer.files[0])}});
+})();
+
+// ---------- GÖREVLİ: reçete denetimi ----------
+function rxDenetim(){
+  const rx=TALEPLER.filter(t=>t.recete);
+  if(!rx.length)return`<div class="card soft small muted" style="text-align:center">Henüz reçeteli talep yok.</div>`;
+  const c=k=>rx.filter(t=>t.durum===k).length;
+  const yz=rx.filter(t=>["recete_dogrulandi","recete_dogrulanamadi"].includes(t.durum));const uyum=yz.filter(t=>(t.recete.sonuc==="supheli")===(t.durum==="recete_dogrulanamadi")).length;
+  return `<div class="card soft small"><b>${rx.length}</b> reçeteli talep · <b>${c("recete_dogrulandi")}</b> kapıda doğrulandı · <b>${c("recete_dogrulanamadi")}</b> doğrulanamadı${yz.length?` · YZ ön kontrolü kapı sonucuyla ${uyum}/${yz.length} uyumlu`:""}</div>`+
+    rx.map(t=>`<div class="req"><div class="row between"><b>${esc(svcOf(t.hizmet).ad)}</b><span class="pill ${RXS[t.recete.sonuc][0]}">${RXS[t.recete.sonuc][2].replace("Yapay zeka ön kontrolü: ","YZ ")}</span></div>
+      <span class="small muted">${esc(t.hasta)} · ${esc(t.ilce)} · Reçete ${esc(t.recete.alan.recete_no||"–")}</span><span class="pill ${(TDURUM[t.durum]||TDURUM.yeni)[0]}" style="align-self:flex-start">${(TDURUM[t.durum]||TDURUM.yeni)[1]}</span>
+      ${t.kontrol?`<span class="tiny muted">Kapı kontrolü: ${t.kontrol.liste.length}/${RXCHK.length} madde${t.kontrol.karsilastirma?" · asıl reçete "+esc(t.kontrol.karsilastirma):""}${t.kontrol.not?" · "+esc(t.kontrol.not):""}</span>`:""}</div>`).join("");
+}
+
+// ================= Kapıda listesi =================
+function kapidaJson(){return JSON.stringify({kaynak:"saglik-belge-dogrulama",uretildi:new Date().toISOString(),calisanlar:ONAYLI.map(o=>({kimlik_anahtari:o.key,ad_soyad:o.ad_soyad,meslek:o.meslek,tc_maskeli:o.tc_maskeli,onay_tarihi:o.onay_tarihi,basvuru_no:o.basvuru_no,durum:"onayli"}))},null,2)}
+function renderKapida(){
+  const el=$("kapidaCtl");if(!IS_G){el.hidden=true;return}el.hidden=false;
+  el.innerHTML=`<div class="row between"><h3>Kapıda'ya giden onaylı liste</h3><span class="pill good">${ONAYLI.length} çalışan</span></div>
+    ${ONAYLI.length?`<table><tr><th>Ad soyad</th><th>Meslek</th><th>T.C.</th><th>Onay</th></tr>${ONAYLI.slice().sort((a,b)=>String(b.onay_tarihi).localeCompare(String(a.onay_tarihi))).slice(0,8).map(o=>`<tr><td>${esc(o.ad_soyad)}</td><td>${esc(o.meslek)}</td><td>${esc(o.tc_maskeli)}</td><td>${fmtD(o.onay_tarihi)}</td></tr>`).join("")}</table>`:`<span class="muted">Onaylanan çalışanlar burada listelenir; Kapıda görev kabul kilidini bu listeye göre açar.</span>`}
+    <div class="row"><button class="btn mini" id="kJson">JSON indir</button><button class="btn mini" id="kCopy">Kopyala</button></div>`;
+  $("kCopy").onclick=()=>copy(kapidaJson(),"Kapıda listesi kopyalandı");
+  $("kJson").onclick=async()=>{const data=kapidaJson();if(CAP.dl){try{await CAP.dl.save({filename:`kapida-onayli-${new Date().toISOString().slice(0,10)}.json`,data});return}catch(e){if(e&&e.code==="declined")return}}copy(data,"İndirme yok; liste panoya kopyalandı")};
+}
+
+renderH();renderW();renderG();renderKapida();applyRoute();
+init();
+</script>
+</body>
+</html>
