@@ -167,6 +167,10 @@ with sync_playwright() as pw:
     # ---------- 11) Doktor yalnızca görüntülü: "doktora bağla" görüntülüye gider; evde ziyaret yalnız hemşire vb. ----------
     def akis(ilk, yatakta):
         yukle(); p.locator("[data-act=start]").click(); p.locator("#pInput").fill(ilk); p.locator("#pInput").press("Enter")
+        # 22.11 (main, Enes): şikâyet duyulmadan doğrudan aktarılmaz; önce bir kez ne olduğu sorulur
+        pg.wait_for_timeout(800)
+        if "aktaracağım" in p.inner_text() and "Seni doğru anladık mı?" not in p.inner_text():
+            p.locator("#pInput").fill("annem birkaç gündür halsiz"); p.locator("#pInput").press("Enter")
         for _ in range(14):
             pg.wait_for_timeout(500)
             if p.locator("[data-act=options]").count(): break
