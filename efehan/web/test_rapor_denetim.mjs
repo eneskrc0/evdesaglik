@@ -2,8 +2,9 @@
 // Çalıştır: node web/test_rapor_denetim.mjs [--gizli]
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
-const kok = new URL("..", import.meta.url).pathname;
+const kok = fileURLToPath(new URL("..", import.meta.url)); // Windows'ta .pathname "C:\\C:\\..." veriyordu
 const gizli = process.argv.includes("--gizli");
 const kat = JSON.parse(fs.readFileSync(kok + "data/eval/" + (gizli ? "sesli_gizli.json" : "sesli_senaryolar.json"), "utf8")).filter((k) => k.katman === "rapor");
 let D = null;
