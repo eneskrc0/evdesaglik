@@ -442,7 +442,7 @@
     if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (e) { /**/ } P.listening = false; }
     Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null, plan: "bilinmiyor", bed: false, forWhom: "", gun: 0, when: 570 });
     Object.assign(P, { gecmisSoru: null, gecmisSoruldu: false, atlaBekliyor: false });
-    P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
+    P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = []; P.rx = null;
     const hello = "Merhaba, ben anında sağlık asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
       P.msgs.push({ who: "ai", text: hello, quick: PR.h.yakinlar.length ? [...PR.h.yakinlar.slice(0, 3).map((y) => `${y.yakinlik} için`), "Kendim için"] : ["Annem için", "Babam için", "Kendim için"] });
@@ -687,7 +687,15 @@
       if (no !== P.sohbetNo) return;
     }
     if (!rep || typeof rep !== "object") {
-      if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
+      // Yapay zekâ yoksa ya da sorular atlandıysa (demo cevapları boş): kullanıcının kendi cümleleri şikâyet olur.
+      // "direkt hemşireye yönlendir" gibi yönlendirme sözü ve "Soruları geç" düğmesi şikâyete yazılmaz (22.11).
+      if (P.mode === "ai" || !(P.demoAnswers || [])[0]) {
+        const me = P.msgs.filter((m) => m.who === "me" && !m.araLaf && !/^Soruları geç,/.test(m.text)).map((m) => (m.temiz || m.text)
+          .replace(/(^|[\s,.;])(lütfen\s+)?(direkt|doğrudan|hemen)?\s*(beni\s+)?\S*(doktor|hekim|hemşire|fizyoterapist|ebe|odyolog|diyetisyen|psikolog|podolog|terapist)\S*\s+(yönlendir|aktar|bağla|gönder)\S*[,.;]?/gi, "$1")
+          .split(/(?<=[.!?])\s+|,\s*/).filter((c) => !/^(bir\s+|acil\s+)?\S*(doktor|hekim|hemşire|fizyoterapist|ebe|odyolog|diyetisyen|psikolog|podolog|terapist)\S*\s+(istiyorum|lazım|gelsin|çağır\S*(\s+istiyorum)?|bak\S*)[.!?]?$/i.test(c.trim())).join(", ")
+          .replace(/^[\s,.;]+|[\s,.;]+$/g, "")).filter(Boolean);
+        P.demoAnswers = [me.join(". "), "", "", (P.demoAnswers || [])[3] || "", (P.demoAnswers || [])[4] || ""];
+      }
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
@@ -1122,6 +1130,165 @@
       <div class="tiny muted" style="text-align:center">Bu bir teşhis değildir. Durum kötüleşirse 112'yi ara.</div>
     </div>`;
   }
+  // ---------- Reçete / hekim planı doğrulama (Sarp'ın modülü: sarp/dogrulama.html → web/belge.js + web/recete.js) ----------
+  // Hasta "doktorumun planı / reçetesi var" dediyse ve seçilen hizmet reçete (serum, kas içi iğne) ya da hekim istemi
+  // (sonda, kan alma, fizyoterapi…) istiyorsa seçenekler ekranında kart çıkar. Reçetede e-Reçete no zorunlu; belge isteğe bağlı
+  // ama önerilir (görüntüyse yapay zekâ okur). Ön kontrol bilgi verir; kesin doğrulamayı çalışan kapıda yapar. Dosya saklanmaz.
+  const KR = window.KapidaRecete, KB = window.KapidaBelge;
+  const rxTur = (service) => (KR && P.info.plan === "var" ? KR.tur(svc(service)) : null);
+  function rxDurum(service) {
+    // Hizmet değişince (ör. sonda bakımı ↔ takma) yazılan numara ve ad korunur; belge ve ön kontrol yeni hizmete göre yeniden yapılır
+    if (!P.rx || P.rx.service !== service) { const o = P.rx || {}; P.rx = { service, rxNo: o.rxNo || "", hasta: o.hasta || "", doc: null, ai: null, sonuc: null, busy: false, hata: "", ack: false, onay: false }; if (P.rx.rxNo) rxYenidenDegerlendir(service); }
+    return P.rx;
+  }
+  function rxYenidenDegerlendir(service) {
+    const x = rxDurum(service), t = rxTur(service);
+    if (!t) return;
+    const bos = !x.doc && !x.rxNo.trim();
+    x.sonuc = bos && t === "plan" ? null : KR.onKontrol({ doc: x.doc, ai: x.ai, tur: t, svcAd: svc(service).name_tr, beyan: { rxNo: x.rxNo, hasta: x.hasta }, bugun: new Date(gunTarih(P.info.gun) + "T12:00:00") });
+  }
+  // Randevu onaylanabilir mi? { ok, neden }
+  function rxHazir(service) {
+    const t = rxTur(service);
+    if (!t) return { ok: true };
+    const x = rxDurum(service);
+    if (x.busy) return { ok: false, neden: "Belgen okunuyor, birkaç saniye bekle." };
+    if (t === "recete" && !KR.noGecerli(x.rxNo) && !(x.sonuc && x.sonuc.alan.recete_no && KR.noGecerli(x.sonuc.alan.recete_no))) return { ok: false, neden: "Reçeteli hizmet için e-Reçete numaranı yaz." };
+    if (!x.sonuc) return { ok: true }; // hekim planı: belge eklenmediyse kapıda gösterilir
+    if (x.sonuc.flags.some((f) => f.code === "rx_no_yok")) return { ok: false, neden: "e-Reçete numarası olmadan reçeteli hizmet istenemez." };
+    if (x.sonuc.sonuc === "supheli" && !x.ack) return { ok: false, neden: "Ön kontrol uyarılarını gördüğünü işaretle ya da reçeteni düzelt." };
+    if (!x.onay) return { ok: false, neden: "Reçete bilgilerinin paylaşılmasına izin kutusunu işaretle." };
+    return { ok: true };
+  }
+  function receteKarti(service) {
+    const t = rxTur(service);
+    if (!t) return "";
+    const x = rxDurum(service), s = svc(service), h = rxHazir(service);
+    const baslik = t === "recete" ? "Reçeteni ekle" : "Doktorunun planını ekle";
+    const alt = t === "recete" ? `${esc(s.name_tr)} reçete ister. e-Reçete numaranı yaz; e-Nabız'da <b>Reçetelerim</b> ekranının görüntüsünü ya da kağıt reçetenin fotoğrafını da ekleyebilirsin.`
+      : `${esc(s.name_tr)} doktor planıyla yapılır. İstersen planın, raporun ya da e-Nabız ekranının görüntüsünü şimdi ekle; eklemezsen kapıda göstermen yeterli.`;
+    return `<div class="card stack rx-kart" id="rxKart" style="gap:10px">
+      <div class="row between"><b>${baslik}</b><span class="pill ${t === "recete" ? "kirmizi" : "plain"}">${t === "recete" ? "Zorunlu" : "İsteğe bağlı"}</span></div>
+      <div class="small">${alt}</div>
+      <label class="stack small" style="gap:4px" for="rxNo"><b>${t === "recete" ? "e-Reçete numarası" : "e-Reçete / rapor numarası"}</b>${t === "recete" ? "" : ` <span class="muted">(varsa)</span>`}
+        <input class="inp mono" id="rxNo" data-rx="no" autocomplete="off" maxlength="16" placeholder="ör. 1A2B3C4" value="${esc(x.rxNo)}"></label>
+      <label class="stack small" style="gap:4px" for="rxHasta"><b>Hastanın adı soyadı</b> <span class="muted">(reçetede yazan; eşleşme için)</span>
+        <input class="inp" id="rxHasta" data-rx="hasta" autocomplete="off" maxlength="60" value="${esc(x.hasta)}"></label>
+      <div class="stack" id="rxDinamik" style="gap:10px">${rxDinamikHtml(service)}</div></div>`;
+  }
+  // Kartın değişen kısmı: yazı alanlarına dokunmadan yenilenir (telefonda klavye kapanmasın, odak kaybolmasın)
+  function rxDinamikHtml(service) {
+    const t = rxTur(service), x = rxDurum(service), h = rxHazir(service);
+    return `${x.busy ? `<div class="rx-yukle small"><span class="typing"><i></i><i></i><i></i></span> Belgen okunuyor…</div>`
+        : x.doc ? `<div class="row between rx-dosya"><span class="small"><b>${esc(x.doc.ad)}</b> <span class="muted">· ${x.doc.isPdf ? "PDF" : "görüntü"}</span></span><label class="btn ghost" style="cursor:pointer">Değiştir<input type="file" id="rxDosya" accept="image/*,application/pdf" hidden></label></div>`
+        : `<label class="rx-ekle" style="cursor:pointer">${ICO.cam}<span><b>+ Belge ekle</b><span class="tiny muted">e-Nabız ekran görüntüsü, PDF ya da reçete fotoğrafı</span></span><input type="file" id="rxDosya" accept="image/*,application/pdf" hidden></label>`}
+      ${x.hata ? `<div class="note small" role="alert">${esc(x.hata)}</div>` : ""}
+      ${x.sonuc ? KR.raporHtml(x.sonuc, esc, { kisa: true }) : ""}
+      ${x.sonuc && x.sonuc.sonuc === "supheli" && !x.sonuc.flags.some((f) => f.code === "rx_no_yok") ? `<label class="row small" style="gap:10px"><input type="checkbox" data-rx="ack" ${x.ack ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Uyarıları gördüm; belgem doğru. Sağlık çalışanı kapıda kontrol etsin.</label>` : ""}
+      ${x.sonuc ? `<label class="row small" style="gap:10px;align-items:flex-start"><input type="checkbox" data-rx="onay" ${x.onay ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand);flex:none"> Reçete / plan bilgilerimin talebi kabul eden sağlık çalışanıyla paylaşılmasına ve kapıda e-Nabız'ımdaki kaydın kontrol edilmesine izin veriyorum.</label>` : ""}
+      <div class="tiny ${h.ok ? "muted" : ""}" id="rxNeden">${h.ok ? "Sağlık çalışanı kapıda e-Nabız'ındaki kaydı görerek doğrular; doğrulanamazsa uygulama yapılmaz. Yapay zekâ ilacın uygunluğunu değerlendirmez; belge dosyası saklanmaz." : "⚠ " + esc(h.neden)}</div>`;
+  }
+  function rxYenile(service) {
+    const d = $("#rxDinamik");
+    if (!d || P.screen !== "options") return renderP();
+    d.innerHTML = rxDinamikHtml(service);
+    const x = rxDurum(service), no = $("#rxNo"), ad = $("#rxHasta");
+    if (no && document.activeElement !== no && no.value !== x.rxNo) no.value = x.rxNo;
+    if (ad && document.activeElement !== ad && ad.value !== x.hasta) ad.value = x.hasta;
+  }
+  async function rxDosyaEkle(service, file) {
+    const x = rxDurum(service), hata = KB.dosyaHatasi(file);
+    if (hata) { x.hata = hata; rxYenile(service); return; }
+    x.hata = ""; x.busy = true; x.ai = null; x.ack = false; rxYenile(service);
+    try {
+      const doc = await KB.oku(file);
+      x.doc = { ad: doc.ad, isPdf: doc.isPdf, hash: doc.hash, raw: doc.raw.slice(0, 200000), imza: doc.imza, eof: doc.eof, qr: doc.qr };
+      if (doc.resim && CAP.server && CAP.server.recete) {
+        try { x.ai = await CAP.server.recete(doc.resim, svc(service).name_tr, KR.FORM[service] || "hekim istemi"); } catch (e) { x.ai = null; }
+      }
+      if (!x.rxNo && x.ai && x.ai.recete_no) x.rxNo = KR.noTemiz(x.ai.recete_no);
+      if (!x.hasta && x.ai && x.ai.hasta_ad_soyad) x.hasta = String(x.ai.hasta_ad_soyad).slice(0, 60);
+    } catch (e) { x.hata = "Belge okunamadı. Başka bir dosya dene."; x.doc = null; }
+    x.busy = false; rxYenidenDegerlendir(service); rxYenile(service);
+  }
+  // Talebe giden kayıt (dosyanın kendisi değil; yalnızca okunan alanlar ve ön kontrol)
+  function rxKaydi(service) {
+    const t = rxTur(service);
+    if (!t) return null;
+    const x = rxDurum(service);
+    if (!x.sonuc && !x.rxNo.trim()) return { tur: t, no: "", belge: false, sonuc: null, kontrol: null };
+    if (!x.sonuc) rxYenidenDegerlendir(service);
+    const k = x.sonuc;
+    return { tur: t, no: KR.noTemiz(x.rxNo || k.alan.recete_no), hasta: x.hasta.trim(), belge: !!x.doc, dosya: x.doc ? { ad: x.doc.ad, hash: x.doc.hash } : null,
+      sonuc: { sonuc: k.sonuc, risk: k.risk, flags: k.flags.map((f) => ({ lv: f.lv, code: f.code, text: String(f.text).slice(0, 300) })), alan: k.alan, ilaclar: k.ilaclar, ozet: k.ozet },
+      hasta_onay: x.ack, paylasim_izni: x.onay, kontrol: null };
+  }
+  // Çalışan: talep detayında reçete / plan bölümü
+  function rxCalisanBolumu(r) {
+    const x = r.recete; if (!x) return "";
+    const k = x.kontrol;
+    return `<div class="sec card stack rx-calisan" style="gap:8px"><h3>${x.tur === "recete" ? "Reçete" : "Hekim planı"} · ön kontrol</h3>
+      ${x.no ? `<div class="small">${x.tur === "recete" ? "e-Reçete" : "Belge"} no: <b class="mono">${esc(x.no)}</b>${x.hasta ? ` · hasta: ${esc(x.hasta)}` : ""}</div>` : ""}
+      ${x.sonuc ? KR.raporHtml(x.sonuc, esc) : `<div class="small">Hasta belge eklemedi; ${x.tur === "recete" ? "reçeteyi" : "planı"} kapıda göster dedi.</div>`}
+      ${k ? `<div class="rx-sonuc ${k.durum === "dogrulandi" ? "good" : "coral"}"><span class="rx-ikon">${k.durum === "dogrulandi" ? "✓" : "✗"}</span><div><b>${k.durum === "dogrulandi" ? "Kapıda doğrulandı" : "Kapıda doğrulanamadı · uygulama yapılmadı"}</b>${k.not ? `<span class="small">${esc(k.not)}</span>` : ""}</div></div>`
+        : `<div class="tiny muted">Kesin doğrulama sende: kapıda hastanın e-Nabız'ını görerek 5 maddelik kontrolü yap (Rotam › ziyaret başladıktan sonra). Doğrulanmayan ${x.tur === "recete" ? "reçeteyle" : "planla"} uygulama yapma.</div>`}</div>`;
+  }
+  // Çalışan: kapıda kişisel kontrol (check-in sonrası, Rotam'da Güvenli Ziyaret'in altında)
+  function rxKapiHtml(r) {
+    if (!r || !r.recete || !KR) return "";
+    const gs = G.durum(r) || {};
+    if (!gs.checkin || r.recete.kontrol) return r.recete.kontrol && gs.checkin && !gs.checkout ? rxCalisanBolumu(r) : "";
+    const x = r.recete, l = KR.KAPI[x.tur] || KR.KAPI.plan, st = (H.rxk ||= {})[r.id] ||= { chk: {}, not: "" };
+    const hepsi = l.every(([k]) => st.chk[k]);
+    return `<div class="card stack rx-kapi" id="rxKapi" style="gap:10px"><div class="row between"><b>Kapıda ${x.tur === "recete" ? "reçete" : "plan"} kontrolü</b><span class="pill sun">Uygulamadan önce</span></div>
+      <div class="small">Hastadan telefonunda <b>e-Nabız › Reçetelerim</b> ekranını açmasını iste.${x.no ? ` Numara: <b class="mono">${esc(x.no)}</b>.` : ""}${x.sonuc && x.sonuc.ilaclar.length ? ` Belgeden okunan: ${esc(x.sonuc.ilaclar.map((i) => i.ad).join(", "))}.` : ""}</div>
+      <div class="checklist">${l.map(([k, t]) => `<label><input type="checkbox" data-rxk="${k}" ${st.chk[k] ? "checked" : ""}> <span>${esc(t)}</span></label>`).join("")}</div>
+      <label class="stack small" style="gap:4px" for="rxNot"><b>Not</b> <span class="muted">(doğrulanamazsa hastaya gösterilir)</span><input class="inp" id="rxNot" maxlength="200" value="${esc(st.not)}" placeholder="ör. e-Nabız'da bu numarayla reçete yok"></label>
+      <div class="row" style="gap:8px"><button class="btn" type="button" data-rxkapi="red" style="flex:1">Doğrulanamadı</button><button class="btn primary" type="button" data-rxkapi="ok" style="flex:1"${hepsi ? "" : " disabled"}>${x.tur === "recete" ? "Reçete" : "Plan"} doğrulandı</button></div>
+      <div class="tiny muted">Uygulama resmî bir sistemi sorgulamaz; kontrol senin gözünle yapılır. Doğrulanamazsa uygulama yapılmaz, hizmet ücreti alınmaz (demo).</div></div>`;
+  }
+  function rxKapiKarar(r, durum, demo) {
+    if (!r || !r.recete || r.recete.kontrol) return;
+    const st = (H.rxk || {})[r.id] || { chk: {}, not: "" }, l = KR.KAPI[r.recete.tur] || KR.KAPI.plan;
+    const not = demo ? "Demo: sağlık çalışanı kapıda kontrol etti." : (st.not || "").trim() || (durum === "dogrulanamadi" ? `${r.recete.tur === "recete" ? "Reçeten" : "Doktor planın"} kapıda doğrulanamadı; uygulama yapılmadı. Lütfen doktoruna danış.` : "");
+    r.recete = { ...r.recete, kontrol: { durum, ts: Date.now(), liste: l.filter(([k]) => demo || st.chk[k]).map(([k]) => k), not, by: r.provider_id } };
+    putRequest(r);
+  }
+  // Hasta: takip ekranında reçete durumu
+  function rxHastaKarti(r) {
+    const x = r && r.recete; if (!x) return "";
+    const k = x.kontrol, ad = x.tur === "recete" ? "Reçeten" : "Doktor planın";
+    if (k) return `<div class="rx-sonuc ${k.durum === "dogrulandi" ? "good" : "coral"}" id="rxHasta"><span class="rx-ikon">${k.durum === "dogrulandi" ? "✓" : "✗"}</span><div><b>${k.durum === "dogrulandi" ? `${ad} kapıda doğrulandı` : `${ad} doğrulanamadı · uygulama yapılmadı`}</b>${k.durum === "dogrulanamadi" ? `<span class="small">${esc(k.not)} Hizmet ücreti alınmaz (demo).</span>` : ""}</div></div>`;
+    return `<div class="card soft small" id="rxHasta">${x.tur === "recete" ? "e-Reçete" : "Hekim planı"}${x.no ? ` <b class="mono">${esc(x.no)}</b>` : ""}${x.sonuc ? ` · ${esc(KR.SONUC[x.sonuc.sonuc][2])}` : ""}. Gelen sağlık çalışanı kapıda e-Nabız'ındaki kaydı görerek doğrulayacak; telefonunda e-Nabız açık olsun.${x.belge || x.tur === "recete" ? "" : " Planını hazır tut."}</div>`;
+  }
+  $("#hScreen").addEventListener("change", (e) => {
+    const k = e.target.dataset && e.target.dataset.rxk, r = gzR();
+    if (!k || !r) return;
+    ((H.rxk ||= {})[r.id] ||= { chk: {}, not: "" }).chk[k] = e.target.checked;
+    const sc = $("#hScreen"), y = sc.scrollTop; renderH(); sc.scrollTop = y;
+  });
+  $("#hScreen").addEventListener("input", (e) => { const r = gzR(); if (e.target.id === "rxNot" && r) ((H.rxk ||= {})[r.id] ||= { chk: {}, not: "" }).not = e.target.value; });
+  $("#hScreen").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-rxkapi]"), r = gzR();
+    if (!b || !r || b.disabled) return;
+    rxKapiKarar(r, b.dataset.rxkapi === "ok" ? "dogrulandi" : "dogrulanamadi");
+    renderH(); renderP();
+  });
+  $("#pScreen").addEventListener("input", (e) => {
+    const k = e.target.dataset && e.target.dataset.rx, x = P.rx;
+    if (!x || !k) return;
+    if (k === "no") x.rxNo = e.target.value; else if (k === "hasta") x.hasta = e.target.value;
+  });
+  $("#pScreen").addEventListener("change", (e) => {
+    const x = P.rx; if (!x) return;
+    if (e.target.id === "rxDosya" && e.target.files[0]) { rxDosyaEkle(x.service, e.target.files[0]); return; }
+    const k = e.target.dataset && e.target.dataset.rx;
+    if (!k) return;
+    if (k === "ack" || k === "onay") x[k] = e.target.checked;
+    if (k === "no" || k === "hasta") rxYenidenDegerlendir(x.service);
+    rxYenile(x.service);
+  });
+
   // Kullanıcı belirli bir meslek istediyse: ne olacağını açıkla, plan varsa hizmeti seçtir, plan yoksa nedenini söyle
   function hizmetSecimi(t) {
     if (!t.secenekler || t.secenekler.length < 2) return "";
@@ -1158,7 +1325,7 @@
       ${stepsBar(3)}
       <div class="levelcard"><span class="lv-ico">${ico}</span><div class="stack" style="gap:4px"><b>${esc(head)}</b><span class="small">${esc(why)}</span>
         <span class="small muted">Hizmet: ${esc(svc(service).name_tr)} · ${svc(service).duration_min} dk</span></div></div>
-      ${meslekKarti(t)}${hizmetSecimi(t)}
+      ${meslekKarti(t)}${hizmetSecimi(t)}${receteKarti(service)}
       <div class="seg" role="group" aria-label="Sıralama">${Object.entries(SORTS).map(([k, [l]]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>
       ${yz ? teklifKarti(yz) : ""}
       ${yz ? `<details class="klasik" id="klasikListe"${P.klasikAcik || (teklifDurumu(yz).bitti && !teklifDurumu(yz).satirlar.some((r) => r.verir)) ? " open" : ""}><summary class="small">Tüm uygun kişiler (klasik liste, ${P.cands.length})</summary><div class="stack" style="gap:10px;margin-top:10px">` : ""}
@@ -1239,6 +1406,7 @@
   }
   setInterval(() => {
     if (P.screen !== "options" || !P.yz || P.sheet !== null) return;
+    if (document.activeElement && /^rx/.test(document.activeElement.id || "")) return; // reçete numarası yazılırken ekranı yenileme
     const d = teklifDurumu(P.yz), imza = d.satirlar.map((r) => r.pid + (r.geldi ? 1 : 0)).join(",") + (d.bitti ? "|bitti" : "");
     if (imza !== P.yz.imza) { P.yz.imza = imza; const sc = $("#pScreen"), y = sc.scrollTop; renderP(); sc.scrollTop = y; }
   }, 500);
@@ -1274,7 +1442,9 @@
         <span class="tot">Toplam</span><span class="tot num">${tl(pr.patient_pays)} TL</span></div>
       ${shared ? `<div class="note small"><b>Neden indirimli?</b> ${esc(pp.first)} bugün zaten bölgende bir ziyarette olacak. Sana uğrarken yolu paylaşıyorsunuz; kazanılan yol masrafının yarısı sana indirim olarak döner.</div>` : ""}
       <div class="tiny muted">Ödeme ziyaret tamamlanınca alınır. Saatten 2 saat öncesine kadar ücretsiz iptal (demo koşulu).</div>
-      <button class="btn primary block" type="button" data-act="confirm">Randevuyu onayla · ${tl(pr.patient_pays)} TL</button>
+      ${(() => { const t = rxTur(c.service), h = rxHazir(c.service), x = t ? rxDurum(c.service) : null;
+        return t ? `<div class="card soft small rx-ozet">${h.ok ? `${t === "recete" ? "e-Reçete" : "Hekim planı"}${x.rxNo ? ` <b class="mono">${esc(KR.noTemiz(x.rxNo))}</b>` : ""}${x.sonuc ? ` · ${esc(KR.SONUC[x.sonuc.sonuc][2])}` : " · kapıda gösterilecek"}. Sağlık çalışanı kapıda doğrular.` : `⚠ ${esc(h.neden)} <button class="btn ghost" type="button" data-act="closeSheet">Reçeteye dön</button>`}</div>` : ""; })()}
+      <button class="btn primary block" type="button" data-act="confirm"${rxHazir(c.service).ok ? "" : " disabled"}>Randevuyu onayla · ${tl(pr.patient_pays)} TL</button>
     </div></div>`;
   }
   // ---------- ziyaret sonrası puanlama (hasta → sağlık çalışanı) ----------
@@ -1371,7 +1541,7 @@
     const st = r.status;
     const gs = G.durum(r) || {};
     const steps = [["Talep gönderildi", "Raporun sağlık çalışanına iletildi.", true], [st === "red" ? "Sağlık çalışanı uygun değil" : "Sağlık çalışanı onayı", st === "kabul" ? `${pp.first} talebi kabul etti.` : st === "red" ? "Sana yeni seçenekler gösterelim." : "Genelde 10 dakika içinde yanıt gelir.", st !== "bekliyor"],
-      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, !!gs.checkin], ["Kapında", `${C.hhmm(r.arrival_min)} · kapı kodu ve fotoğrafla doğrula`, !!gs.checkin], ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, gs.hastaOnay === "tamam"]];
+      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, !!gs.checkin], ["Kapında", `${C.hhmm(r.arrival_min)} · kapı kodu ve fotoğrafla doğrula`, !!gs.checkin], r.recete && r.recete.kontrol && r.recete.kontrol.durum === "dogrulanamadi" ? ["Uygulama yapılmadı", "Reçete/plan doğrulanamadı · ücret alınmaz (demo)", true] : ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, gs.hastaOnay === "tamam"]];
     return `<div class="pad stack">
       ${stepsBar(4)}
       <div class="row between"><h2 style="font-size:22px">${st === "kabul" ? "Randevun kesinleşti" : st === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
@@ -1381,6 +1551,7 @@
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>${esc(pp.first)} senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}<div class="small muted">Fotoğrafı ziyaretten önce sohbetten ya da ziyarette gösterebilirsin.</div></div>` : ""}
       ${karmaMi(r) && st === "kabul" ? (r.goruntuluHekim ? VG.hastaRandevuHtml(r, vgHastaCtx(r)) : `<div class="card small">Görüntülü katılacak hekim atanıyor; atanınca burada görünecek.</div>`) : ""}
+      ${st === "kabul" ? rxHastaKarti(r) : ""}
       ${G.aktif(r) ? `<div id="gzHasta">${G.hastaHtml(r)}</div>` : ""}
       ${gs.hastaOnay ? puanKarti(r) : ""}
       ${st === "kabul" && r.gun ? `<div class="card soft small">Randevun <b>yarın (${GUNLER[1].uzun}) ${C.hhmm(r.arrival_min)}</b>. Canlı takip yarın, sağlık çalışanı yola çıkınca başlar.</div>` : ""}
@@ -1690,6 +1861,7 @@
   }
   async function confirmBooking() {
     const c = P.cands[P.sheet];
+    if (!rxHazir(c.service).ok) { P.sheet = null; P.toast = rxHazir(c.service).neden; renderP(); const k = $("#rxKart"); if (k) k.scrollIntoView({ block: "center" }); return; }
     // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
     if (!c.teklif) {
       const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500, gercekSimdi());
@@ -1705,6 +1877,7 @@
       id, created_at: new Date().toISOString(), status: c.teklif ? "kabul" : "bekliyor", accepted_at: c.teklif ? Date.now() : undefined, teklif: c.teklif || null, provider_id: c.provider_id, service: c.service, level: P.triage.level,
       arrival_min: c.arrival_min, gun: P.info.gun, date: gunTarih(P.info.gun), price: c.price, ins: c.insertion, patient: { district: P.info.district, lat: P.pt.lat, lon: P.pt.lon, bedridden: P.info.bed, plan: P.info.plan, adres: P.info.nokta ? P.info.nokta.adres : "", tarif: (P.info.tarif || "").trim().slice(0, 160) },
       report: P.report, photos: P.photos.slice(0, 3).map((p) => p.url), red_flags_checked: true, from_app: true, author: CAP.uid || null,
+      recete: rxKaydi(c.service),
     };
     if (karmaMi(r)) karmaHekimAta(r);
     P.request = r; P.sheet = null; P.screen = "done";
@@ -1840,7 +2013,8 @@
     const uz = uzaktanMi(r);
     const stops = [...hStops(p.id), ...(uz ? [] : [nv])].sort((a, b) => a.start_min - b.start_min);
     const pr = r.price;
-    const planTxt = { var: "Var (beyan) · belgeyi ziyarette gör", yok: "Yok", bilinmiyor: "Bilinmiyor" }[r.patient.plan] || r.patient.plan;
+    const planTxt = r.recete ? `Var · ${r.recete.tur === "recete" ? "e-Reçete" : "plan"}${r.recete.no ? " " + r.recete.no : ""} · ${r.recete.kontrol ? (r.recete.kontrol.durum === "dogrulandi" ? "kapıda doğrulandı" : "kapıda doğrulanamadı") : r.recete.sonuc ? KR.SONUC[r.recete.sonuc.sonuc][2].toLocaleLowerCase("tr") + " · kapıda doğrula" : "belgeyi kapıda gör"}`
+      : { var: "Var (beyan) · belgeyi ziyarette gör", yok: "Yok", bilinmiyor: "Bilinmiyor" }[r.patient.plan] || r.patient.plan;
     const kv = [["Kim için", [rep.kim_icin, rep.yas_araligi].filter((x) => x && x !== "belirtilmedi").join(" · ") || "belirtilmedi"], ["Şikayet", rep.sikayet], ["Ne zamandır", rep.baslangic], ["Seyir", rep.seyir], ["Şiddet", rep.siddet_beyani], ["Yatağa bağımlı", r.patient.bedridden ? "Evet" : "Hayır / belirtilmedi"], ["Hekim planı", planTxt], ["Hastalık, ilaç, alerji", rep.kronik_ilac_alerji]];
     return `<div class="pad stack">
       <button class="back" type="button" data-act="hback">${ICO.back} Talepler</button>
@@ -1853,7 +2027,7 @@
           return `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}${yz ? ` <span class="pill plain" title="Kullanıcı bunu açıkça söylemedi; yapay zekâ konuşmadan çıkardı">YZ çıkarımı</span>` : ""}</dd>`; }).join("")}</dl>
         ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}</div>
       ${(() => { const bos = kv.filter(([, v]) => !v || v === "belirtilmedi").map(([k]) => k + ": sorulmadı / belirtilmedi");
-        const dogrulanmadi = r.patient.plan === "var" ? ["Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
+        const dogrulanmadi = r.patient.plan === "var" && !(r.recete && r.recete.kontrol && r.recete.kontrol.durum === "dogrulandi") ? [r.recete && r.recete.tur === "recete" ? "Reçete henüz kapıda doğrulanmadı; e-Nabız'dan kontrol etmeden uygulama yapma" : "Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
         const l = [...(rep.eksik_bilgiler || []), ...dogrulanmadi, ...bos];
         return l.length ? `<div class="sec card stack" style="gap:4px"><h3>2 · Eksik ya da doğrulanmamış bilgiler</h3>${l.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""; })()}
       <div class="sec card stack" style="gap:8px"><h3>3 · Yapay zekâ özeti</h3>
@@ -1863,6 +2037,7 @@
         ${(rep.dikkat_edilecekler || []).length ? rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("") : ""}
         ${(rep._denetim || []).length ? `<details class="small"><summary class="muted">Rapor denetimi: ${rep._denetim.length} düzeltme (söylenmeyen bilgi çıkarıldı, son beyan esas alındı)</summary>${rep._denetim.map((x) => `<div class="tiny">• ${esc(x.ne)}</div>`).join("")}</details>` : ""}
         <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir. Acil belirtiler otomatik taramada işaretlenmedi; bu bir güvence değildir, değerlendirme gerekli.</div></div>
+      ${rxCalisanBolumu(r)}
       ${(r.photos || []).length || rep.foto_ozeti ? `<div class="sec card stack" style="gap:8px"><h3>Fotoğraflar</h3>${(r.photos || []).length ? `<div class="photos">${r.photos.map((u) => `<img src="${u}" alt="Hastanın eklediği fotoğraf">`).join("")}</div>` : ""}${rep.foto_ozeti ? `<div class="small">${esc(rep.foto_ozeti)}</div>` : ""}</div>` : ""}
       ${uz ? `<div class="sec card stack" style="gap:8px"><h3>4 · Görüntülü görüşme</h3>
         <dl class="kv"><dt>Saat</dt><dd>${gunEki(r)}${C.hhmm(r.arrival_min)} – ${C.hhmm(r.arrival_min + svc(r.service).duration_min)}</dd><dt>Süre</dt><dd>${svc(r.service).duration_min} dk</dd><dt>Kazancın</dt><dd>${tl(pr.provider_gets)} TL</dd><dt>Yolculuk</dt><dd>Yok (harita, rota ve yol ücreti yok)</dd></dl>
@@ -1889,7 +2064,7 @@
     const yolKart = yr && !(ygs && ygs.checkin) ? `<div class="card stack yol-tarifi" id="hYol" style="gap:8px" aria-live="off">${yolTarifiCanli(yr)}</div>${yolTarifiAlt(yr)}` : "";
     const tele = hTele(p.id);
     const teleKart = tele.length ? `<div class="stack vg-liste" style="gap:8px"><b>Görüntülü görüşmelerin</b><div class="tiny muted">Rotana girmez; takvimde yer tutar.</div>${tele.map((r) => VG.doktorKartHtml(r, vgDoktorCtx(r))).join("")}</div>` : "";
-    return `<div class="pad stack">${teleKart}${yolKart}${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    return `<div class="pad stack">${teleKart}${yolKart}${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${rxKapiHtml(gzR())}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
   }
   // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
@@ -2176,7 +2351,10 @@
       const gs = G.durum(r) || {};
       if (gs.checkin) bildir("p", id + ":basladi", { ikon: "🩺", baslik: "Ziyaret başladı", metin: "Güvenli Ziyaret açık. Bir sorun olursa uygulamadan bildirebilirsin.", hedef: git });
       if (gs.checkout) bildir("p", id + ":bitti", { ikon: "⭐", baslik: "Ziyaret bitti", metin: "Hizmet tamamlandı mı? Onayla ve puan ver.", hedef: git });
-      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
+      const rxk = r.recete && r.recete.kontrol;
+      if (rxk) bildir("p", id + ":rx", rxk.durum === "dogrulandi" ? { ikon: "💊", baslik: r.recete.tur === "recete" ? "Reçeten doğrulandı" : "Doktor planın doğrulandı", metin: `${pp.first} kapıda kontrol etti; uygulamaya geçiyor.`, hedef: git }
+        : { ikon: "⚠️", baslik: "Uygulama yapılmadı", metin: rxk.not, hedef: { ...git, kaydir: "#rxHasta" }, acil: true });
+      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", rxk && rxk.durum === "dogrulanamadi" ? { ikon: "💳", baslik: "Ücret alınmadı", metin: "Uygulama yapılmadığı için hizmet ücreti alınmadı (demo).", hedef: git } : { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
       if (r.puan) bildir("p", id + ":puan", { ikon: "🙏", baslik: "Teşekkürler!", metin: `Puanın ${pp.first}'in profiline eklendi.`, hedef: git });
     }
     if (P.yz && P.yz.plan && P.screen === "options") {
@@ -2214,7 +2392,9 @@
       if ((s.hasta === "bekleme" || s.hasta === "hazirlik") && s.doktor !== "gorusmede" && !VG.bitti(s)) bildir("h", q.id + ":vg-bekliyor", { ikon: "🎥", baslik: "Hasta görüşmede bekliyor", metin: `Görüntülü görüşme · ${C.hhmm(q.vgBaslangic ?? q.arrival_min)}`, hedef: { tur: "rota" } }); }
     // tamamlanan ziyaretler için kazanç (sıradaki ziyaret değişse de)
     const gr = gzR(); const gs2 = gr && G.durum(gr);
-    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
+    if (gs2 && gs2.checkin && gr.recete && !gr.recete.kontrol) bildir("h", gr.id + ":rxkapi", { ikon: "💊", baslik: gr.recete.tur === "recete" ? "Kapıda reçeteyi doğrula" : "Kapıda doktor planını gör", metin: "Uygulamadan önce hastanın e-Nabız'ındaki kaydı kontrol et.", hedef: { tur: "rota" } });
+    const rxRed = gr && gr.recete && gr.recete.kontrol && gr.recete.kontrol.durum === "dogrulanamadi";
+    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", rxRed ? { ikon: "ℹ️", baslik: "Uygulama yapılmadı", metin: "Reçete/plan doğrulanamadığı için hizmet ücreti alınmadı (demo).", hedef: { tur: "rota" } } : { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
     if (gs2 && gs2.kontrol) bildir("h", `${gr.id}:h-kontrol:${gs2.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: { tur: "rota" } });
     // Tek tek puan bildirilmez (hangi hastanın kaç yıldız verdiği anlaşılmasın); yalnızca toplu özet yayımlanınca
     { const n = yayindaPuanlar(pid).length; if (n) bildir("h", `${pid}:puan-ozet:${n}`, { ikon: "⭐", baslik: "Değerlendirme özetin güncellendi", metin: `${PUAN_TOPLU} yeni değerlendirme ortalamana eklendi: ★ ${puanOrtalama(pid).ort.toFixed(2).replace(".", ",")}`, hedef: { tur: "rota" } }); }
@@ -2244,6 +2424,7 @@
     if (!s) return;
     const z = (otoZiyaret[r.id] ||= {});
     if (s.kodDurum === "eslesti" && !s.checkin) { z.kod ||= Date.now(); if (Date.now() - z.kod > 3000 && gzTikla("checkin")) { P.toast = `${person(r.provider_id).first} ziyareti başlattı (demo).`; renderP(); renderH(); } }
+    else if (s.checkin && r.recete && !r.recete.kontrol) { rxKapiKarar(r, "dogrulandi", true); renderP(); renderH(); }
     else if (s.checkin && !s.checkout) { z.giris ||= Date.now(); if (Date.now() - z.giris > 8000) { gzTikla("cikis"); if (gzTikla("cikis-sec", "yok")) { P.toast = "Ziyaret bitti (demo)."; renderP(); renderH(); } } }
   }, 1000);
 

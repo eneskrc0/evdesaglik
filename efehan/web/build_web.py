@@ -32,6 +32,8 @@ def build(template: str, app: str, out_name: str) -> Path:
         mp = WEB.parents[1] / "enes" / "data" / "izmir" / "model_v5_demo_lr.json"
         model = mp.read_text(encoding="utf-8") if mp.exists() else "null"
         html = html.replace("/*__TEKLIF__*/", "window.KAPIDA_MODEL = " + model + ";\n" + (WEB / "teklif.js").read_text(encoding="utf-8"))
+    if "/*__BELGE__*/" in html:  # belge ön kontrolü + reçete doğrulama (Sarp'ın prototipinden, sarp/dogrulama.html)
+        html = html.replace("/*__BELGE__*/", (WEB / "belge.js").read_text(encoding="utf-8") + "\n" + (WEB / "recete.js").read_text(encoding="utf-8"))
     if "/*__DOGRULAMA__*/" in html:
         html = html.replace("/*__DOGRULAMA__*/", (WEB / "dogrulama.js").read_text(encoding="utf-8"))
     if "/*__GUVENLIK__*/" in html:
@@ -62,14 +64,14 @@ def build_worker() -> Path:
     data = json.loads((WEB / "data.json").read_text(encoding="utf-8"))
     hizmetler = "\n".join(f"{s['code']}: {s['name_tr']}" for s in data["services"])
     istem = (WEB / "istemler.js").read_text(encoding="utf-8")
-    src = src.replace("/*__ISTEMLER__*/", istem + "\nconst { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU } = globalThis.KAPIDA_ISTEMLER;")
+    src = src.replace("/*__ISTEMLER__*/", istem + "\nconst { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI } = globalThis.KAPIDA_ISTEMLER;")
     src = src.replace('/*__HIZMETLER__*/""', json.dumps(hizmetler, ensure_ascii=False))
     src = src.replace("/* Kapıda — küçük sunucu", "/* ÜRETİLDİ — elle düzenleme. Kapıda — küçük sunucu", 1)
     # Canlı ayar dosyası: sunucu bunu GitHub main'den her dakika okur (Cloudflare'e yapıştırmadan güncelleme)
     import hashlib, subprocess
-    node = subprocess.run(["node", "-e", "const I=require(process.argv[1]);process.stdout.write(JSON.stringify({s:I.SOHBET_KURALLARI,r:I.RAPOR_SABLONU,i:I.SES_IPUCU}))", str(WEB / "istemler.js")], capture_output=True, text=True, check=True)
+    node = subprocess.run(["node", "-e", "const I=require(process.argv[1]);process.stdout.write(JSON.stringify({s:I.SOHBET_KURALLARI,r:I.RAPOR_SABLONU,i:I.SES_IPUCU,rx:I.RECETE_ISTEMI}))", str(WEB / "istemler.js")], capture_output=True, text=True, check=True)
     ist = json.loads(node.stdout)
-    ayar = {"sohbet_kurallari": ist["s"], "rapor_sablonu": ist["r"], "ses_ipucu": ist["i"], "hizmetler": hizmetler,
+    ayar = {"sohbet_kurallari": ist["s"], "rapor_sablonu": ist["r"], "ses_ipucu": ist["i"], "recete_istemi": ist["rx"], "hizmetler": hizmetler,
             "modeller": {"MODEL": "openai/gpt-oss-120b", "GORSEL_MODEL": "qwen/qwen3.8-27b", "SES_MODEL": "whisper-large-v3", "YEDEK": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"]}}
     ayar = {"surum": hashlib.sha1(json.dumps(ayar, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:8], **ayar}
     (SUNUCU / "ayar.json").write_text(json.dumps(ayar, ensure_ascii=False, indent=1), encoding="utf-8")

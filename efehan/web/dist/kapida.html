@@ -511,6 +511,31 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .vg-demo-panel{font-size:14px;color:#ccc}.vg-demo-panel summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
 .vg-konusuyor{position:absolute;bottom:14px;left:14px;width:14px;height:14px;border-radius:50%;background:#2fbf5b;animation:vgnab 1.2s infinite}
 @keyframes vgnab{50%{opacity:.3}}
+/* Mesleki doğrulama: ön kontrol, barkod, görevli incelemesi (Sarp'ın akışı) */
+.v-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .03em; }
+.v-onk { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line, #e3e3e3); border-radius: 12px; padding: 10px 12px; }
+.v-onk-b { font-size: 14px; font-weight: 700; }
+.v-barkod { margin-top: 8px; }
+.v-doc .v-mono { display: block; font-size: 14px; color: var(--muted, #666); }
+.v-gorevli { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line, #e3e3e3); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: var(--card, #fff); }
+.v-gdoc { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line, #eee); padding-top: 8px; }
+.v-gchk { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.v-gchk label { display: flex; gap: 8px; align-items: flex-start; }
+.v-gchk input { width: 18px; height: 18px; flex: none; accent-color: var(--brand); }
+/* Reçete / hekim planı doğrulama (recete.js, Sarp'ın modülü) */
+.rx-kart .inp.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; }
+.rx-ekle { display: flex; gap: 12px; align-items: center; border: 1.5px dashed var(--line, #d6d6d6); border-radius: 14px; padding: 14px; min-height: 56px; }
+.rx-ekle > span { display: flex; flex-direction: column; gap: 2px; }
+.rx-sonuc { display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; padding: 12px 14px; background: var(--saffron-soft, #fff4d6); }
+.rx-sonuc > div { display: flex; flex-direction: column; gap: 2px; }
+.rx-sonuc.good { background: var(--good-soft); } .rx-sonuc.coral { background: var(--coral-soft); }
+.rx-ikon { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: #b7791f; }
+.rx-sonuc.good .rx-ikon { background: var(--good); } .rx-sonuc.coral .rx-ikon { background: var(--coral); }
+.rx-kv { font-size: 15px; margin: 0; }
+.belge-bayrak { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.belge-bayrak li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.belge-bayrak .pill { flex: none; }
+.rx-kapi .row .btn { min-height: 48px; }
 </style>
 </head>
 <body>
@@ -1119,7 +1144,16 @@ YANIT yalnızca şu JSON olsun:
   // Ses tanımaya ipucu: Whisper'a verilen kısa bağlam (alan sözcükleri). Ağız/şive çeşitliliği için örnekler de içerir.
   const SES_IPUCU = "Evde sağlık görüşmesi. Pansuman, bası yarası, serum, sonda, tansiyon, şeker, sancı, sızı, fenalık, nefes darlığı, ateş, yatağa bağımlı, reçete, hemşire, doktor, fizyoterapi.";
 
-  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU };
+  // Reçete / hekim planı okuma (Sarp'ın reçete modülünden): yalnızca belgeyi okur, tıbbi uygunluğu DEĞERLENDİRMEZ.
+  // {{HIZMET}} ve {{BEKLENEN}} sunucuda doldurulur; görüntü ektedir.
+  const RECETE_ISTEMI = `Türkiye'de evde sağlık hizmetinde REÇETE / HEKİM İSTEMİ BELGESİ okuyan bir yardımcısın. Hasta "{{HIZMET}}" hizmeti için bu belgeyi ekledi (beklenen: {{BEKLENEN}}). Belge e-Nabız "Reçetelerim" ekranı, e-Devlet çıktısı, hekim raporu ya da kağıt reçete olabilir.
+Görevin yalnızca BELGEYİ okumak ve tutarlılığına bakmak. İlacın, dozun ya da tedavinin tıbben uygun olup olmadığını DEĞERLENDİRME, tedavi önerme, teşhis koyma.
+1) Okunanları belgede yazdığı gibi yaz; okuyamadığını null bırak, TAHMİN ETME. Tarihleri GG.AA.YYYY yaz.
+2) "hizmetle_uyumlu": belgede istenen hizmetle uyumlu bir kalem var mı? Emin değilsen null.
+3) Düzenleme belirtisi olabilecek görsel bulguları yaz (yazı tipi/hiza farkı, yapıştırma görünümü, eksik reçete no, okunmayan imza/kaşe). Kesin hüküm verme.
+Yalnızca şu JSON'u döndür: {"recete_no": string|null, "hasta_ad_soyad": string|null, "tc_kimlik": string|null, "recete_tarihi": string|null, "hekim_ad_soyad": string|null, "tesis": string|null, "recete_turu": "normal|kirmizi|yesil|turuncu|mor|belirsiz", "ilaclar": [{"ad": string, "doz": string|null, "kullanim": string|null}], "belge_kaynagi": "e-nabiz|e-devlet|kagit|rapor|diger", "hizmetle_uyumlu": true|false|null, "bulgular": [{"onem": "dusuk|orta|yuksek", "aciklama": string}], "ozet": "bir cümle"}`;
+
+  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KAPIDA_ISTEMLER = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -1272,6 +1306,11 @@ YANIT yalnızca şu JSON olsun:
       async rapor(transkript, fotoNotlari, resimler) {
         const v = await istek(url, "/rapor", { transkript, foto_notlari: fotoNotlari || [], resimler: resimler || [] }, 60000);
         return v.rapor;
+      },
+      // Reçete / hekim planı belgesini oku (görüntü); sunucu bu adresi tanımıyorsa (eski worker) hata "yok" döner
+      async recete(resim, hizmet, beklenen) {
+        const v = await istek(url, "/recete", { resimler: resim ? [resim] : [], hizmet, beklenen }, 45000);
+        return v.recete;
       },
       dictation: kaydedici(url),
       // Sesli asistan: tek bir konuşmayı yazıya çevir (Whisper)
@@ -1943,8 +1982,216 @@ YANIT yalnızca şu JSON olsun:
   root.KapidaTeklif = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
 </script>
+<script>/* Kapıda — belge ön kontrolü (mesleki belge ve reçete için ortak). Sarp'ın prototipinden (sarp/dogrulama.html) uyarlandı.
+   Dışarıdan kütüphane yüklemez (uygulama tek dosya ve çevrimdışı çalışır): PDF içeriği çizilmez, metin katmanı okunmaz.
+   Yapılanlar: dosya türü/boyutu, SHA-256 özeti, ham baytlarda düzenleme yazılımı izi, PDF sonradan değiştirilmiş mi (%%EOF sayısı),
+   e-imza alanı (/ByteRange), görüntüde karekod (tarayıcı BarcodeDetector destekliyorsa), sıkıştırılmamış metinde barkod/e-Reçete no,
+   görüntülerden küçültülmüş JPEG (yapay zekâ okuması ve önizleme için). Dosyanın kendisi saklanmaz.
+   Ön kontrol bilgi verir; belgeyi tek başına reddetmez. Kesin karar kişisel kontroldedir. */
+(function () {
+  "use strict";
+  const MAX_BYTES = 10 * 1024 * 1024;
+  const OK_MIME = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+  const OK_EXT = /\.(pdf|jpe?g|png|webp)$/i;
+  const EDIT_TOOLS = ["Photoshop", "GIMP", "Canva", "Pixelmator", "Affinity", "Paint.NET", "PicsArt", "Fotor", "iLovePDF", "Smallpdf", "Sejda", "PDFescape",
+    "PDF-XChange", "Nitro", "PDFelement", "Foxit PhantomPDF", "Inkscape", "CorelDRAW", "Microsoft Word", "LibreOffice"];
+  const SAFE_HOSTS = ["turkiye.gov.tr", "saglik.gov.tr", "yok.gov.tr", "enabiz.gov.tr", "gov.tr", "edu.tr"];
+  // Seviye → [pill sınıfı, etiket]
+  const LV = { kritik: ["coral", "Kritik"], yuksek: ["coral", "Yüksek"], orta: ["sun", "Orta"], bilgi: ["plain", "Bilgi"], ok: ["good", "Olumlu"] };
+  const fl = (lv, code, text) => ({ lv, code, text });
+  const normB = (s) => String(s || "").toLocaleUpperCase("tr").replace(/[^A-Z0-9]/g, "");
+
+  function dosyaHatasi(file) {
+    if (!file) return "Dosya seçilemedi.";
+    if (!(OK_MIME.includes(file.type) || OK_EXT.test(file.name || ""))) return "Bu dosya türü kabul edilmiyor. PDF, JPG ya da PNG seç.";
+    if (file.size > MAX_BYTES) return `Dosya çok büyük (${(file.size / 1024 / 1024).toFixed(1).replace(".", ",")} MB). En fazla 10 MB olabilir.`;
+    if (file.size === 0) return "Dosya boş görünüyor. Başka bir dosya seç.";
+    return "";
+  }
+
+  async function ozet(buf) {
+    try { const h = await crypto.subtle.digest("SHA-256", buf); return [...new Uint8Array(h)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join(""); }
+    catch (e) { return ""; }
+  }
+  function gorsel(file, maxPx) {
+    return new Promise((res) => {
+      const u = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.naturalWidth * s)); cv.height = Math.max(1, Math.round(img.naturalHeight * s));
+        const x = cv.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, cv.width, cv.height); x.drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(u); res({ cv, img });
+      };
+      img.onerror = () => { URL.revokeObjectURL(u); res(null); };
+      img.src = u;
+    });
+  }
+  async function karekod(kaynak) {
+    try {
+      if (!("BarcodeDetector" in window)) return null;
+      const d = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const r = await d.detect(kaynak);
+      return r && r[0] && r[0].rawValue ? String(r[0].rawValue) : null;
+    } catch (e) { return null; }
+  }
+
+  // Dosyayı oku: { ad, tur, boyut, isPdf, hash, raw, imza, eof, resim (dataURL|null), qr }
+  async function oku(file, { maxPx = 1600 } = {}) {
+    const buf = await file.arrayBuffer();
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+    const u8 = new Uint8Array(buf), lim = Math.min(u8.length, 6e6);
+    let raw = "";
+    for (let i = 0; i < lim; i += 65536) raw += String.fromCharCode.apply(null, u8.subarray(i, Math.min(lim, i + 65536)));
+    const out = { ad: file.name || "belge", tur: file.type || "", boyut: file.size, isPdf, hash: await ozet(buf), raw, imza: /\/ByteRange\s*\[/.test(raw) || /\/Type\s*\/Sig\b/.test(raw),
+      eof: (raw.match(/%%EOF/g) || []).length, resim: null, qr: null };
+    if (!isPdf) {
+      const g = await gorsel(file, maxPx);
+      if (g) { out.resim = g.cv.toDataURL("image/jpeg", 0.82); out.qr = await karekod(g.cv); }
+    }
+    return out;
+  }
+
+  // Karekoddan ya da sıkıştırılmamış metinden barkod (e-Devlet belge doğrulama kodu)
+  function barkodBul(doc) {
+    if (doc && doc.qr) {
+      try { const u = new URL(doc.qr); for (const [k, v] of u.searchParams) if (/barkod|belge|dogrulama|kod|no/i.test(k) && normB(v).length >= 8) return { v: v.toUpperCase().trim(), src: "karekod" }; }
+      catch (e) { if (/^[A-Z0-9ÇĞİÖŞÜ\-\s]{8,40}$/i.test(doc.qr.trim())) return { v: doc.qr.trim().toUpperCase(), src: "karekod" }; }
+    }
+    const m = String((doc && doc.raw) || "").match(/(?:Barkod|Do[gğ]rulama)\s*(?:No|Numaras[ıi]|Kodu)?\s*[:：]?\s*([A-Z0-9][A-Z0-9\-]{7,40})/i);
+    return m ? { v: m[1].toUpperCase(), src: "belge metni" } : null;
+  }
+
+  // Dosyanın kendisinden çıkan bulgular (içerik okunmadan)
+  function dosyaBulgulari(doc, { pdfBekleniyor = true } = {}) {
+    const f = [];
+    const low = doc.raw.toLowerCase(), izler = EDIT_TOOLS.filter((x) => low.includes(x.toLowerCase()));
+    if (izler.length) f.push(fl(izler.every((x) => /Word|LibreOffice/.test(x)) ? "orta" : "yuksek", "edit_tool", `Dosyada düzenleme/tasarım yazılımı izi: ${izler.join(", ")}. Resmî çıktıda beklenmez.`));
+    if (doc.isPdf) {
+      if (doc.imza) f.push(fl("ok", "esig", "PDF'te elektronik imza alanı var."));
+      if (doc.eof > 1 && !doc.imza) f.push(fl("orta", "pdf_incremental", `PDF oluşturulduktan sonra ${doc.eof - 1} kez değiştirilmiş görünüyor.`));
+    } else if (pdfBekleniyor) f.push(fl("orta", "not_pdf", "Belge PDF değil, görüntü olarak yüklenmiş. e-Devlet'ten PDF indirilmesi istenir."));
+    if (doc.qr) {
+      let host = ""; try { host = new URL(doc.qr).hostname.toLowerCase(); } catch (e) { /* düz metin */ }
+      if (host) f.push(SAFE_HOSTS.some((h) => host === h || host.endsWith("." + h)) ? fl("ok", "qr_safe", `Karekod resmî adrese gidiyor: ${host}`) : fl("kritik", "qr_unsafe", `Karekod resmî olmayan bir siteye gidiyor: ${host}.`));
+    }
+    return f;
+  }
+  const risk = (flags) => Math.min(100, flags.reduce((a, x) => a + ({ kritik: 40, yuksek: 20, orta: 8 }[x.lv] || 0), 0));
+  function bayrakHtml(flags, esc) {
+    const l = (flags || []).filter((x) => x && x.text);
+    return l.length ? `<ul class="belge-bayrak">${l.map((x) => `<li><span class="pill ${(LV[x.lv] || LV.bilgi)[0]}">${(LV[x.lv] || LV.bilgi)[1]}</span><span>${esc(x.text)}</span></li>`).join("")}</ul>` : "";
+  }
+  // T.C. kimlik numarası algoritması (yalnızca belgede okunan numara için; uygulama T.C. istemez)
+  function tcGecerli(tc) {
+    if (!/^[1-9]\d{10}$/.test(tc)) return false;
+    const d = tc.split("").map(Number), d10 = ((d[0] + d[2] + d[4] + d[6] + d[8]) * 7 - (d[1] + d[3] + d[5] + d[7])) % 10;
+    return ((d10 + 10) % 10) === d[9] && d.slice(0, 10).reduce((a, b) => a + b, 0) % 10 === d[10];
+  }
+  // Ad benzerliği (Levenshtein, 0–1)
+  function benzer(a, b) {
+    const n = (s) => String(s || "").toLocaleUpperCase("tr").replace(/[^A-ZÇĞİÖŞÜ0-9]/g, "");
+    a = n(a); b = n(b); if (!a || !b) return 0;
+    const m = []; for (let i = 0; i <= a.length; i++) { m[i] = [i]; for (let j = 1; j <= b.length; j++) m[i][j] = i ? Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+    return 1 - m[a.length][b.length] / Math.max(a.length, b.length);
+  }
+  function tarihOku(s) {
+    if (!s) return null;
+    let m = String(s).match(/(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})/); if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+    m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  }
+
+  window.KapidaBelge = { MAX_BYTES, LV, EDIT_TOOLS, dosyaHatasi, oku, barkodBul, dosyaBulgulari, risk, bayrakHtml, tcGecerli, benzer, tarihOku, normB, fl };
+})();
+
+/* Kapıda — reçete / hekim planı doğrulama. Sarp'ın reçete modülünden (sarp/dogrulama.html) uyarlandı.
+   Akış: hasta "doktorumun planı / reçetesi var" der → hizmet reçete istiyorsa (needs_prescription: serum, kas içi iğne) e-Reçete no
+   zorunlu, belge (e-Nabız "Reçetelerim" görüntüsü / PDF / kağıt reçete fotoğrafı) önerilir; hekim istemi gerektiren diğer hizmetlerde
+   (needs_physician_order) plan/rapor belgesi isteğe bağlı → ön kontrol (yapay zekâ okuması + kurallar) → talep → çalışan kapıda
+   hastanın e-Nabız'ını görerek 5 maddelik kişisel kontrol yapar → "doğrulandı" ya da "doğrulanamadı · uygulama yapılmadı".
+   Yapay zekâ teşhis koymaz, ilacın ya da dozun tıbbi uygunluğunu değerlendirmez; yalnızca belgeyi okur ve tutarlılığına bakar.
+   Uygulama hiçbir resmî sistemi (e-Nabız, Medula) sorgulamaz; "e-Nabız onaylı" gibi bir ifade kullanılmaz. Dosya saklanmaz. */
+(function () {
+  "use strict";
+  const B = () => window.KapidaBelge;
+  const RX_TURU = { normal: "Normal (beyaz)", kirmizi: "Kırmızı", yesil: "Yeşil", turuncu: "Turuncu", mor: "Mor", belirsiz: "Belirtilmemiş" };
+  const FORM = { iv_serum: "damar içi (IV) uygulanan serum ya da ilaç", im_enjeksiyon: "kas içi / deri altı uygulanan enjeksiyonluk ilaç",
+    sonda_bakimi: "sonda bakımı istemi", sonda_takma: "sonda takma / değişim istemi", kan_alma: "tahlil (laboratuvar) istemi",
+    fizyoterapi_seansi: "fizik tedavi / fizyoterapi istemi ya da raporu", solunum_fizyoterapisi: "solunum fizyoterapisi istemi" };
+  const SONUC = {
+    uygun: ["good", "✓", "Ön kontrol: uygun", "Belirgin bir tutarsızlık yok. Kesin doğrulamayı sağlık çalışanı kapıda yapar."],
+    dikkat: ["sun", "!", "Ön kontrol: dikkat", "Bazı bilgiler eksik ya da teyit gerektiriyor. Sağlık çalışanı kapıda bunlara özellikle bakar."],
+    supheli: ["coral", "✗", "Ön kontrol: şüpheli", "Ciddi bir tutarsızlık var. Reçeteni ve numarasını kontrol et ya da doktoruna danış."],
+  };
+  const KAPI = {
+    recete: [["kimlik", "Hastanın kimliğine baktım; ad soyad reçetedekiyle aynı."], ["enabiz", "Hastanın e-Nabız › Reçetelerim ekranında bu reçete numarası var."],
+      ["ilac", "İlaç adı, dozu ve kullanım şekli e-Nabız'daki reçeteyle aynı."], ["tarih", "Reçete tarihi ve yazan hekim görünüyor, reçete güncel."],
+      ["kutu", "Evdeki ilaç kutusu reçetedeki ilaçla aynı, son kullanma tarihi geçmemiş."]],
+    plan: [["kimlik", "Hastanın kimliğine baktım; ad soyad belgedekiyle aynı."], ["belge", "Hekim planını / istemini gördüm (e-Nabız, rapor ya da epikriz)."],
+      ["kapsam", "Plandaki istem bu hizmeti kapsıyor."], ["tarih", "Planın tarihi ve yazan hekim görünüyor, plan güncel."],
+      ["malzeme", "Gerekli malzeme ve ilaçlar evde, uygulamaya engel bir durum yok."]],
+  };
+
+  // Hizmet reçete mi, hekim planı mı istiyor? (veri: services.csv needs_prescription / needs_physician_order)
+  const tur = (s) => (!s ? null : s.needs_prescription ? "recete" : s.needs_physician_order ? "plan" : null);
+  const noTemiz = (s) => String(s || "").toLocaleUpperCase("tr").replace(/[^A-Z0-9]/g, "");
+  const noGecerli = (s) => /^[A-Z0-9]{5,12}$/.test(noTemiz(s));
+
+  // Kural tabanlı ön kontrol (+ varsa yapay zekâ okuması). bugun: uygulamanın "bugün"ü (demo tarihi)
+  function onKontrol({ doc, ai, tur: t, svcAd, beyan, bugun }) {
+    const K = B(), flags = doc ? K.dosyaBulgulari(doc, { pdfBekleniyor: false }) : [];
+    const A = ai || {};
+    if (doc && !A.recete_no) { const m = String(doc.raw || "").match(/(?:e-?Re[cç]ete|Re[cç]ete)\s*(?:No|Numaras[ıi])\s*[:：]?\s*([A-Z0-9]{5,12})/i); if (m) A.recete_no = m[1]; }
+    const no = noTemiz(A.recete_no), bno = noTemiz(beyan.rxNo);
+    if (t === "recete") {
+      if (!no && !bno) flags.push(K.fl("kritik", "rx_no_yok", "e-Reçete numarası yok. Reçeteli hizmet numarasız istenemez."));
+      else if (bno && !noGecerli(bno)) flags.push(K.fl("yuksek", "rx_no_bicim", "e-Reçete numarası 5–12 harf ve rakamdan oluşur; yazdığın numarayı kontrol et."));
+      else if (doc && !no && ai) flags.push(K.fl("orta", "rx_no_okunmadi", "Reçete numarası belgeden okunamadı; yazdığın numara kapıda kontrol edilecek."));
+      if (no && bno && no !== bno) flags.push(K.fl("kritik", "rx_no_fark", `Yazdığın numara (${beyan.rxNo}) belgedekiyle (${A.recete_no}) aynı değil.`));
+    } else if (bno && !noGecerli(bno)) flags.push(K.fl("orta", "rx_no_bicim", "Yazdığın numara e-Reçete/rapor biçimine uymuyor; kapıda kontrol edilecek."));
+    if (!doc) flags.push(K.fl("bilgi", "belge_yok", t === "recete" ? "Belge eklenmedi; sağlık çalışanı reçeteyi kapıda e-Nabız'ından görecek." : "Belge eklenmedi; planı kapıda sağlık çalışanına göstermen gerekir."));
+    if (ai) {
+      if (A.hasta_ad_soyad && beyan.hasta && K.benzer(A.hasta_ad_soyad, beyan.hasta) < 0.85) flags.push(K.fl("yuksek", "rx_hasta_fark", `Belgedeki hasta (${A.hasta_ad_soyad}) talepteki adla aynı değil.`));
+      const tcd = String(A.tc_kimlik || "").replace(/\D/g, ""); if (tcd.length === 11 && !K.tcGecerli(tcd)) flags.push(K.fl("kritik", "tc_gecersiz", "Belgedeki T.C. kimlik numarası geçersiz."));
+      const d = K.tarihOku(A.recete_tarihi), gun = d ? Math.floor((bugun - d) / 864e5) : null;
+      if (d && gun < 0) flags.push(K.fl("kritik", "rx_ileri_tarih", "Reçete tarihi ileri bir tarih."));
+      else if (d && gun > 30) flags.push(K.fl("orta", "rx_eski", `Reçete ${gun} gün önce yazılmış; güncelliği hekimle teyit edilmeli.`));
+      else if (!d) flags.push(K.fl("orta", "rx_tarih_yok", "Reçete tarihi okunamadı."));
+      if (!A.hekim_ad_soyad) flags.push(K.fl("orta", "rx_hekim_yok", "Yazan hekim okunamadı."));
+      if (t === "recete" && !(A.ilaclar || []).some((x) => x && x.ad)) flags.push(K.fl("yuksek", "rx_ilac_yok", "Reçetede ilaç ya da istem okunamadı."));
+      if (["kirmizi", "yesil", "turuncu", "mor"].includes(A.recete_turu)) flags.push(K.fl("yuksek", "rx_kontrollu", `${RX_TURU[A.recete_turu]} reçete: kontrole tabi ilaç. Evde uygulama öncesi hekim teyidi gerekir.`));
+      if (A.hizmetle_uyumlu === false) flags.push(K.fl("orta", "rx_hizmet_uyumsuz", `Belgede "${svcAd}" hizmetiyle uyumlu bir kalem görünmüyor.`));
+      (A.bulgular || []).forEach((b) => b && b.aciklama && b.onem !== "dusuk" && flags.push(K.fl(b.onem === "yuksek" ? "yuksek" : "orta", "yz_gorsel", String(b.aciklama).slice(0, 240))));
+      if (A.belge_kaynagi === "e-nabiz" || A.belge_kaynagi === "e-devlet") flags.push(K.fl("ok", "rx_kaynak", `Belge ${A.belge_kaynagi === "e-nabiz" ? "e-Nabız" : "e-Devlet"} ekranından alınmış görünüyor.`));
+    } else if (doc) flags.push(K.fl("bilgi", "yz_yok", "Belgenin içeriği yapay zekâyla okunamadı; numara ve belge kapıda kontrol edilecek."));
+    const r = K.risk(flags);
+    const sonuc = flags.some((x) => x.lv === "kritik") ? "supheli" : r >= 20 ? "dikkat" : "uygun";
+    const ilaclar = (A.ilaclar || []).filter((x) => x && x.ad).slice(0, 12).map((x) => ({ ad: String(x.ad).slice(0, 80), doz: x.doz ? String(x.doz).slice(0, 40) : "", kullanim: x.kullanim ? String(x.kullanim).slice(0, 60) : "" }));
+    return { flags, risk: r, sonuc, ozet: String(A.ozet || "").slice(0, 300), ilaclar,
+      alan: { recete_no: noTemiz(A.recete_no || beyan.rxNo), hasta_ad_soyad: A.hasta_ad_soyad || "", recete_tarihi: A.recete_tarihi || "", hekim: A.hekim_ad_soyad || "", tesis: A.tesis || "", recete_turu: A.recete_turu || "", kaynak: A.belge_kaynagi || "" } };
+  }
+
+  // Ön kontrol kartı (hasta ve çalışan)
+  function raporHtml(k, esc, { kisa = false } = {}) {
+    const s = SONUC[k.sonuc] || SONUC.dikkat, a = k.alan || {};
+    const satir = [["e-Reçete / belge no", a.recete_no], ["Hasta (belgede)", a.hasta_ad_soyad], ["Tarih", a.recete_tarihi], ["Hekim", a.hekim], ["Tesis", a.tesis], ["Reçete türü", RX_TURU[a.recete_turu]]].filter((x) => x[1]);
+    return `<div class="rx-sonuc ${s[0]}"><span class="rx-ikon" aria-hidden="true">${s[1]}</span><div><b>${s[2]}</b><span class="small">${s[3]}</span></div></div>
+      ${satir.length ? `<dl class="kv rx-kv">${satir.map(([x, y]) => `<dt>${x}</dt><dd>${esc(y)}</dd>`).join("")}</dl>` : ""}
+      ${!kisa && (k.ilaclar || []).length ? `<div class="stack rx-ilac" style="gap:4px"><b class="small">İlaçlar / istemler (belgeden okunan)</b>${k.ilaclar.map((x) => `<div class="row between small"><span>${esc(x.ad)}${x.kullanim ? ` <span class="muted">· ${esc(x.kullanim)}</span>` : ""}</span><span class="muted">${esc(x.doz)}</span></div>`).join("")}</div>` : ""}
+      ${B().bayrakHtml(k.flags, esc)}`;
+  }
+
+  window.KapidaRecete = { tur, noGecerli, noTemiz, onKontrol, raporHtml, SONUC, KAPI, FORM, RX_TURU };
+})();
+</script>
 <script>/* Kapıda — Mesleki doğrulama (sağlık çalışanı ilk giriş akışı). PROTOTİP.
-   - Belgeler hiçbir resmî sistemden doğrulanmaz; OCR, kimlik ya da sahtecilik kontrolü yoktur.
+   - 22.11: Sarp'ın akışı (sarp/dogrulama.html) bağlandı: belgeler e-Devlet barkodlu olmalı (YÖK Mezun Belgesi / diploma,
+     Sağlık Bakanlığı diploma tescil belgesi, uzman hekimde uzmanlık belgesi); her belgenin doğrulama barkodu zorunlu
+     (görüntüde karekod ya da belge metninde bulunursa kendiliğinden dolar). Dosya seçilince ön kontrol (belge.js): düzenleme
+     yazılımı izi, PDF sonradan değiştirilmiş mi, e-imza alanı, görüntü mü PDF mi. Ön kontrol bilgi verir, tek başına düşürmez.
+     Görevli incelemesi: barkodla turkiye.gov.tr belge doğrulamada asıl belgeyi açar, 5 maddelik karşılaştırmayı işaretler,
+     onaylar / eksik belge ister / uygun bulmaz. Asıl PDF'le alan alan otomatik karşılaştırma Sarp'ın görevli panelinde.
+   - Uygulama hiçbir resmî sistemi kendisi sorgulamaz; "e-Devlet onaylı" gibi bir ifade kullanılmaz. T.C. no istenmez
+     (görevli, e-Devlet sorgusu için belgedeki numarayı kullanır).
    - Seçilen dosyalar yalnızca bu sekmenin belleğinde (V.files) tutulur: sunucuya gönderilmez,
      localStorage'a yazılmaz; sayfa yenilenince silinir.
    - Görev kabul kilidi (canAccept) YALNIZCA ARAYÜZ SİMÜLASYONUDUR. Gerçek uygulamada
@@ -1975,7 +2222,9 @@ YANIT yalnızca şu JSON olsun:
       view: "form", // form | sent | status
       step: 1,
       f: { name: "", prof: "", profOther: "", hekimType: "", specialty: "", org: "", tescil: "" },
-      files: { diploma: null, uzmanlik: null, kurum: null }, // { name, size, type, file } — yalnızca bellekte
+      files: { diploma: null, tescilBelge: null, uzmanlik: null, kurum: null }, // { name, size, type, file, onk, barkodSrc } — yalnızca bellekte
+      barkod: { diploma: "", tescilBelge: "", uzmanlik: "" }, // e-Devlet / Bakanlık doğrulama barkodları
+      gorevli: {}, // görevli kontrol listesi (demo)
       err: {},
       decl: false,
       status: "yok",
@@ -2006,10 +2255,14 @@ YANIT yalnızca şu JSON olsun:
       if (!f.org.trim()) e.org = "Çalıştığın kuruluşu ya da birimi yaz.";
       return e;
     }
+    const barkodTamam = (v) => String(v || "").toLocaleUpperCase("tr").replace(/[^A-Z0-9]/g, "").length >= 8;
+    const BARKODLU = () => ["diploma", "tescilBelge", ...(needUzm() ? ["uzmanlik"] : [])];
     function check2() {
       const e = {};
       if (!V.files.diploma) e.diploma = "Diploma ya da mezuniyet belgeni ekle.";
+      if (!V.files.tescilBelge) e.tescilBelge = "Diploma tescil belgeni ekle.";
       if (needUzm() && !V.files.uzmanlik) e.uzmanlik = "Uzmanlık belgeni ekle.";
+      for (const k of BARKODLU()) if (V.files[k] && !barkodTamam(V.barkod[k])) e["barkod_" + k] = "Belgenin doğrulama barkodunu yaz (belgenin altında ya da karekodun yanında, en az 8 harf/rakam). Barkodsuz belgeyle başvuru tamamlanmaz.";
       const t = V.f.tescil.trim();
       if (t && !/^[0-9A-Za-zÇĞİÖŞÜçğıöşü\-\/ ]{1,30}$/.test(t)) e.tescil = "Yalnızca harf, rakam, tire ve eğik çizgi kullan (en fazla 30).";
       return e;
@@ -2022,7 +2275,7 @@ YANIT yalnızca şu JSON olsun:
       if (file.size === 0) return "Dosya boş görünüyor. Başka bir dosya seç.";
       return "";
     }
-    const firstErrId = (e) => { const k = Object.keys(e)[0]; return k ? (k === "prof" || k === "hekimType" ? `v-${k}-0` : k === "decl" ? "v-decl" : ["diploma", "uzmanlik", "kurum"].includes(k) ? `v-pick-${k}` : `v-${k}`) : null; };
+    const firstErrId = (e) => { const k = Object.keys(e)[0]; return k ? (k === "prof" || k === "hekimType" ? `v-${k}-0` : k === "decl" ? "v-decl" : ["diploma", "tescilBelge", "uzmanlik", "kurum"].includes(k) ? `v-pick-${k}` : `v-${k}`) : null; };
 
     // ---------- parçalar ----------
     const errP = (k) => (V.err[k] ? `<p class="v-err" id="v-${k}-err" role="alert">${esc(V.err[k])}</p>` : "");
@@ -2042,9 +2295,12 @@ YANIT yalnızca şu JSON olsun:
       return `<div class="v-field"><div class="v-label" id="v-${k}-lbl">${label}${optional ? " " + opt : ""}</div>
         ${fl ? `<div class="v-file"><span class="v-file-ico" aria-hidden="true">${/pdf$/i.test(fl.name) || fl.type === "application/pdf" ? "PDF" : "IMG"}</span>
             <div class="v-file-meta"><b>${esc(fl.name)}</b><span>${sizeTxt(fl.size)} · Eklendi, henüz incelenmedi</span></div></div>
+          ${fl.onk ? `<div class="v-onk"><span class="v-onk-b">Ön kontrol</span>${fl.onk.length ? window.KapidaBelge.bayrakHtml(fl.onk, esc) : `<span class="tiny">Dosyada belirgin bir sorun görünmedi.</span>`}</div>` : fl.file && window.KapidaBelge ? `<div class="tiny v-onk">Ön kontrol yapılıyor…</div>` : ""}
           <div class="v-row">${pick("Değiştir", "btn v-btn2")}<button class="btn v-btn2" type="button" data-vact="rm" data-key="${k}">Kaldır</button></div>`
-        : `${pick(`<b>+ Dosya seç</b><span>PDF, JPG ya da PNG · en fazla 10 MB</span>`, "v-drop")}`}
-        <input class="v-hidden" type="file" id="v-file-${k}" data-vfile="${k}" accept="${ACCEPT}" aria-labelledby="v-${k}-lbl" tabindex="-1">${errP(k)}</div>`;
+        : `${pick(`<b>+ Dosya seç</b><span>${k === "kurum" ? "PDF, JPG ya da PNG" : "e-Devlet'ten indirilen barkodlu PDF"} · en fazla 10 MB</span>`, "v-drop")}`}
+        <input class="v-hidden" type="file" id="v-file-${k}" data-vfile="${k}" accept="${ACCEPT}" aria-labelledby="v-${k}-lbl" tabindex="-1">${errP(k)}
+        ${k in V.barkod && fl ? `<div class="v-field v-barkod"><label class="v-label" for="v-barkod_${k}">Doğrulama barkodu${fl.barkodSrc ? ` <span class="v-opt">(${esc(fl.barkodSrc)}ndan okundu, kontrol et)</span>` : ""}</label>
+          <input class="v-inp v-mono" id="v-barkod_${k}" data-vbarkod="${k}" value="${esc(V.barkod[k])}" autocomplete="off" maxlength="44" placeholder="ör. YOK-ABCD-1234-EFGH"${inv("barkod_" + k)}>${errP("barkod_" + k)}</div>` : ""}</div>`;
     }
     function steps(n) {
       return `<div class="v-steps" aria-hidden="true">${[1, 2, 3].map((i) => `<span class="${i <= n ? "on" : ""}"></span>`).join("")}</div>
@@ -2052,10 +2308,11 @@ YANIT yalnızca şu JSON olsun:
     }
     function summary(src) {
       const f = src ? src.f : V.f, files = src ? src.files : V.files;
-      const docs = [["Diploma / mezuniyet", files.diploma], ...(f.prof === "hekim" && f.hekimType === "uzman" ? [["Uzmanlık belgesi", files.uzmanlik]] : []), ["Çalışma / kuruluş belgesi", files.kurum]].filter(([, x]) => x);
+      const bk = src ? src.barkod || {} : V.barkod;
+      const docs = [["YÖK mezun belgesi / diploma", files.diploma, bk.diploma], ["Diploma tescil belgesi", files.tescilBelge, bk.tescilBelge], ...(f.prof === "hekim" && f.hekimType === "uzman" ? [["Uzmanlık belgesi", files.uzmanlik, bk.uzmanlik]] : []), ["Çalışma / kuruluş belgesi", files.kurum]].filter(([, x]) => x);
       const rows = [["Ad soyad", f.name], ["Meslek", profText(f)], ["Kuruluş / birim", f.org], ...(f.tescil.trim() ? [["Diploma tescil no", f.tescil]] : [])];
       return `<dl class="v-sum">${rows.map(([a, b]) => `<dt>${a}</dt><dd>${esc(b || "—")}</dd>`).join("")}
-        <dt>Belgeler</dt><dd>${docs.length ? docs.map(([a, x]) => `<div class="v-doc"><span>${a}</span><b>${esc(x.name)}</b></div>`).join("") : "—"}</dd></dl>`;
+        <dt>Belgeler</dt><dd>${docs.length ? docs.map(([a, x, b]) => `<div class="v-doc"><span>${a}</span><b>${esc(x.name)}</b>${b ? `<span class="v-mono">Barkod: ${esc(b)}</span>` : ""}</div>`).join("") : "—"}</dd></dl>`;
     }
     const pill = (s) => `<span class="pill ${STATUS[s].cls} v-pill">${STATUS[s].label}</span>`;
 
@@ -2074,9 +2331,10 @@ YANIT yalnızca şu JSON olsun:
       if (V.step === 2) {
         return `<button class="back v-back" type="button" data-vact="back">← Geri</button>${steps(2)}
           <h2 class="v-h">Belgelerini ekle</h2>
-          <p class="v-p">Belgelerin, mesleki başvurunun incelenmesi için alınır.</p>
+          <p class="v-p">Belgelerin, mesleki başvurunun incelenmesi için alınır. e-Devlet'ten indirdiğin barkodlu PDF'leri ekle; görevli barkodla asıl belgeyi açıp karşılaştırır.</p>
           ${V.status === "eksik" ? `<div class="v-reason"><b>Eksik belge</b><span>${esc(V.reason)}</span></div>` : ""}
-          ${fileBox("diploma", "Diploma / mezuniyet belgesi", false)}
+          ${fileBox("diploma", "YÖK Mezun Belgesi ya da diploma", false)}
+          ${fileBox("tescilBelge", "Diploma tescil belgesi (Sağlık Bakanlığı)", false)}
           ${needUzm() ? fileBox("uzmanlik", "Uzmanlık belgesi", false) : ""}
           ${field("tescil", "Diploma tescil numarası", "off", true)}
           ${fileBox("kurum", "Çalışma / kuruluş belgesi", true)}
@@ -2159,8 +2417,8 @@ YANIT yalnızca şu JSON olsun:
         if (!V.decl) return go({ err: { decl: "Göndermek için beyan kutusunu işaretle." }, focus: "v-decl" }), true;
         // GERÇEK DOĞRULAMA SERVİSİ BURAYA BAĞLANACAK: belgeler sunucuya güvenli biçimde yüklenir,
         // başvuru inceleme kuyruğuna alınır, durum sunucudan okunur. Prototipte hiçbir şey gönderilmez.
-        const files = {}; for (const k of Object.keys(V.files)) files[k] = V.files[k] && { name: V.files[k].name, size: V.files[k].size, type: V.files[k].type };
-        go({ submitted: { f: { ...V.f }, files, at: new Date() }, status: "bekliyor", reason: "", view: "sent", err: {}, showSummary: false, toTop: true });
+        const files = {}; for (const k of Object.keys(V.files)) files[k] = V.files[k] && { name: V.files[k].name, size: V.files[k].size, type: V.files[k].type, onk: V.files[k].onk || [] };
+        go({ submitted: { f: { ...V.f }, files, barkod: { ...V.barkod }, at: new Date() }, status: "bekliyor", reason: "", view: "sent", err: {}, showSummary: false, toTop: true, gorevli: {} });
       }
       else if (a === "toggleSum") go({ showSummary: !V.showSummary });
       else if (a === "close") go({ open: false, toTop: true });
@@ -2171,6 +2429,8 @@ YANIT yalnızca şu JSON olsun:
       return true;
     }
     function onInput(e) {
+      const bk = e.target.dataset.vbarkod;
+      if (bk) { V.barkod[bk] = e.target.value; const ek = "barkod_" + bk; if (V.err[ek]) { delete V.err[ek]; e.target.removeAttribute("aria-invalid"); const n = document.getElementById(`v-${ek}-err`); if (n) n.remove(); } return true; }
       const k = e.target.dataset.vf;
       if (!k) return false;
       V.f[k] = e.target.value;
@@ -2185,11 +2445,23 @@ YANIT yalnızca şu JSON olsun:
         const k = el.dataset.vfile, file = el.files && el.files[0];
         if (!file) return true;
         const msg = checkFile(file);
-        if (msg) V.err[k] = msg; else { V.files[k] = { name: file.name, size: file.size, type: file.type, file }; delete V.err[k]; }
+        if (msg) V.err[k] = msg; else { V.files[k] = { name: file.name, size: file.size, type: file.type, file }; delete V.err[k]; onKontrol(k, V.files[k]); }
         go({ focus: `v-pick-${k}` });
         return true;
       }
       return false;
+    }
+    // Dosya ön kontrolü (belge.js): düzenleme izi, sonradan değişiklik, e-imza, görüntü/PDF; karekod ya da metinden barkod
+    async function onKontrol(k, fl) {
+      const KB = window.KapidaBelge; if (!KB) return;
+      try {
+        const doc = await KB.oku(fl.file, { maxPx: 1400 });
+        if (V.files[k] !== fl) return; // bu arada değiştirildi
+        fl.onk = KB.dosyaBulgulari(doc, { pdfBekleniyor: k !== "kurum" });
+        const b = k in V.barkod ? KB.barkodBul(doc) : null;
+        if (b && !V.barkod[k]) { V.barkod[k] = b.v; fl.barkodSrc = b.src; }
+      } catch (e) { fl.onk = [KB.fl("bilgi", "", "Dosya okunamadı; görevli elle inceleyecek.")]; }
+      if (V.open && V.view === "form" && V.step === 2) { const odak = document.activeElement && document.activeElement.id; ctx.rerender(); if (odak) { const el = document.getElementById(odak); if (el) el.focus({ preventScroll: true }); } }
     }
     function onKey(e) {
       const p = e.target.closest && e.target.closest("[data-vpick]");
@@ -2202,18 +2474,43 @@ YANIT yalnızca şu JSON olsun:
       eksik: "Diploma belgesinin okunaklı ve tam bir kopyası gerekiyor.",
       red: "Belgedeki ad soyad, başvurudaki adla eşleşmiyor.",
     };
+    // Görevli incelemesi (Sarp'ın akışı): barkodla e-Devlet'te asıl belgeyi aç, karşılaştır, karar ver
+    const GOREVLI = [["acti", "Barkodla turkiye.gov.tr belge doğrulamada asıl belgeyi açtım."], ["ad", "Ad soyad başvurudaki adla aynı."], ["okul", "Okul, bölüm ve unvan beyan edilen meslekle uyumlu."],
+      ["tarih", "Mezuniyet / tescil tarihleri ve numaraları tutarlı."], ["ayni", "Yüklenen belge asıl belgeyle aynı; düzenleme izi yok."]];
+    function gorevliPanel() {
+      const sb = V.submitted;
+      if (!sb || V.status !== "bekliyor") return "";
+      const KB = window.KapidaBelge, g = V.gorevli, hepsi = GOREVLI.every(([k]) => g[k]);
+      const docs = [["YÖK mezun belgesi / diploma", "diploma"], ["Diploma tescil belgesi", "tescilBelge"], ["Uzmanlık belgesi", "uzmanlik"], ["Çalışma / kuruluş belgesi", "kurum"]].filter(([, k]) => sb.files[k]);
+      return `<div class="v-gorevli"><b>Görevli incelemesi</b> <span class="tiny muted">${esc(sb.f.name)} · ${esc(profText(sb.f))}</span>
+        ${docs.map(([ad, k]) => `<div class="v-gdoc"><div><b class="small">${ad}</b> <span class="tiny muted">${esc(sb.files[k].name)}</span></div>
+          ${sb.barkod && sb.barkod[k] ? `<div class="small">Barkod: <b class="v-mono">${esc(sb.barkod[k])}</b> <a class="small" href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener">e-Devlet'te aç ↗</a></div>` : ""}
+          ${KB && (sb.files[k].onk || []).length ? KB.bayrakHtml(sb.files[k].onk, esc) : ""}</div>`).join("")}
+        <div class="v-gchk">${GOREVLI.map(([k, t]) => `<label><input type="checkbox" data-vgorev="${k}" ${g[k] ? "checked" : ""}> <span>${t}</span></label>`).join("")}</div>
+        <div class="seg"><button class="chip" type="button" data-vgkarar="onay" ${hepsi ? "" : "disabled"}>Onayla</button><button class="chip" type="button" data-vgkarar="eksik">Yeniden yükleme iste</button><button class="chip" type="button" data-vgkarar="red">Uygun değil</button></div>
+        <span class="tiny muted">Asıl PDF'i bırakıp alan alan otomatik karşılaştırma: <a href="https://raw.githack.com/eneskrc0/evdesaglik/main/sarp/dogrulama.html" target="_blank" rel="noopener">Sarp'ın görevli paneli ↗</a> (prototip)</span></div>`;
+    }
     function demoPanel() {
-      return `<b>Demo kontrolleri</b><span class="tiny muted">Yalnızca sunum için · başvuru durumunu elle değiştirir</span>
+      return `${gorevliPanel()}<b>Demo kontrolleri</b><span class="tiny muted">Yalnızca sunum için · başvuru durumunu elle değiştirir</span>
         <div class="seg">${["bekliyor", "eksik", "onaylandi", "red"].map((s) => `<button class="chip" type="button" data-vdemo="${s}" aria-pressed="${V.status === s}">${STATUS[s].label}</button>`).join("")}
         <button class="chip" type="button" data-vdemo="reset">Baştan başlat</button></div>`;
     }
     function demoClick(e) {
+      const gc = e.target.closest("[data-vgorev]");
+      if (gc) { V.gorevli[gc.dataset.vgorev] = gc.checked; ctx.rerender(); return; }
+      const gk = e.target.closest("[data-vgkarar]");
+      if (gk && !gk.disabled) {
+        const k = gk.dataset.vgkarar;
+        if (k === "onay") go({ status: "onaylandi", reason: "", view: "status", open: true, showSummary: false, toTop: true });
+        else go({ status: k === "eksik" ? "eksik" : "red", reason: k === "eksik" ? "Görevli: belgelerden biri e-Devlet'teki asıl belgeyle karşılaştırılamadı; barkodlu PDF'ini yeniden yükle." : "Görevli: yüklenen belge e-Devlet'teki asıl belgeyle eşleşmedi.", view: "status", open: true, showSummary: false, toTop: true });
+        return;
+      }
       const b = e.target.closest("[data-vdemo]");
       if (!b) return;
       const s = b.dataset.vdemo;
       if (s === "reset") {
         V.f = { name: "", prof: "", profOther: "", hekimType: "", specialty: "", org: "", tescil: "" };
-        V.files = { diploma: null, uzmanlik: null, kurum: null };
+        V.files = { diploma: null, tescilBelge: null, uzmanlik: null, kurum: null }; V.barkod = { diploma: "", tescilBelge: "", uzmanlik: "" }; V.gorevli = {};
         go({ status: "yok", reason: "", submitted: null, decl: false, err: {}, view: "form", step: 1, open: true, toTop: true });
       } else {
         go({ status: s, reason: DEMO_REASON[s] || "", view: "status", open: true, showSummary: false, toTop: true });
@@ -3996,7 +4293,7 @@ YANIT yalnızca şu JSON olsun:
     if (CAP.dictation && P.listening) { try { CAP.dictation.stop(); } catch (e) { /**/ } P.listening = false; }
     Object.assign(P.info, { doktor: false, atlaMeslek: null, yzMeslek: null, hizmet: null, plan: "bilinmiyor", bed: false, forWhom: "", gun: 0, when: 570 });
     Object.assign(P, { gecmisSoru: null, gecmisSoruldu: false, atlaBekliyor: false });
-    P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = [];
+    P.screen = "chat"; P.msgs = []; P.turns = []; P.photos = []; P.photoNotes = []; P.pendingPhotos = []; P.report = null; P.emergency = null; P.demoStep = 0; P.demoAnswers = []; P.rx = null;
     const hello = "Merhaba, ben anında sağlık asistanı. Ne olduğunu kendi cümlelerinle anlat ya da mikrofona basıp konuş. Birkaç kısa soru sorup seni doğru sağlık çalışanına yönlendireceğim.";
     if (P.mode === "ai") {
       P.msgs.push({ who: "ai", text: hello, quick: PR.h.yakinlar.length ? [...PR.h.yakinlar.slice(0, 3).map((y) => `${y.yakinlik} için`), "Kendim için"] : ["Annem için", "Babam için", "Kendim için"] });
@@ -4241,7 +4538,15 @@ YANIT yalnızca şu JSON olsun:
       if (no !== P.sohbetNo) return;
     }
     if (!rep || typeof rep !== "object") {
-      if (P.mode === "ai") { const me = P.msgs.filter((m) => m.who === "me").map((m) => m.text); P.demoAnswers = [me.join(". "), "", "", "", ""]; }
+      // Yapay zekâ yoksa ya da sorular atlandıysa (demo cevapları boş): kullanıcının kendi cümleleri şikâyet olur.
+      // "direkt hemşireye yönlendir" gibi yönlendirme sözü ve "Soruları geç" düğmesi şikâyete yazılmaz (22.11).
+      if (P.mode === "ai" || !(P.demoAnswers || [])[0]) {
+        const me = P.msgs.filter((m) => m.who === "me" && !m.araLaf && !/^Soruları geç,/.test(m.text)).map((m) => (m.temiz || m.text)
+          .replace(/(^|[\s,.;])(lütfen\s+)?(direkt|doğrudan|hemen)?\s*(beni\s+)?\S*(doktor|hekim|hemşire|fizyoterapist|ebe|odyolog|diyetisyen|psikolog|podolog|terapist)\S*\s+(yönlendir|aktar|bağla|gönder)\S*[,.;]?/gi, "$1")
+          .split(/(?<=[.!?])\s+|,\s*/).filter((c) => !/^(bir\s+|acil\s+)?\S*(doktor|hekim|hemşire|fizyoterapist|ebe|odyolog|diyetisyen|psikolog|podolog|terapist)\S*\s+(istiyorum|lazım|gelsin|çağır\S*(\s+istiyorum)?|bak\S*)[.!?]?$/i.test(c.trim())).join(", ")
+          .replace(/^[\s,.;]+|[\s,.;]+$/g, "")).filter(Boolean);
+        P.demoAnswers = [me.join(". "), "", "", (P.demoAnswers || [])[3] || "", (P.demoAnswers || [])[4] || ""];
+      }
       rep = demoReport();
     }
     if (!repo.services[rep.hizmet_onerisi]) rep.hizmet_onerisi = "ev_muayene";
@@ -4676,6 +4981,165 @@ YANIT yalnızca şu JSON olsun:
       <div class="tiny muted" style="text-align:center">Bu bir teşhis değildir. Durum kötüleşirse 112'yi ara.</div>
     </div>`;
   }
+  // ---------- Reçete / hekim planı doğrulama (Sarp'ın modülü: sarp/dogrulama.html → web/belge.js + web/recete.js) ----------
+  // Hasta "doktorumun planı / reçetesi var" dediyse ve seçilen hizmet reçete (serum, kas içi iğne) ya da hekim istemi
+  // (sonda, kan alma, fizyoterapi…) istiyorsa seçenekler ekranında kart çıkar. Reçetede e-Reçete no zorunlu; belge isteğe bağlı
+  // ama önerilir (görüntüyse yapay zekâ okur). Ön kontrol bilgi verir; kesin doğrulamayı çalışan kapıda yapar. Dosya saklanmaz.
+  const KR = window.KapidaRecete, KB = window.KapidaBelge;
+  const rxTur = (service) => (KR && P.info.plan === "var" ? KR.tur(svc(service)) : null);
+  function rxDurum(service) {
+    // Hizmet değişince (ör. sonda bakımı ↔ takma) yazılan numara ve ad korunur; belge ve ön kontrol yeni hizmete göre yeniden yapılır
+    if (!P.rx || P.rx.service !== service) { const o = P.rx || {}; P.rx = { service, rxNo: o.rxNo || "", hasta: o.hasta || "", doc: null, ai: null, sonuc: null, busy: false, hata: "", ack: false, onay: false }; if (P.rx.rxNo) rxYenidenDegerlendir(service); }
+    return P.rx;
+  }
+  function rxYenidenDegerlendir(service) {
+    const x = rxDurum(service), t = rxTur(service);
+    if (!t) return;
+    const bos = !x.doc && !x.rxNo.trim();
+    x.sonuc = bos && t === "plan" ? null : KR.onKontrol({ doc: x.doc, ai: x.ai, tur: t, svcAd: svc(service).name_tr, beyan: { rxNo: x.rxNo, hasta: x.hasta }, bugun: new Date(gunTarih(P.info.gun) + "T12:00:00") });
+  }
+  // Randevu onaylanabilir mi? { ok, neden }
+  function rxHazir(service) {
+    const t = rxTur(service);
+    if (!t) return { ok: true };
+    const x = rxDurum(service);
+    if (x.busy) return { ok: false, neden: "Belgen okunuyor, birkaç saniye bekle." };
+    if (t === "recete" && !KR.noGecerli(x.rxNo) && !(x.sonuc && x.sonuc.alan.recete_no && KR.noGecerli(x.sonuc.alan.recete_no))) return { ok: false, neden: "Reçeteli hizmet için e-Reçete numaranı yaz." };
+    if (!x.sonuc) return { ok: true }; // hekim planı: belge eklenmediyse kapıda gösterilir
+    if (x.sonuc.flags.some((f) => f.code === "rx_no_yok")) return { ok: false, neden: "e-Reçete numarası olmadan reçeteli hizmet istenemez." };
+    if (x.sonuc.sonuc === "supheli" && !x.ack) return { ok: false, neden: "Ön kontrol uyarılarını gördüğünü işaretle ya da reçeteni düzelt." };
+    if (!x.onay) return { ok: false, neden: "Reçete bilgilerinin paylaşılmasına izin kutusunu işaretle." };
+    return { ok: true };
+  }
+  function receteKarti(service) {
+    const t = rxTur(service);
+    if (!t) return "";
+    const x = rxDurum(service), s = svc(service), h = rxHazir(service);
+    const baslik = t === "recete" ? "Reçeteni ekle" : "Doktorunun planını ekle";
+    const alt = t === "recete" ? `${esc(s.name_tr)} reçete ister. e-Reçete numaranı yaz; e-Nabız'da <b>Reçetelerim</b> ekranının görüntüsünü ya da kağıt reçetenin fotoğrafını da ekleyebilirsin.`
+      : `${esc(s.name_tr)} doktor planıyla yapılır. İstersen planın, raporun ya da e-Nabız ekranının görüntüsünü şimdi ekle; eklemezsen kapıda göstermen yeterli.`;
+    return `<div class="card stack rx-kart" id="rxKart" style="gap:10px">
+      <div class="row between"><b>${baslik}</b><span class="pill ${t === "recete" ? "kirmizi" : "plain"}">${t === "recete" ? "Zorunlu" : "İsteğe bağlı"}</span></div>
+      <div class="small">${alt}</div>
+      <label class="stack small" style="gap:4px" for="rxNo"><b>${t === "recete" ? "e-Reçete numarası" : "e-Reçete / rapor numarası"}</b>${t === "recete" ? "" : ` <span class="muted">(varsa)</span>`}
+        <input class="inp mono" id="rxNo" data-rx="no" autocomplete="off" maxlength="16" placeholder="ör. 1A2B3C4" value="${esc(x.rxNo)}"></label>
+      <label class="stack small" style="gap:4px" for="rxHasta"><b>Hastanın adı soyadı</b> <span class="muted">(reçetede yazan; eşleşme için)</span>
+        <input class="inp" id="rxHasta" data-rx="hasta" autocomplete="off" maxlength="60" value="${esc(x.hasta)}"></label>
+      <div class="stack" id="rxDinamik" style="gap:10px">${rxDinamikHtml(service)}</div></div>`;
+  }
+  // Kartın değişen kısmı: yazı alanlarına dokunmadan yenilenir (telefonda klavye kapanmasın, odak kaybolmasın)
+  function rxDinamikHtml(service) {
+    const t = rxTur(service), x = rxDurum(service), h = rxHazir(service);
+    return `${x.busy ? `<div class="rx-yukle small"><span class="typing"><i></i><i></i><i></i></span> Belgen okunuyor…</div>`
+        : x.doc ? `<div class="row between rx-dosya"><span class="small"><b>${esc(x.doc.ad)}</b> <span class="muted">· ${x.doc.isPdf ? "PDF" : "görüntü"}</span></span><label class="btn ghost" style="cursor:pointer">Değiştir<input type="file" id="rxDosya" accept="image/*,application/pdf" hidden></label></div>`
+        : `<label class="rx-ekle" style="cursor:pointer">${ICO.cam}<span><b>+ Belge ekle</b><span class="tiny muted">e-Nabız ekran görüntüsü, PDF ya da reçete fotoğrafı</span></span><input type="file" id="rxDosya" accept="image/*,application/pdf" hidden></label>`}
+      ${x.hata ? `<div class="note small" role="alert">${esc(x.hata)}</div>` : ""}
+      ${x.sonuc ? KR.raporHtml(x.sonuc, esc, { kisa: true }) : ""}
+      ${x.sonuc && x.sonuc.sonuc === "supheli" && !x.sonuc.flags.some((f) => f.code === "rx_no_yok") ? `<label class="row small" style="gap:10px"><input type="checkbox" data-rx="ack" ${x.ack ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand)"> Uyarıları gördüm; belgem doğru. Sağlık çalışanı kapıda kontrol etsin.</label>` : ""}
+      ${x.sonuc ? `<label class="row small" style="gap:10px;align-items:flex-start"><input type="checkbox" data-rx="onay" ${x.onay ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--brand);flex:none"> Reçete / plan bilgilerimin talebi kabul eden sağlık çalışanıyla paylaşılmasına ve kapıda e-Nabız'ımdaki kaydın kontrol edilmesine izin veriyorum.</label>` : ""}
+      <div class="tiny ${h.ok ? "muted" : ""}" id="rxNeden">${h.ok ? "Sağlık çalışanı kapıda e-Nabız'ındaki kaydı görerek doğrular; doğrulanamazsa uygulama yapılmaz. Yapay zekâ ilacın uygunluğunu değerlendirmez; belge dosyası saklanmaz." : "⚠ " + esc(h.neden)}</div>`;
+  }
+  function rxYenile(service) {
+    const d = $("#rxDinamik");
+    if (!d || P.screen !== "options") return renderP();
+    d.innerHTML = rxDinamikHtml(service);
+    const x = rxDurum(service), no = $("#rxNo"), ad = $("#rxHasta");
+    if (no && document.activeElement !== no && no.value !== x.rxNo) no.value = x.rxNo;
+    if (ad && document.activeElement !== ad && ad.value !== x.hasta) ad.value = x.hasta;
+  }
+  async function rxDosyaEkle(service, file) {
+    const x = rxDurum(service), hata = KB.dosyaHatasi(file);
+    if (hata) { x.hata = hata; rxYenile(service); return; }
+    x.hata = ""; x.busy = true; x.ai = null; x.ack = false; rxYenile(service);
+    try {
+      const doc = await KB.oku(file);
+      x.doc = { ad: doc.ad, isPdf: doc.isPdf, hash: doc.hash, raw: doc.raw.slice(0, 200000), imza: doc.imza, eof: doc.eof, qr: doc.qr };
+      if (doc.resim && CAP.server && CAP.server.recete) {
+        try { x.ai = await CAP.server.recete(doc.resim, svc(service).name_tr, KR.FORM[service] || "hekim istemi"); } catch (e) { x.ai = null; }
+      }
+      if (!x.rxNo && x.ai && x.ai.recete_no) x.rxNo = KR.noTemiz(x.ai.recete_no);
+      if (!x.hasta && x.ai && x.ai.hasta_ad_soyad) x.hasta = String(x.ai.hasta_ad_soyad).slice(0, 60);
+    } catch (e) { x.hata = "Belge okunamadı. Başka bir dosya dene."; x.doc = null; }
+    x.busy = false; rxYenidenDegerlendir(service); rxYenile(service);
+  }
+  // Talebe giden kayıt (dosyanın kendisi değil; yalnızca okunan alanlar ve ön kontrol)
+  function rxKaydi(service) {
+    const t = rxTur(service);
+    if (!t) return null;
+    const x = rxDurum(service);
+    if (!x.sonuc && !x.rxNo.trim()) return { tur: t, no: "", belge: false, sonuc: null, kontrol: null };
+    if (!x.sonuc) rxYenidenDegerlendir(service);
+    const k = x.sonuc;
+    return { tur: t, no: KR.noTemiz(x.rxNo || k.alan.recete_no), hasta: x.hasta.trim(), belge: !!x.doc, dosya: x.doc ? { ad: x.doc.ad, hash: x.doc.hash } : null,
+      sonuc: { sonuc: k.sonuc, risk: k.risk, flags: k.flags.map((f) => ({ lv: f.lv, code: f.code, text: String(f.text).slice(0, 300) })), alan: k.alan, ilaclar: k.ilaclar, ozet: k.ozet },
+      hasta_onay: x.ack, paylasim_izni: x.onay, kontrol: null };
+  }
+  // Çalışan: talep detayında reçete / plan bölümü
+  function rxCalisanBolumu(r) {
+    const x = r.recete; if (!x) return "";
+    const k = x.kontrol;
+    return `<div class="sec card stack rx-calisan" style="gap:8px"><h3>${x.tur === "recete" ? "Reçete" : "Hekim planı"} · ön kontrol</h3>
+      ${x.no ? `<div class="small">${x.tur === "recete" ? "e-Reçete" : "Belge"} no: <b class="mono">${esc(x.no)}</b>${x.hasta ? ` · hasta: ${esc(x.hasta)}` : ""}</div>` : ""}
+      ${x.sonuc ? KR.raporHtml(x.sonuc, esc) : `<div class="small">Hasta belge eklemedi; ${x.tur === "recete" ? "reçeteyi" : "planı"} kapıda göster dedi.</div>`}
+      ${k ? `<div class="rx-sonuc ${k.durum === "dogrulandi" ? "good" : "coral"}"><span class="rx-ikon">${k.durum === "dogrulandi" ? "✓" : "✗"}</span><div><b>${k.durum === "dogrulandi" ? "Kapıda doğrulandı" : "Kapıda doğrulanamadı · uygulama yapılmadı"}</b>${k.not ? `<span class="small">${esc(k.not)}</span>` : ""}</div></div>`
+        : `<div class="tiny muted">Kesin doğrulama sende: kapıda hastanın e-Nabız'ını görerek 5 maddelik kontrolü yap (Rotam › ziyaret başladıktan sonra). Doğrulanmayan ${x.tur === "recete" ? "reçeteyle" : "planla"} uygulama yapma.</div>`}</div>`;
+  }
+  // Çalışan: kapıda kişisel kontrol (check-in sonrası, Rotam'da Güvenli Ziyaret'in altında)
+  function rxKapiHtml(r) {
+    if (!r || !r.recete || !KR) return "";
+    const gs = G.durum(r) || {};
+    if (!gs.checkin || r.recete.kontrol) return r.recete.kontrol && gs.checkin && !gs.checkout ? rxCalisanBolumu(r) : "";
+    const x = r.recete, l = KR.KAPI[x.tur] || KR.KAPI.plan, st = (H.rxk ||= {})[r.id] ||= { chk: {}, not: "" };
+    const hepsi = l.every(([k]) => st.chk[k]);
+    return `<div class="card stack rx-kapi" id="rxKapi" style="gap:10px"><div class="row between"><b>Kapıda ${x.tur === "recete" ? "reçete" : "plan"} kontrolü</b><span class="pill sun">Uygulamadan önce</span></div>
+      <div class="small">Hastadan telefonunda <b>e-Nabız › Reçetelerim</b> ekranını açmasını iste.${x.no ? ` Numara: <b class="mono">${esc(x.no)}</b>.` : ""}${x.sonuc && x.sonuc.ilaclar.length ? ` Belgeden okunan: ${esc(x.sonuc.ilaclar.map((i) => i.ad).join(", "))}.` : ""}</div>
+      <div class="checklist">${l.map(([k, t]) => `<label><input type="checkbox" data-rxk="${k}" ${st.chk[k] ? "checked" : ""}> <span>${esc(t)}</span></label>`).join("")}</div>
+      <label class="stack small" style="gap:4px" for="rxNot"><b>Not</b> <span class="muted">(doğrulanamazsa hastaya gösterilir)</span><input class="inp" id="rxNot" maxlength="200" value="${esc(st.not)}" placeholder="ör. e-Nabız'da bu numarayla reçete yok"></label>
+      <div class="row" style="gap:8px"><button class="btn" type="button" data-rxkapi="red" style="flex:1">Doğrulanamadı</button><button class="btn primary" type="button" data-rxkapi="ok" style="flex:1"${hepsi ? "" : " disabled"}>${x.tur === "recete" ? "Reçete" : "Plan"} doğrulandı</button></div>
+      <div class="tiny muted">Uygulama resmî bir sistemi sorgulamaz; kontrol senin gözünle yapılır. Doğrulanamazsa uygulama yapılmaz, hizmet ücreti alınmaz (demo).</div></div>`;
+  }
+  function rxKapiKarar(r, durum, demo) {
+    if (!r || !r.recete || r.recete.kontrol) return;
+    const st = (H.rxk || {})[r.id] || { chk: {}, not: "" }, l = KR.KAPI[r.recete.tur] || KR.KAPI.plan;
+    const not = demo ? "Demo: sağlık çalışanı kapıda kontrol etti." : (st.not || "").trim() || (durum === "dogrulanamadi" ? `${r.recete.tur === "recete" ? "Reçeten" : "Doktor planın"} kapıda doğrulanamadı; uygulama yapılmadı. Lütfen doktoruna danış.` : "");
+    r.recete = { ...r.recete, kontrol: { durum, ts: Date.now(), liste: l.filter(([k]) => demo || st.chk[k]).map(([k]) => k), not, by: r.provider_id } };
+    putRequest(r);
+  }
+  // Hasta: takip ekranında reçete durumu
+  function rxHastaKarti(r) {
+    const x = r && r.recete; if (!x) return "";
+    const k = x.kontrol, ad = x.tur === "recete" ? "Reçeten" : "Doktor planın";
+    if (k) return `<div class="rx-sonuc ${k.durum === "dogrulandi" ? "good" : "coral"}" id="rxHasta"><span class="rx-ikon">${k.durum === "dogrulandi" ? "✓" : "✗"}</span><div><b>${k.durum === "dogrulandi" ? `${ad} kapıda doğrulandı` : `${ad} doğrulanamadı · uygulama yapılmadı`}</b>${k.durum === "dogrulanamadi" ? `<span class="small">${esc(k.not)} Hizmet ücreti alınmaz (demo).</span>` : ""}</div></div>`;
+    return `<div class="card soft small" id="rxHasta">${x.tur === "recete" ? "e-Reçete" : "Hekim planı"}${x.no ? ` <b class="mono">${esc(x.no)}</b>` : ""}${x.sonuc ? ` · ${esc(KR.SONUC[x.sonuc.sonuc][2])}` : ""}. Gelen sağlık çalışanı kapıda e-Nabız'ındaki kaydı görerek doğrulayacak; telefonunda e-Nabız açık olsun.${x.belge || x.tur === "recete" ? "" : " Planını hazır tut."}</div>`;
+  }
+  $("#hScreen").addEventListener("change", (e) => {
+    const k = e.target.dataset && e.target.dataset.rxk, r = gzR();
+    if (!k || !r) return;
+    ((H.rxk ||= {})[r.id] ||= { chk: {}, not: "" }).chk[k] = e.target.checked;
+    const sc = $("#hScreen"), y = sc.scrollTop; renderH(); sc.scrollTop = y;
+  });
+  $("#hScreen").addEventListener("input", (e) => { const r = gzR(); if (e.target.id === "rxNot" && r) ((H.rxk ||= {})[r.id] ||= { chk: {}, not: "" }).not = e.target.value; });
+  $("#hScreen").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-rxkapi]"), r = gzR();
+    if (!b || !r || b.disabled) return;
+    rxKapiKarar(r, b.dataset.rxkapi === "ok" ? "dogrulandi" : "dogrulanamadi");
+    renderH(); renderP();
+  });
+  $("#pScreen").addEventListener("input", (e) => {
+    const k = e.target.dataset && e.target.dataset.rx, x = P.rx;
+    if (!x || !k) return;
+    if (k === "no") x.rxNo = e.target.value; else if (k === "hasta") x.hasta = e.target.value;
+  });
+  $("#pScreen").addEventListener("change", (e) => {
+    const x = P.rx; if (!x) return;
+    if (e.target.id === "rxDosya" && e.target.files[0]) { rxDosyaEkle(x.service, e.target.files[0]); return; }
+    const k = e.target.dataset && e.target.dataset.rx;
+    if (!k) return;
+    if (k === "ack" || k === "onay") x[k] = e.target.checked;
+    if (k === "no" || k === "hasta") rxYenidenDegerlendir(x.service);
+    rxYenile(x.service);
+  });
+
   // Kullanıcı belirli bir meslek istediyse: ne olacağını açıkla, plan varsa hizmeti seçtir, plan yoksa nedenini söyle
   function hizmetSecimi(t) {
     if (!t.secenekler || t.secenekler.length < 2) return "";
@@ -4712,7 +5176,7 @@ YANIT yalnızca şu JSON olsun:
       ${stepsBar(3)}
       <div class="levelcard"><span class="lv-ico">${ico}</span><div class="stack" style="gap:4px"><b>${esc(head)}</b><span class="small">${esc(why)}</span>
         <span class="small muted">Hizmet: ${esc(svc(service).name_tr)} · ${svc(service).duration_min} dk</span></div></div>
-      ${meslekKarti(t)}${hizmetSecimi(t)}
+      ${meslekKarti(t)}${hizmetSecimi(t)}${receteKarti(service)}
       <div class="seg" role="group" aria-label="Sıralama">${Object.entries(SORTS).map(([k, [l]]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>
       ${yz ? teklifKarti(yz) : ""}
       ${yz ? `<details class="klasik" id="klasikListe"${P.klasikAcik || (teklifDurumu(yz).bitti && !teklifDurumu(yz).satirlar.some((r) => r.verir)) ? " open" : ""}><summary class="small">Tüm uygun kişiler (klasik liste, ${P.cands.length})</summary><div class="stack" style="gap:10px;margin-top:10px">` : ""}
@@ -4793,6 +5257,7 @@ YANIT yalnızca şu JSON olsun:
   }
   setInterval(() => {
     if (P.screen !== "options" || !P.yz || P.sheet !== null) return;
+    if (document.activeElement && /^rx/.test(document.activeElement.id || "")) return; // reçete numarası yazılırken ekranı yenileme
     const d = teklifDurumu(P.yz), imza = d.satirlar.map((r) => r.pid + (r.geldi ? 1 : 0)).join(",") + (d.bitti ? "|bitti" : "");
     if (imza !== P.yz.imza) { P.yz.imza = imza; const sc = $("#pScreen"), y = sc.scrollTop; renderP(); sc.scrollTop = y; }
   }, 500);
@@ -4828,7 +5293,9 @@ YANIT yalnızca şu JSON olsun:
         <span class="tot">Toplam</span><span class="tot num">${tl(pr.patient_pays)} TL</span></div>
       ${shared ? `<div class="note small"><b>Neden indirimli?</b> ${esc(pp.first)} bugün zaten bölgende bir ziyarette olacak. Sana uğrarken yolu paylaşıyorsunuz; kazanılan yol masrafının yarısı sana indirim olarak döner.</div>` : ""}
       <div class="tiny muted">Ödeme ziyaret tamamlanınca alınır. Saatten 2 saat öncesine kadar ücretsiz iptal (demo koşulu).</div>
-      <button class="btn primary block" type="button" data-act="confirm">Randevuyu onayla · ${tl(pr.patient_pays)} TL</button>
+      ${(() => { const t = rxTur(c.service), h = rxHazir(c.service), x = t ? rxDurum(c.service) : null;
+        return t ? `<div class="card soft small rx-ozet">${h.ok ? `${t === "recete" ? "e-Reçete" : "Hekim planı"}${x.rxNo ? ` <b class="mono">${esc(KR.noTemiz(x.rxNo))}</b>` : ""}${x.sonuc ? ` · ${esc(KR.SONUC[x.sonuc.sonuc][2])}` : " · kapıda gösterilecek"}. Sağlık çalışanı kapıda doğrular.` : `⚠ ${esc(h.neden)} <button class="btn ghost" type="button" data-act="closeSheet">Reçeteye dön</button>`}</div>` : ""; })()}
+      <button class="btn primary block" type="button" data-act="confirm"${rxHazir(c.service).ok ? "" : " disabled"}>Randevuyu onayla · ${tl(pr.patient_pays)} TL</button>
     </div></div>`;
   }
   // ---------- ziyaret sonrası puanlama (hasta → sağlık çalışanı) ----------
@@ -4925,7 +5392,7 @@ YANIT yalnızca şu JSON olsun:
     const st = r.status;
     const gs = G.durum(r) || {};
     const steps = [["Talep gönderildi", "Raporun sağlık çalışanına iletildi.", true], [st === "red" ? "Sağlık çalışanı uygun değil" : "Sağlık çalışanı onayı", st === "kabul" ? `${pp.first} talebi kabul etti.` : st === "red" ? "Sana yeni seçenekler gösterelim." : "Genelde 10 dakika içinde yanıt gelir.", st !== "bekliyor"],
-      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, !!gs.checkin], ["Kapında", `${C.hhmm(r.arrival_min)} · kapı kodu ve fotoğrafla doğrula`, !!gs.checkin], ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, gs.hastaOnay === "tamam"]];
+      ["Yolda", `${C.hhmm(r.arrival_min - 20)} civarı yola çıkar.`, !!gs.checkin], ["Kapında", `${C.hhmm(r.arrival_min)} · kapı kodu ve fotoğrafla doğrula`, !!gs.checkin], r.recete && r.recete.kontrol && r.recete.kontrol.durum === "dogrulanamadi" ? ["Uygulama yapılmadı", "Reçete/plan doğrulanamadı · ücret alınmaz (demo)", true] : ["Tamamlandı, ödeme", `${tl(r.price.patient_pays)} TL`, gs.hastaOnay === "tamam"]];
     return `<div class="pad stack">
       ${stepsBar(4)}
       <div class="row between"><h2 style="font-size:22px">${st === "kabul" ? "Randevun kesinleşti" : st === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
@@ -4935,6 +5402,7 @@ YANIT yalnızca şu JSON olsun:
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
       ${(r.ek_bilgi || []).length ? `<div class="card stack ek-bilgi" style="gap:6px"><b>${esc(pp.first)} senden ek bilgi istiyor</b>${r.ek_bilgi.map((x) => `<div class="small">• ${esc(x)}</div>`).join("")}<div class="small muted">Fotoğrafı ziyaretten önce sohbetten ya da ziyarette gösterebilirsin.</div></div>` : ""}
       ${karmaMi(r) && st === "kabul" ? (r.goruntuluHekim ? VG.hastaRandevuHtml(r, vgHastaCtx(r)) : `<div class="card small">Görüntülü katılacak hekim atanıyor; atanınca burada görünecek.</div>`) : ""}
+      ${st === "kabul" ? rxHastaKarti(r) : ""}
       ${G.aktif(r) ? `<div id="gzHasta">${G.hastaHtml(r)}</div>` : ""}
       ${gs.hastaOnay ? puanKarti(r) : ""}
       ${st === "kabul" && r.gun ? `<div class="card soft small">Randevun <b>yarın (${GUNLER[1].uzun}) ${C.hhmm(r.arrival_min)}</b>. Canlı takip yarın, sağlık çalışanı yola çıkınca başlar.</div>` : ""}
@@ -5244,6 +5712,7 @@ YANIT yalnızca şu JSON olsun:
   }
   async function confirmBooking() {
     const c = P.cands[P.sheet];
+    if (!rxHazir(c.service).ok) { P.sheet = null; P.toast = rxHazir(c.service).neden; renderP(); const k = $("#rxKart"); if (k) k.scrollIntoView({ block: "center" }); return; }
     // Onay anında çakışmayı yeniden denetle: bu arada başka bir randevu o saati doldurduysa listeyi yenile
     if (!c.teklif) {
       const kontrol = C.findCandidates(repo, c.service, P.pt, gunTarih(P.info.gun), P.info.when, SORTS[P.sort][1], 20, 500, gercekSimdi());
@@ -5259,6 +5728,7 @@ YANIT yalnızca şu JSON olsun:
       id, created_at: new Date().toISOString(), status: c.teklif ? "kabul" : "bekliyor", accepted_at: c.teklif ? Date.now() : undefined, teklif: c.teklif || null, provider_id: c.provider_id, service: c.service, level: P.triage.level,
       arrival_min: c.arrival_min, gun: P.info.gun, date: gunTarih(P.info.gun), price: c.price, ins: c.insertion, patient: { district: P.info.district, lat: P.pt.lat, lon: P.pt.lon, bedridden: P.info.bed, plan: P.info.plan, adres: P.info.nokta ? P.info.nokta.adres : "", tarif: (P.info.tarif || "").trim().slice(0, 160) },
       report: P.report, photos: P.photos.slice(0, 3).map((p) => p.url), red_flags_checked: true, from_app: true, author: CAP.uid || null,
+      recete: rxKaydi(c.service),
     };
     if (karmaMi(r)) karmaHekimAta(r);
     P.request = r; P.sheet = null; P.screen = "done";
@@ -5394,7 +5864,8 @@ YANIT yalnızca şu JSON olsun:
     const uz = uzaktanMi(r);
     const stops = [...hStops(p.id), ...(uz ? [] : [nv])].sort((a, b) => a.start_min - b.start_min);
     const pr = r.price;
-    const planTxt = { var: "Var (beyan) · belgeyi ziyarette gör", yok: "Yok", bilinmiyor: "Bilinmiyor" }[r.patient.plan] || r.patient.plan;
+    const planTxt = r.recete ? `Var · ${r.recete.tur === "recete" ? "e-Reçete" : "plan"}${r.recete.no ? " " + r.recete.no : ""} · ${r.recete.kontrol ? (r.recete.kontrol.durum === "dogrulandi" ? "kapıda doğrulandı" : "kapıda doğrulanamadı") : r.recete.sonuc ? KR.SONUC[r.recete.sonuc.sonuc][2].toLocaleLowerCase("tr") + " · kapıda doğrula" : "belgeyi kapıda gör"}`
+      : { var: "Var (beyan) · belgeyi ziyarette gör", yok: "Yok", bilinmiyor: "Bilinmiyor" }[r.patient.plan] || r.patient.plan;
     const kv = [["Kim için", [rep.kim_icin, rep.yas_araligi].filter((x) => x && x !== "belirtilmedi").join(" · ") || "belirtilmedi"], ["Şikayet", rep.sikayet], ["Ne zamandır", rep.baslangic], ["Seyir", rep.seyir], ["Şiddet", rep.siddet_beyani], ["Yatağa bağımlı", r.patient.bedridden ? "Evet" : "Hayır / belirtilmedi"], ["Hekim planı", planTxt], ["Hastalık, ilaç, alerji", rep.kronik_ilac_alerji]];
     return `<div class="pad stack">
       <button class="back" type="button" data-act="hback">${ICO.back} Talepler</button>
@@ -5407,7 +5878,7 @@ YANIT yalnızca şu JSON olsun:
           return `<dt>${esc(k)}</dt><dd>${esc(v || "belirtilmedi")}${yz ? ` <span class="pill plain" title="Kullanıcı bunu açıkça söylemedi; yapay zekâ konuşmadan çıkardı">YZ çıkarımı</span>` : ""}</dd>`; }).join("")}</dl>
         ${rep.hastanin_kendi_sozleri && rep.hastanin_kendi_sozleri !== "belirtilmedi" ? `<div class="small"><span class="muted">Kendi sözleriyle:</span> “${esc(rep.hastanin_kendi_sozleri)}”</div>` : ""}</div>
       ${(() => { const bos = kv.filter(([, v]) => !v || v === "belirtilmedi").map(([k]) => k + ": sorulmadı / belirtilmedi");
-        const dogrulanmadi = r.patient.plan === "var" ? ["Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
+        const dogrulanmadi = r.patient.plan === "var" && !(r.recete && r.recete.kontrol && r.recete.kontrol.durum === "dogrulandi") ? [r.recete && r.recete.tur === "recete" ? "Reçete henüz kapıda doğrulanmadı; e-Nabız'dan kontrol etmeden uygulama yapma" : "Hekim planı yalnızca beyan; belgeyi ziyarette gör"] : [];
         const l = [...(rep.eksik_bilgiler || []), ...dogrulanmadi, ...bos];
         return l.length ? `<div class="sec card stack" style="gap:4px"><h3>2 · Eksik ya da doğrulanmamış bilgiler</h3>${l.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("")}</div>` : ""; })()}
       <div class="sec card stack" style="gap:8px"><h3>3 · Yapay zekâ özeti</h3>
@@ -5417,6 +5888,7 @@ YANIT yalnızca şu JSON olsun:
         ${(rep.dikkat_edilecekler || []).length ? rep.dikkat_edilecekler.map((x) => `<div class="row small">${ICO.alert}<span>${esc(x)}</span></div>`).join("") : ""}
         ${(rep._denetim || []).length ? `<details class="small"><summary class="muted">Rapor denetimi: ${rep._denetim.length} düzeltme (söylenmeyen bilgi çıkarıldı, son beyan esas alındı)</summary>${rep._denetim.map((x) => `<div class="tiny">• ${esc(x.ne)}</div>`).join("")}</details>` : ""}
         <div class="tiny muted">Hasta / yakını beyanından yapay zekâ ile özetlendi${r.synthetic ? " (örnek)" : ""}. Teşhis değildir. Acil belirtiler otomatik taramada işaretlenmedi; bu bir güvence değildir, değerlendirme gerekli.</div></div>
+      ${rxCalisanBolumu(r)}
       ${(r.photos || []).length || rep.foto_ozeti ? `<div class="sec card stack" style="gap:8px"><h3>Fotoğraflar</h3>${(r.photos || []).length ? `<div class="photos">${r.photos.map((u) => `<img src="${u}" alt="Hastanın eklediği fotoğraf">`).join("")}</div>` : ""}${rep.foto_ozeti ? `<div class="small">${esc(rep.foto_ozeti)}</div>` : ""}</div>` : ""}
       ${uz ? `<div class="sec card stack" style="gap:8px"><h3>4 · Görüntülü görüşme</h3>
         <dl class="kv"><dt>Saat</dt><dd>${gunEki(r)}${C.hhmm(r.arrival_min)} – ${C.hhmm(r.arrival_min + svc(r.service).duration_min)}</dd><dt>Süre</dt><dd>${svc(r.service).duration_min} dk</dd><dt>Kazancın</dt><dd>${tl(pr.provider_gets)} TL</dd><dt>Yolculuk</dt><dd>Yok (harita, rota ve yol ücreti yok)</dd></dl>
@@ -5443,7 +5915,7 @@ YANIT yalnızca şu JSON olsun:
     const yolKart = yr && !(ygs && ygs.checkin) ? `<div class="card stack yol-tarifi" id="hYol" style="gap:8px" aria-live="off">${yolTarifiCanli(yr)}</div>${yolTarifiAlt(yr)}` : "";
     const tele = hTele(p.id);
     const teleKart = tele.length ? `<div class="stack vg-liste" style="gap:8px"><b>Görüntülü görüşmelerin</b><div class="tiny muted">Rotana girmez; takvimde yer tutar.</div>${tele.map((r) => VG.doktorKartHtml(r, vgDoktorCtx(r))).join("")}</div>` : "";
-    return `<div class="pad stack">${teleKart}${yolKart}${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
+    return `<div class="pad stack">${teleKart}${yolKart}${G.aktif(gzR()) ? `<div id="gzCalisan">${G.calisanHtml(gzR())}</div>` : ""}${rxKapiHtml(gzR())}${degerlendirmelerHtml(p.id)}${MAP ? gunHaritasi(home, stops) : mapSVG(home, stops.map((s) => ({ ...s, isNew: !!s.reqId })))}
       <div class="timeline-v">${stops.length ? stops.map((s) => `<div class="tv ${s.reqId ? "now" : "done"}"><span class="dot"></span><div><b class="small">${C.hhmm(s.start_min)} · ${esc(svc(s.service_code).name_tr)}</b><div class="tiny muted">${s.duration_min} dk${s.reqId ? " · yeni kabul" : " · planlı"}</div></div></div>`).join("") : `<div class="muted">Bugün planlı ziyaret yok.</div>`}</div></div>`;
   }
   // Çalışanın günü gerçek sokaklarda: ev → ziyaretler → ev (Enes'in yol grafiği)
@@ -5730,7 +6202,10 @@ YANIT yalnızca şu JSON olsun:
       const gs = G.durum(r) || {};
       if (gs.checkin) bildir("p", id + ":basladi", { ikon: "🩺", baslik: "Ziyaret başladı", metin: "Güvenli Ziyaret açık. Bir sorun olursa uygulamadan bildirebilirsin.", hedef: git });
       if (gs.checkout) bildir("p", id + ":bitti", { ikon: "⭐", baslik: "Ziyaret bitti", metin: "Hizmet tamamlandı mı? Onayla ve puan ver.", hedef: git });
-      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
+      const rxk = r.recete && r.recete.kontrol;
+      if (rxk) bildir("p", id + ":rx", rxk.durum === "dogrulandi" ? { ikon: "💊", baslik: r.recete.tur === "recete" ? "Reçeten doğrulandı" : "Doktor planın doğrulandı", metin: `${pp.first} kapıda kontrol etti; uygulamaya geçiyor.`, hedef: git }
+        : { ikon: "⚠️", baslik: "Uygulama yapılmadı", metin: rxk.not, hedef: { ...git, kaydir: "#rxHasta" }, acil: true });
+      if (gs.hastaOnay === "tamam") bildir("p", id + ":odeme", rxk && rxk.durum === "dogrulanamadi" ? { ikon: "💳", baslik: "Ücret alınmadı", metin: "Uygulama yapılmadığı için hizmet ücreti alınmadı (demo).", hedef: git } : { ikon: "💳", baslik: "Ödeme onaylandı", metin: `${tl(r.price.patient_pays)} TL (demo; gerçek ödeme alınmadı).`, hedef: git });
       if (r.puan) bildir("p", id + ":puan", { ikon: "🙏", baslik: "Teşekkürler!", metin: `Puanın ${pp.first}'in profiline eklendi.`, hedef: git });
     }
     if (P.yz && P.yz.plan && P.screen === "options") {
@@ -5768,7 +6243,9 @@ YANIT yalnızca şu JSON olsun:
       if ((s.hasta === "bekleme" || s.hasta === "hazirlik") && s.doktor !== "gorusmede" && !VG.bitti(s)) bildir("h", q.id + ":vg-bekliyor", { ikon: "🎥", baslik: "Hasta görüşmede bekliyor", metin: `Görüntülü görüşme · ${C.hhmm(q.vgBaslangic ?? q.arrival_min)}`, hedef: { tur: "rota" } }); }
     // tamamlanan ziyaretler için kazanç (sıradaki ziyaret değişse de)
     const gr = gzR(); const gs2 = gr && G.durum(gr);
-    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
+    if (gs2 && gs2.checkin && gr.recete && !gr.recete.kontrol) bildir("h", gr.id + ":rxkapi", { ikon: "💊", baslik: gr.recete.tur === "recete" ? "Kapıda reçeteyi doğrula" : "Kapıda doktor planını gör", metin: "Uygulamadan önce hastanın e-Nabız'ındaki kaydı kontrol et.", hedef: { tur: "rota" } });
+    const rxRed = gr && gr.recete && gr.recete.kontrol && gr.recete.kontrol.durum === "dogrulanamadi";
+    if (gs2 && gs2.checkout) bildir("h", gr.id + ":h-kazanc", rxRed ? { ikon: "ℹ️", baslik: "Uygulama yapılmadı", metin: "Reçete/plan doğrulanamadığı için hizmet ücreti alınmadı (demo).", hedef: { tur: "rota" } } : { ikon: "💸", baslik: "Kazanç eklendi", metin: `+${tl(gr.price.provider_gets)} TL (demo)`, hedef: { tur: "rota" } });
     if (gs2 && gs2.kontrol) bildir("h", `${gr.id}:h-kontrol:${gs2.kontrolSayisi}`, { ikon: "🛡️", acil: true, baslik: "Her şey yolunda mı?", metin: "PIN ile yanıtla. Yanıt yoksa güvenlik masası seni arar.", hedef: { tur: "rota" } });
     // Tek tek puan bildirilmez (hangi hastanın kaç yıldız verdiği anlaşılmasın); yalnızca toplu özet yayımlanınca
     { const n = yayindaPuanlar(pid).length; if (n) bildir("h", `${pid}:puan-ozet:${n}`, { ikon: "⭐", baslik: "Değerlendirme özetin güncellendi", metin: `${PUAN_TOPLU} yeni değerlendirme ortalamana eklendi: ★ ${puanOrtalama(pid).ort.toFixed(2).replace(".", ",")}`, hedef: { tur: "rota" } }); }
@@ -5798,6 +6275,7 @@ YANIT yalnızca şu JSON olsun:
     if (!s) return;
     const z = (otoZiyaret[r.id] ||= {});
     if (s.kodDurum === "eslesti" && !s.checkin) { z.kod ||= Date.now(); if (Date.now() - z.kod > 3000 && gzTikla("checkin")) { P.toast = `${person(r.provider_id).first} ziyareti başlattı (demo).`; renderP(); renderH(); } }
+    else if (s.checkin && r.recete && !r.recete.kontrol) { rxKapiKarar(r, "dogrulandi", true); renderP(); renderH(); }
     else if (s.checkin && !s.checkout) { z.giris ||= Date.now(); if (Date.now() - z.giris > 8000) { gzTikla("cikis"); if (gzTikla("cikis-sec", "yok")) { P.toast = "Ziyaret bitti (demo)."; renderP(); renderH(); } } }
   }, 1000);
 

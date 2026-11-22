@@ -63,12 +63,21 @@ YANIT yalnızca şu JSON olsun:
   // Ses tanımaya ipucu: Whisper'a verilen kısa bağlam (alan sözcükleri). Ağız/şive çeşitliliği için örnekler de içerir.
   const SES_IPUCU = "Evde sağlık görüşmesi. Pansuman, bası yarası, serum, sonda, tansiyon, şeker, sancı, sızı, fenalık, nefes darlığı, ateş, yatağa bağımlı, reçete, hemşire, doktor, fizyoterapi.";
 
-  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU };
+  // Reçete / hekim planı okuma (Sarp'ın reçete modülünden): yalnızca belgeyi okur, tıbbi uygunluğu DEĞERLENDİRMEZ.
+  // {{HIZMET}} ve {{BEKLENEN}} sunucuda doldurulur; görüntü ektedir.
+  const RECETE_ISTEMI = `Türkiye'de evde sağlık hizmetinde REÇETE / HEKİM İSTEMİ BELGESİ okuyan bir yardımcısın. Hasta "{{HIZMET}}" hizmeti için bu belgeyi ekledi (beklenen: {{BEKLENEN}}). Belge e-Nabız "Reçetelerim" ekranı, e-Devlet çıktısı, hekim raporu ya da kağıt reçete olabilir.
+Görevin yalnızca BELGEYİ okumak ve tutarlılığına bakmak. İlacın, dozun ya da tedavinin tıbben uygun olup olmadığını DEĞERLENDİRME, tedavi önerme, teşhis koyma.
+1) Okunanları belgede yazdığı gibi yaz; okuyamadığını null bırak, TAHMİN ETME. Tarihleri GG.AA.YYYY yaz.
+2) "hizmetle_uyumlu": belgede istenen hizmetle uyumlu bir kalem var mı? Emin değilsen null.
+3) Düzenleme belirtisi olabilecek görsel bulguları yaz (yazı tipi/hiza farkı, yapıştırma görünümü, eksik reçete no, okunmayan imza/kaşe). Kesin hüküm verme.
+Yalnızca şu JSON'u döndür: {"recete_no": string|null, "hasta_ad_soyad": string|null, "tc_kimlik": string|null, "recete_tarihi": string|null, "hekim_ad_soyad": string|null, "tesis": string|null, "recete_turu": "normal|kirmizi|yesil|turuncu|mor|belirsiz", "ilaclar": [{"ad": string, "doz": string|null, "kullanim": string|null}], "belge_kaynagi": "e-nabiz|e-devlet|kagit|rapor|diger", "hizmetle_uyumlu": true|false|null, "bulgular": [{"onem": "dusuk|orta|yuksek", "aciklama": string}], "ozet": "bir cümle"}`;
+
+  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KAPIDA_ISTEMLER = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
 
-const { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU } = globalThis.KAPIDA_ISTEMLER;
+const { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI } = globalThis.KAPIDA_ISTEMLER;
 const HIZMET_LISTESI = "tele_muayene: Hekimle video görüşme (ön değerlendirme)\ntele_hemsire_destekli: Hemşire evde + hekim videoda\nev_muayene: Hekim ev muayenesi\npalyatif_degerlendirme: Palyatif bakım / ağrı kontrolü değerlendirmesi\nrecete_rapor_yenileme: Reçete / rapor yenileme görüşmesi\nkan_alma: Kan alma ve numune teslimi\nim_enjeksiyon: Kas içi / deri altı enjeksiyon\niv_serum: Serum takma (IV tedavi)\nyara_pansuman: Yara bakımı ve pansuman (basit yara)\nbasi_yarasi_bakimi: Bası yarası bakımı ve evre takibi\nsonda_bakimi: İdrar sondası bakımı\nsonda_takma: İdrar sondası takma / değişim\nbeslenme_tupu_bakimi: Beslenme tüpü (NG / PEG) bakımı\nvital_takip: Tansiyon / şeker / oksijen ölçümü ve kayıt\nfizyoterapi_seansi: Evde fizyoterapi seansı\nsolunum_fizyoterapisi: Solunum fizyoterapisi\nodyolojik_tarama: Evde işitme taraması\nisitme_cihazi_ayar: İşitme cihazı ayarı ve bakımı\nbeslenme_degerlendirme: Beslenme değerlendirmesi ve plan\nyutma_degerlendirme: Yutma ve konuşma değerlendirmesi\nev_guvenligi_dusme: Ev güvenliği ve düşme riski düzenlemesi\npsikolojik_destek: Psikolojik destek görüşmesi\nayak_bakimi: Ayak bakımı (standart)\ndiyabetik_ayak_bakimi: Diyabetik ayak bakımı\nlohusa_izlem: Doğum sonrası anne ve bebek ev izlemi";
 
 const GOMULU = { surum: "gomulu", sohbet_kurallari: SOHBET_KURALLARI, rapor_sablonu: RAPOR_SABLONU, ses_ipucu: SES_IPUCU, hizmetler: HIZMET_LISTESI, modeller: {} };
@@ -230,6 +239,18 @@ async function rapor(istek, env) {
   return { durum: 200, veri: { rapor: r.sonuc, model: r.model } };
 }
 
+// Reçete / hekim planı belgesi okuma (Sarp'ın reçete modülü): yalnızca okur, tıbbi uygunluğu değerlendirmez. İstem ayar.json'dan (recete_istemi).
+async function recete(istek, env) {
+  const g = await istek.json().catch(() => null);
+  const resimler = resimleriDenetle(g && g.resimler);
+  if (!g || !resimler.length) return { durum: 400, veri: { hata: "girdi", mesaj: "belge görüntüsü gerekli" } };
+  const ayar = await ayarlar(env);
+  const istem = String(ayar.recete_istemi || RECETE_ISTEMI).split("{{HIZMET}}").join(String(g.hizmet || "").slice(0, 120)).split("{{BEKLENEN}}").join(String(g.beklenen || "hekim istemi").slice(0, 160));
+  const r = await groqSohbet(env, ayar, [{ role: "user", content: istem }], resimler.slice(0, 1));
+  if (r.hata) return { durum: r.hata === "yogun" ? 429 : 502, veri: { hata: r.hata, mesaj: String(r.ayrinti || "") } };
+  return { durum: 200, veri: { recete: r.sonuc, model: r.model } };
+}
+
 async function ses(istek, env) {
   const form = await istek.formData().catch(() => null);
   const dosya = form && form.get("dosya");
@@ -267,7 +288,7 @@ export default {
     if (istek.method !== "POST") return hata("yontem", "POST bekleniyor", 405, izinli);
     if (sinirAsildi(istek.headers.get("CF-Connecting-IP") || "?")) return hata("sinir", "Çok fazla istek; biraz sonra tekrar deneyin.", 429, izinli);
     try {
-      const is = { "/sohbet": sohbet, "/rapor": rapor, "/ses": ses }[yol];
+      const is = { "/sohbet": sohbet, "/rapor": rapor, "/ses": ses, "/recete": recete }[yol];
       if (!is) return hata("yok", "Bilinmeyen adres", 404, izinli);
       const { durum, veri } = await is(istek, env);
       return json(veri, durum, izinli);

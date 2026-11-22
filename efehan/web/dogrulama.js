@@ -1,5 +1,12 @@
 /* Kapıda — Mesleki doğrulama (sağlık çalışanı ilk giriş akışı). PROTOTİP.
-   - Belgeler hiçbir resmî sistemden doğrulanmaz; OCR, kimlik ya da sahtecilik kontrolü yoktur.
+   - 22.11: Sarp'ın akışı (sarp/dogrulama.html) bağlandı: belgeler e-Devlet barkodlu olmalı (YÖK Mezun Belgesi / diploma,
+     Sağlık Bakanlığı diploma tescil belgesi, uzman hekimde uzmanlık belgesi); her belgenin doğrulama barkodu zorunlu
+     (görüntüde karekod ya da belge metninde bulunursa kendiliğinden dolar). Dosya seçilince ön kontrol (belge.js): düzenleme
+     yazılımı izi, PDF sonradan değiştirilmiş mi, e-imza alanı, görüntü mü PDF mi. Ön kontrol bilgi verir, tek başına düşürmez.
+     Görevli incelemesi: barkodla turkiye.gov.tr belge doğrulamada asıl belgeyi açar, 5 maddelik karşılaştırmayı işaretler,
+     onaylar / eksik belge ister / uygun bulmaz. Asıl PDF'le alan alan otomatik karşılaştırma Sarp'ın görevli panelinde.
+   - Uygulama hiçbir resmî sistemi kendisi sorgulamaz; "e-Devlet onaylı" gibi bir ifade kullanılmaz. T.C. no istenmez
+     (görevli, e-Devlet sorgusu için belgedeki numarayı kullanır).
    - Seçilen dosyalar yalnızca bu sekmenin belleğinde (V.files) tutulur: sunucuya gönderilmez,
      localStorage'a yazılmaz; sayfa yenilenince silinir.
    - Görev kabul kilidi (canAccept) YALNIZCA ARAYÜZ SİMÜLASYONUDUR. Gerçek uygulamada
@@ -30,7 +37,9 @@
       view: "form", // form | sent | status
       step: 1,
       f: { name: "", prof: "", profOther: "", hekimType: "", specialty: "", org: "", tescil: "" },
-      files: { diploma: null, uzmanlik: null, kurum: null }, // { name, size, type, file } — yalnızca bellekte
+      files: { diploma: null, tescilBelge: null, uzmanlik: null, kurum: null }, // { name, size, type, file, onk, barkodSrc } — yalnızca bellekte
+      barkod: { diploma: "", tescilBelge: "", uzmanlik: "" }, // e-Devlet / Bakanlık doğrulama barkodları
+      gorevli: {}, // görevli kontrol listesi (demo)
       err: {},
       decl: false,
       status: "yok",
@@ -61,10 +70,14 @@
       if (!f.org.trim()) e.org = "Çalıştığın kuruluşu ya da birimi yaz.";
       return e;
     }
+    const barkodTamam = (v) => String(v || "").toLocaleUpperCase("tr").replace(/[^A-Z0-9]/g, "").length >= 8;
+    const BARKODLU = () => ["diploma", "tescilBelge", ...(needUzm() ? ["uzmanlik"] : [])];
     function check2() {
       const e = {};
       if (!V.files.diploma) e.diploma = "Diploma ya da mezuniyet belgeni ekle.";
+      if (!V.files.tescilBelge) e.tescilBelge = "Diploma tescil belgeni ekle.";
       if (needUzm() && !V.files.uzmanlik) e.uzmanlik = "Uzmanlık belgeni ekle.";
+      for (const k of BARKODLU()) if (V.files[k] && !barkodTamam(V.barkod[k])) e["barkod_" + k] = "Belgenin doğrulama barkodunu yaz (belgenin altında ya da karekodun yanında, en az 8 harf/rakam). Barkodsuz belgeyle başvuru tamamlanmaz.";
       const t = V.f.tescil.trim();
       if (t && !/^[0-9A-Za-zÇĞİÖŞÜçğıöşü\-\/ ]{1,30}$/.test(t)) e.tescil = "Yalnızca harf, rakam, tire ve eğik çizgi kullan (en fazla 30).";
       return e;
@@ -77,7 +90,7 @@
       if (file.size === 0) return "Dosya boş görünüyor. Başka bir dosya seç.";
       return "";
     }
-    const firstErrId = (e) => { const k = Object.keys(e)[0]; return k ? (k === "prof" || k === "hekimType" ? `v-${k}-0` : k === "decl" ? "v-decl" : ["diploma", "uzmanlik", "kurum"].includes(k) ? `v-pick-${k}` : `v-${k}`) : null; };
+    const firstErrId = (e) => { const k = Object.keys(e)[0]; return k ? (k === "prof" || k === "hekimType" ? `v-${k}-0` : k === "decl" ? "v-decl" : ["diploma", "tescilBelge", "uzmanlik", "kurum"].includes(k) ? `v-pick-${k}` : `v-${k}`) : null; };
 
     // ---------- parçalar ----------
     const errP = (k) => (V.err[k] ? `<p class="v-err" id="v-${k}-err" role="alert">${esc(V.err[k])}</p>` : "");
@@ -97,9 +110,12 @@
       return `<div class="v-field"><div class="v-label" id="v-${k}-lbl">${label}${optional ? " " + opt : ""}</div>
         ${fl ? `<div class="v-file"><span class="v-file-ico" aria-hidden="true">${/pdf$/i.test(fl.name) || fl.type === "application/pdf" ? "PDF" : "IMG"}</span>
             <div class="v-file-meta"><b>${esc(fl.name)}</b><span>${sizeTxt(fl.size)} · Eklendi, henüz incelenmedi</span></div></div>
+          ${fl.onk ? `<div class="v-onk"><span class="v-onk-b">Ön kontrol</span>${fl.onk.length ? window.KapidaBelge.bayrakHtml(fl.onk, esc) : `<span class="tiny">Dosyada belirgin bir sorun görünmedi.</span>`}</div>` : fl.file && window.KapidaBelge ? `<div class="tiny v-onk">Ön kontrol yapılıyor…</div>` : ""}
           <div class="v-row">${pick("Değiştir", "btn v-btn2")}<button class="btn v-btn2" type="button" data-vact="rm" data-key="${k}">Kaldır</button></div>`
-        : `${pick(`<b>+ Dosya seç</b><span>PDF, JPG ya da PNG · en fazla 10 MB</span>`, "v-drop")}`}
-        <input class="v-hidden" type="file" id="v-file-${k}" data-vfile="${k}" accept="${ACCEPT}" aria-labelledby="v-${k}-lbl" tabindex="-1">${errP(k)}</div>`;
+        : `${pick(`<b>+ Dosya seç</b><span>${k === "kurum" ? "PDF, JPG ya da PNG" : "e-Devlet'ten indirilen barkodlu PDF"} · en fazla 10 MB</span>`, "v-drop")}`}
+        <input class="v-hidden" type="file" id="v-file-${k}" data-vfile="${k}" accept="${ACCEPT}" aria-labelledby="v-${k}-lbl" tabindex="-1">${errP(k)}
+        ${k in V.barkod && fl ? `<div class="v-field v-barkod"><label class="v-label" for="v-barkod_${k}">Doğrulama barkodu${fl.barkodSrc ? ` <span class="v-opt">(${esc(fl.barkodSrc)}ndan okundu, kontrol et)</span>` : ""}</label>
+          <input class="v-inp v-mono" id="v-barkod_${k}" data-vbarkod="${k}" value="${esc(V.barkod[k])}" autocomplete="off" maxlength="44" placeholder="ör. YOK-ABCD-1234-EFGH"${inv("barkod_" + k)}>${errP("barkod_" + k)}</div>` : ""}</div>`;
     }
     function steps(n) {
       return `<div class="v-steps" aria-hidden="true">${[1, 2, 3].map((i) => `<span class="${i <= n ? "on" : ""}"></span>`).join("")}</div>
@@ -107,10 +123,11 @@
     }
     function summary(src) {
       const f = src ? src.f : V.f, files = src ? src.files : V.files;
-      const docs = [["Diploma / mezuniyet", files.diploma], ...(f.prof === "hekim" && f.hekimType === "uzman" ? [["Uzmanlık belgesi", files.uzmanlik]] : []), ["Çalışma / kuruluş belgesi", files.kurum]].filter(([, x]) => x);
+      const bk = src ? src.barkod || {} : V.barkod;
+      const docs = [["YÖK mezun belgesi / diploma", files.diploma, bk.diploma], ["Diploma tescil belgesi", files.tescilBelge, bk.tescilBelge], ...(f.prof === "hekim" && f.hekimType === "uzman" ? [["Uzmanlık belgesi", files.uzmanlik, bk.uzmanlik]] : []), ["Çalışma / kuruluş belgesi", files.kurum]].filter(([, x]) => x);
       const rows = [["Ad soyad", f.name], ["Meslek", profText(f)], ["Kuruluş / birim", f.org], ...(f.tescil.trim() ? [["Diploma tescil no", f.tescil]] : [])];
       return `<dl class="v-sum">${rows.map(([a, b]) => `<dt>${a}</dt><dd>${esc(b || "—")}</dd>`).join("")}
-        <dt>Belgeler</dt><dd>${docs.length ? docs.map(([a, x]) => `<div class="v-doc"><span>${a}</span><b>${esc(x.name)}</b></div>`).join("") : "—"}</dd></dl>`;
+        <dt>Belgeler</dt><dd>${docs.length ? docs.map(([a, x, b]) => `<div class="v-doc"><span>${a}</span><b>${esc(x.name)}</b>${b ? `<span class="v-mono">Barkod: ${esc(b)}</span>` : ""}</div>`).join("") : "—"}</dd></dl>`;
     }
     const pill = (s) => `<span class="pill ${STATUS[s].cls} v-pill">${STATUS[s].label}</span>`;
 
@@ -129,9 +146,10 @@
       if (V.step === 2) {
         return `<button class="back v-back" type="button" data-vact="back">← Geri</button>${steps(2)}
           <h2 class="v-h">Belgelerini ekle</h2>
-          <p class="v-p">Belgelerin, mesleki başvurunun incelenmesi için alınır.</p>
+          <p class="v-p">Belgelerin, mesleki başvurunun incelenmesi için alınır. e-Devlet'ten indirdiğin barkodlu PDF'leri ekle; görevli barkodla asıl belgeyi açıp karşılaştırır.</p>
           ${V.status === "eksik" ? `<div class="v-reason"><b>Eksik belge</b><span>${esc(V.reason)}</span></div>` : ""}
-          ${fileBox("diploma", "Diploma / mezuniyet belgesi", false)}
+          ${fileBox("diploma", "YÖK Mezun Belgesi ya da diploma", false)}
+          ${fileBox("tescilBelge", "Diploma tescil belgesi (Sağlık Bakanlığı)", false)}
           ${needUzm() ? fileBox("uzmanlik", "Uzmanlık belgesi", false) : ""}
           ${field("tescil", "Diploma tescil numarası", "off", true)}
           ${fileBox("kurum", "Çalışma / kuruluş belgesi", true)}
@@ -214,8 +232,8 @@
         if (!V.decl) return go({ err: { decl: "Göndermek için beyan kutusunu işaretle." }, focus: "v-decl" }), true;
         // GERÇEK DOĞRULAMA SERVİSİ BURAYA BAĞLANACAK: belgeler sunucuya güvenli biçimde yüklenir,
         // başvuru inceleme kuyruğuna alınır, durum sunucudan okunur. Prototipte hiçbir şey gönderilmez.
-        const files = {}; for (const k of Object.keys(V.files)) files[k] = V.files[k] && { name: V.files[k].name, size: V.files[k].size, type: V.files[k].type };
-        go({ submitted: { f: { ...V.f }, files, at: new Date() }, status: "bekliyor", reason: "", view: "sent", err: {}, showSummary: false, toTop: true });
+        const files = {}; for (const k of Object.keys(V.files)) files[k] = V.files[k] && { name: V.files[k].name, size: V.files[k].size, type: V.files[k].type, onk: V.files[k].onk || [] };
+        go({ submitted: { f: { ...V.f }, files, barkod: { ...V.barkod }, at: new Date() }, status: "bekliyor", reason: "", view: "sent", err: {}, showSummary: false, toTop: true, gorevli: {} });
       }
       else if (a === "toggleSum") go({ showSummary: !V.showSummary });
       else if (a === "close") go({ open: false, toTop: true });
@@ -226,6 +244,8 @@
       return true;
     }
     function onInput(e) {
+      const bk = e.target.dataset.vbarkod;
+      if (bk) { V.barkod[bk] = e.target.value; const ek = "barkod_" + bk; if (V.err[ek]) { delete V.err[ek]; e.target.removeAttribute("aria-invalid"); const n = document.getElementById(`v-${ek}-err`); if (n) n.remove(); } return true; }
       const k = e.target.dataset.vf;
       if (!k) return false;
       V.f[k] = e.target.value;
@@ -240,11 +260,23 @@
         const k = el.dataset.vfile, file = el.files && el.files[0];
         if (!file) return true;
         const msg = checkFile(file);
-        if (msg) V.err[k] = msg; else { V.files[k] = { name: file.name, size: file.size, type: file.type, file }; delete V.err[k]; }
+        if (msg) V.err[k] = msg; else { V.files[k] = { name: file.name, size: file.size, type: file.type, file }; delete V.err[k]; onKontrol(k, V.files[k]); }
         go({ focus: `v-pick-${k}` });
         return true;
       }
       return false;
+    }
+    // Dosya ön kontrolü (belge.js): düzenleme izi, sonradan değişiklik, e-imza, görüntü/PDF; karekod ya da metinden barkod
+    async function onKontrol(k, fl) {
+      const KB = window.KapidaBelge; if (!KB) return;
+      try {
+        const doc = await KB.oku(fl.file, { maxPx: 1400 });
+        if (V.files[k] !== fl) return; // bu arada değiştirildi
+        fl.onk = KB.dosyaBulgulari(doc, { pdfBekleniyor: k !== "kurum" });
+        const b = k in V.barkod ? KB.barkodBul(doc) : null;
+        if (b && !V.barkod[k]) { V.barkod[k] = b.v; fl.barkodSrc = b.src; }
+      } catch (e) { fl.onk = [KB.fl("bilgi", "", "Dosya okunamadı; görevli elle inceleyecek.")]; }
+      if (V.open && V.view === "form" && V.step === 2) { const odak = document.activeElement && document.activeElement.id; ctx.rerender(); if (odak) { const el = document.getElementById(odak); if (el) el.focus({ preventScroll: true }); } }
     }
     function onKey(e) {
       const p = e.target.closest && e.target.closest("[data-vpick]");
@@ -257,18 +289,43 @@
       eksik: "Diploma belgesinin okunaklı ve tam bir kopyası gerekiyor.",
       red: "Belgedeki ad soyad, başvurudaki adla eşleşmiyor.",
     };
+    // Görevli incelemesi (Sarp'ın akışı): barkodla e-Devlet'te asıl belgeyi aç, karşılaştır, karar ver
+    const GOREVLI = [["acti", "Barkodla turkiye.gov.tr belge doğrulamada asıl belgeyi açtım."], ["ad", "Ad soyad başvurudaki adla aynı."], ["okul", "Okul, bölüm ve unvan beyan edilen meslekle uyumlu."],
+      ["tarih", "Mezuniyet / tescil tarihleri ve numaraları tutarlı."], ["ayni", "Yüklenen belge asıl belgeyle aynı; düzenleme izi yok."]];
+    function gorevliPanel() {
+      const sb = V.submitted;
+      if (!sb || V.status !== "bekliyor") return "";
+      const KB = window.KapidaBelge, g = V.gorevli, hepsi = GOREVLI.every(([k]) => g[k]);
+      const docs = [["YÖK mezun belgesi / diploma", "diploma"], ["Diploma tescil belgesi", "tescilBelge"], ["Uzmanlık belgesi", "uzmanlik"], ["Çalışma / kuruluş belgesi", "kurum"]].filter(([, k]) => sb.files[k]);
+      return `<div class="v-gorevli"><b>Görevli incelemesi</b> <span class="tiny muted">${esc(sb.f.name)} · ${esc(profText(sb.f))}</span>
+        ${docs.map(([ad, k]) => `<div class="v-gdoc"><div><b class="small">${ad}</b> <span class="tiny muted">${esc(sb.files[k].name)}</span></div>
+          ${sb.barkod && sb.barkod[k] ? `<div class="small">Barkod: <b class="v-mono">${esc(sb.barkod[k])}</b> <a class="small" href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener">e-Devlet'te aç ↗</a></div>` : ""}
+          ${KB && (sb.files[k].onk || []).length ? KB.bayrakHtml(sb.files[k].onk, esc) : ""}</div>`).join("")}
+        <div class="v-gchk">${GOREVLI.map(([k, t]) => `<label><input type="checkbox" data-vgorev="${k}" ${g[k] ? "checked" : ""}> <span>${t}</span></label>`).join("")}</div>
+        <div class="seg"><button class="chip" type="button" data-vgkarar="onay" ${hepsi ? "" : "disabled"}>Onayla</button><button class="chip" type="button" data-vgkarar="eksik">Yeniden yükleme iste</button><button class="chip" type="button" data-vgkarar="red">Uygun değil</button></div>
+        <span class="tiny muted">Asıl PDF'i bırakıp alan alan otomatik karşılaştırma: <a href="https://raw.githack.com/eneskrc0/evdesaglik/main/sarp/dogrulama.html" target="_blank" rel="noopener">Sarp'ın görevli paneli ↗</a> (prototip)</span></div>`;
+    }
     function demoPanel() {
-      return `<b>Demo kontrolleri</b><span class="tiny muted">Yalnızca sunum için · başvuru durumunu elle değiştirir</span>
+      return `${gorevliPanel()}<b>Demo kontrolleri</b><span class="tiny muted">Yalnızca sunum için · başvuru durumunu elle değiştirir</span>
         <div class="seg">${["bekliyor", "eksik", "onaylandi", "red"].map((s) => `<button class="chip" type="button" data-vdemo="${s}" aria-pressed="${V.status === s}">${STATUS[s].label}</button>`).join("")}
         <button class="chip" type="button" data-vdemo="reset">Baştan başlat</button></div>`;
     }
     function demoClick(e) {
+      const gc = e.target.closest("[data-vgorev]");
+      if (gc) { V.gorevli[gc.dataset.vgorev] = gc.checked; ctx.rerender(); return; }
+      const gk = e.target.closest("[data-vgkarar]");
+      if (gk && !gk.disabled) {
+        const k = gk.dataset.vgkarar;
+        if (k === "onay") go({ status: "onaylandi", reason: "", view: "status", open: true, showSummary: false, toTop: true });
+        else go({ status: k === "eksik" ? "eksik" : "red", reason: k === "eksik" ? "Görevli: belgelerden biri e-Devlet'teki asıl belgeyle karşılaştırılamadı; barkodlu PDF'ini yeniden yükle." : "Görevli: yüklenen belge e-Devlet'teki asıl belgeyle eşleşmedi.", view: "status", open: true, showSummary: false, toTop: true });
+        return;
+      }
       const b = e.target.closest("[data-vdemo]");
       if (!b) return;
       const s = b.dataset.vdemo;
       if (s === "reset") {
         V.f = { name: "", prof: "", profOther: "", hekimType: "", specialty: "", org: "", tescil: "" };
-        V.files = { diploma: null, uzmanlik: null, kurum: null };
+        V.files = { diploma: null, tescilBelge: null, uzmanlik: null, kurum: null }; V.barkod = { diploma: "", tescilBelge: "", uzmanlik: "" }; V.gorevli = {};
         go({ status: "yok", reason: "", submitted: null, decl: false, err: {}, view: "form", step: 1, open: true, toTop: true });
       } else {
         go({ status: s, reason: DEMO_REASON[s] || "", view: "status", open: true, showSummary: false, toTop: true });

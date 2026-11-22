@@ -146,6 +146,11 @@
         const v = await istek(url, "/rapor", { transkript, foto_notlari: fotoNotlari || [], resimler: resimler || [] }, 60000);
         return v.rapor;
       },
+      // Reçete / hekim planı belgesini oku (görüntü); sunucu bu adresi tanımıyorsa (eski worker) hata "yok" döner
+      async recete(resim, hizmet, beklenen) {
+        const v = await istek(url, "/recete", { resimler: resim ? [resim] : [], hizmet, beklenen }, 45000);
+        return v.recete;
+      },
       dictation: kaydedici(url),
       // Sesli asistan: tek bir konuşmayı yazıya çevir (Whisper)
       async yaziyaCevir(blob, uzanti) {

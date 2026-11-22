@@ -33,3 +33,8 @@ Sarp'ın klasörü. Kapıda'nın tasarım diliyle hazırlanmış, tek dosyalık 
 - Onaylı liste: `kimlik_anahtari`, `ad_soyad`, `meslek`, `tc_maskeli`, `onay_tarihi`, `basvuru_no`, `durum` alanlarıyla JSON.
 
 Prototip · gerçek sağlık bilgisi girmeyin.
+
+## Kapıda'ya bağlandı (22.11)
+- Reçete doğrulama Kapıda'nın içinde: hasta "doktorumun planı / reçetesi var" deyince seçenekler ekranında kart, talepte ön kontrol, çalışanın Rotam'ında kapıda 5 maddelik kontrol (`efehan/web/recete.js`, `efehan/web/belge.js`; prova `efehan/web/e2e_recete.py`).
+- Mesleki doğrulama: `efehan/web/dogrulama.js` bu sayfadaki belge listesi, barkod zorunluluğu, dosya ön kontrolü ve görevli kontrol listesiyle güncellendi; asıl PDF'le alan alan karşılaştırma için görevli bu sayfaya yönlendirilir.
+- Kapıda dış kütüphane yüklemediği için PDF içeriği orada okunmaz (pdf.js / jsQR bu sayfada var). Yapay zekâ okuması Kapıda'da sunucunun `/recete` adresinden gelir.

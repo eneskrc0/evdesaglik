@@ -179,6 +179,18 @@ async function rapor(istek, env) {
   return { durum: 200, veri: { rapor: r.sonuc, model: r.model } };
 }
 
+// Reçete / hekim planı belgesi okuma (Sarp'ın reçete modülü): yalnızca okur, tıbbi uygunluğu değerlendirmez. İstem ayar.json'dan (recete_istemi).
+async function recete(istek, env) {
+  const g = await istek.json().catch(() => null);
+  const resimler = resimleriDenetle(g && g.resimler);
+  if (!g || !resimler.length) return { durum: 400, veri: { hata: "girdi", mesaj: "belge görüntüsü gerekli" } };
+  const ayar = await ayarlar(env);
+  const istem = String(ayar.recete_istemi || RECETE_ISTEMI).split("{{HIZMET}}").join(String(g.hizmet || "").slice(0, 120)).split("{{BEKLENEN}}").join(String(g.beklenen || "hekim istemi").slice(0, 160));
+  const r = await groqSohbet(env, ayar, [{ role: "user", content: istem }], resimler.slice(0, 1));
+  if (r.hata) return { durum: r.hata === "yogun" ? 429 : 502, veri: { hata: r.hata, mesaj: String(r.ayrinti || "") } };
+  return { durum: 200, veri: { recete: r.sonuc, model: r.model } };
+}
+
 async function ses(istek, env) {
   const form = await istek.formData().catch(() => null);
   const dosya = form && form.get("dosya");
@@ -216,7 +228,7 @@ export default {
     if (istek.method !== "POST") return hata("yontem", "POST bekleniyor", 405, izinli);
     if (sinirAsildi(istek.headers.get("CF-Connecting-IP") || "?")) return hata("sinir", "Çok fazla istek; biraz sonra tekrar deneyin.", 429, izinli);
     try {
-      const is = { "/sohbet": sohbet, "/rapor": rapor, "/ses": ses }[yol];
+      const is = { "/sohbet": sohbet, "/rapor": rapor, "/ses": ses, "/recete": recete }[yol];
       if (!is) return hata("yok", "Bilinmeyen adres", 404, izinli);
       const { durum, veri } = await is(istek, env);
       return json(veri, durum, izinli);

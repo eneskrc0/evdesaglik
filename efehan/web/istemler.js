@@ -44,7 +44,16 @@ YANIT yalnızca şu JSON olsun:
   // Ses tanımaya ipucu: Whisper'a verilen kısa bağlam (alan sözcükleri). Ağız/şive çeşitliliği için örnekler de içerir.
   const SES_IPUCU = "Evde sağlık görüşmesi. Pansuman, bası yarası, serum, sonda, tansiyon, şeker, sancı, sızı, fenalık, nefes darlığı, ateş, yatağa bağımlı, reçete, hemşire, doktor, fizyoterapi.";
 
-  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU };
+  // Reçete / hekim planı okuma (Sarp'ın reçete modülünden): yalnızca belgeyi okur, tıbbi uygunluğu DEĞERLENDİRMEZ.
+  // {{HIZMET}} ve {{BEKLENEN}} sunucuda doldurulur; görüntü ektedir.
+  const RECETE_ISTEMI = `Türkiye'de evde sağlık hizmetinde REÇETE / HEKİM İSTEMİ BELGESİ okuyan bir yardımcısın. Hasta "{{HIZMET}}" hizmeti için bu belgeyi ekledi (beklenen: {{BEKLENEN}}). Belge e-Nabız "Reçetelerim" ekranı, e-Devlet çıktısı, hekim raporu ya da kağıt reçete olabilir.
+Görevin yalnızca BELGEYİ okumak ve tutarlılığına bakmak. İlacın, dozun ya da tedavinin tıbben uygun olup olmadığını DEĞERLENDİRME, tedavi önerme, teşhis koyma.
+1) Okunanları belgede yazdığı gibi yaz; okuyamadığını null bırak, TAHMİN ETME. Tarihleri GG.AA.YYYY yaz.
+2) "hizmetle_uyumlu": belgede istenen hizmetle uyumlu bir kalem var mı? Emin değilsen null.
+3) Düzenleme belirtisi olabilecek görsel bulguları yaz (yazı tipi/hiza farkı, yapıştırma görünümü, eksik reçete no, okunmayan imza/kaşe). Kesin hüküm verme.
+Yalnızca şu JSON'u döndür: {"recete_no": string|null, "hasta_ad_soyad": string|null, "tc_kimlik": string|null, "recete_tarihi": string|null, "hekim_ad_soyad": string|null, "tesis": string|null, "recete_turu": "normal|kirmizi|yesil|turuncu|mor|belirsiz", "ilaclar": [{"ad": string, "doz": string|null, "kullanim": string|null}], "belge_kaynagi": "e-nabiz|e-devlet|kagit|rapor|diger", "hizmetle_uyumlu": true|false|null, "bulgular": [{"onem": "dusuk|orta|yuksek", "aciklama": string}], "ozet": "bir cümle"}`;
+
+  const api = { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.KAPIDA_ISTEMLER = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

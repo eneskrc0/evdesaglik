@@ -10,6 +10,8 @@ const env = { GROQ_API_KEY: process.env.GROQ_API_KEY || (process.env.SAHTE ? "sa
 
 // Sahte modda sıradaki ses çevirileri (sesli asistan testleri: POST /__sahte_metinler ["...", "..."])
 const SAHTE_METINLER = [];
+// Reçete okuma testleri: POST /__sahte_recete {...} sıradaki /recete cevabını belirler
+const SAHTE_RECETE = { v: { recete_no: "1A2B3C4", hasta_ad_soyad: "Ayşe Demir", tc_kimlik: null, recete_tarihi: "14.11.2026", hekim_ad_soyad: "Dr. Mehmet Kaya", tesis: "Bornova ASM", recete_turu: "normal", ilaclar: [{ ad: "Serum fizyolojik 500 ml", doz: "1x1", kullanim: "damar içi" }], belge_kaynagi: "e-nabiz", hizmetle_uyumlu: true, bulgular: [], ozet: "e-Nabız reçete ekranı." } };
 if (process.env.SAHTE) {
   const gercek = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
@@ -17,6 +19,8 @@ if (process.env.SAHTE) {
     const yan = (o) => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(o) } }] }));
     if (String(url).endsWith("/audio/transcriptions")) return new Response(JSON.stringify({ text: SAHTE_METINLER.length ? SAHTE_METINLER.shift() : "Annemin topuğunda yara var gari, akıntı yapıyo" }));
     const b = JSON.parse(init.body); const kullanici = b.messages.filter((m) => m.role === "user").length;
+    const ilk = b.messages[0], ilkMetin = typeof ilk.content === "string" ? ilk.content : (ilk.content[0] || {}).text || "";
+    if (/REÇETE \/ HEKİM İSTEMİ BELGESİ/.test(ilkMetin)) return yan(SAHTE_RECETE.v);
     if (b.messages[0].role !== "system") return yan({ kim_icin: "Annesi", yas_araligi: "70 üstü", sikayet: "Topukta akıntılı yara", hastanin_kendi_sozleri: "topuğunda yara var gari, akıntı yapıyo", baslangic: "bir haftadır", seyir: "kötüleşiyor (beyan)", siddet_beyani: "belirtilmedi", yataga_bagimli: true, hekim_plani: "var", plan_detayi: "Aile hekimi pansuman planı yazmış (beyan)", kronik_ilac_alerji: "Şeker hastalığı (beyan)", ihtiyaclar: ["Yara pansumanı"], malzeme: ["Pansuman seti"], foto_ozeti: "", eksik_bilgiler: ["Yaranın boyutu"], hizmet_onerisi: "basi_yarasi_bakimi", oneri_gerekcesi: "Yatağa bağımlı hastada topukta akıntılı yara ve hekim planı beyan edildi.", dikkat_edilecekler: ["Şeker hastalığı beyan edildi", "Akıntı var"], hasta_icin_ozet: "Annenizin topuğundaki yara için hemşire ziyareti öneriliyor.", saglikci_icin_ozet: "Yakın beyanı: yatağa bağımlı 70+ kadın, topukta bir haftadır akıntılı yara.", tek_satir: "Topukta akıntılı yara, yatağa bağımlı" });
     const sira = [
       { reply: "Geçmiş olsun. Topuğunda yara olduğunu anladım. Bu yara ne zamandır var, kötüleşiyor mu?", quick_replies: ["Birkaç gündür", "Bir haftadır"], anlasilan: "Annenizin topuğunda akıntılı bir yara var.", ready: false },
@@ -47,6 +51,7 @@ http.createServer(async (req, res) => {
     if (durum) { res.writeHead(durum === 429 ? 429 : 502, cors); res.end(JSON.stringify({ hata: durum === 429 ? "yogun" : "model", mesaj: "sahte", sonra: 0 })); return; }
     res.writeHead(200, { ...cors, "Access-Control-Allow-Origin": req.headers.origin || "*" }); res.end(JSON.stringify(tur === "sohbet" ? { yanit: cevap, model: "sahte" } : { rapor: cevap, model: "sahte" })); return;
   }
+  if (process.env.SAHTE && req.url === "/__sahte_recete") { SAHTE_RECETE.v = JSON.parse(String(govde || "{}")); res.writeHead(200, cors); res.end("{}"); return; }
   if (process.env.SAHTE && req.url === "/__sahte_metinler") { SAHTE_METINLER.splice(0, SAHTE_METINLER.length, ...JSON.parse(String(govde || "[]"))); res.writeHead(200, { "Access-Control-Allow-Origin": "*" }); res.end("{}"); return; }
   if (process.env.SAHTE && req.url === "/__ses_sayisi") { res.writeHead(200, { "Access-Control-Allow-Origin": "*" }); res.end(JSON.stringify({ kalan: SAHTE_METINLER.length })); return; }
   // Sahte modda her istek ayrı "IP" sayılır: uzun test koşuları sunucunun IP başına istek sınırına takılmasın

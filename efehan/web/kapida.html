@@ -511,6 +511,31 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 .vg-demo-panel{font-size:14px;color:#ccc}.vg-demo-panel summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
 .vg-konusuyor{position:absolute;bottom:14px;left:14px;width:14px;height:14px;border-radius:50%;background:#2fbf5b;animation:vgnab 1.2s infinite}
 @keyframes vgnab{50%{opacity:.3}}
+/* Mesleki doğrulama: ön kontrol, barkod, görevli incelemesi (Sarp'ın akışı) */
+.v-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .03em; }
+.v-onk { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line, #e3e3e3); border-radius: 12px; padding: 10px 12px; }
+.v-onk-b { font-size: 14px; font-weight: 700; }
+.v-barkod { margin-top: 8px; }
+.v-doc .v-mono { display: block; font-size: 14px; color: var(--muted, #666); }
+.v-gorevli { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line, #e3e3e3); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: var(--card, #fff); }
+.v-gdoc { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line, #eee); padding-top: 8px; }
+.v-gchk { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.v-gchk label { display: flex; gap: 8px; align-items: flex-start; }
+.v-gchk input { width: 18px; height: 18px; flex: none; accent-color: var(--brand); }
+/* Reçete / hekim planı doğrulama (recete.js, Sarp'ın modülü) */
+.rx-kart .inp.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; }
+.rx-ekle { display: flex; gap: 12px; align-items: center; border: 1.5px dashed var(--line, #d6d6d6); border-radius: 14px; padding: 14px; min-height: 56px; }
+.rx-ekle > span { display: flex; flex-direction: column; gap: 2px; }
+.rx-sonuc { display: flex; gap: 12px; align-items: flex-start; border-radius: 14px; padding: 12px 14px; background: var(--saffron-soft, #fff4d6); }
+.rx-sonuc > div { display: flex; flex-direction: column; gap: 2px; }
+.rx-sonuc.good { background: var(--good-soft); } .rx-sonuc.coral { background: var(--coral-soft); }
+.rx-ikon { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: #b7791f; }
+.rx-sonuc.good .rx-ikon { background: var(--good); } .rx-sonuc.coral .rx-ikon { background: var(--coral); }
+.rx-kv { font-size: 15px; margin: 0; }
+.belge-bayrak { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.belge-bayrak li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.belge-bayrak .pill { flex: none; }
+.rx-kapi .row .btn { min-height: 48px; }
 </style>
 </head>
 <body>
@@ -557,6 +582,7 @@ select.inp, input.inp { width: 100%; border: 1px solid var(--line); background: 
 <script>/*__SUNUCU__*/</script>
 <script>/*__HARITA__*/</script>
 <script>/*__TEKLIF__*/</script>
+<script>/*__BELGE__*/</script>
 <script>/*__DOGRULAMA__*/</script>
 <script>/*__GUVENLIK__*/</script>
 <script>/*__SESLI__*/</script>
