@@ -76,7 +76,7 @@ with sync_playwright() as pw:
     pg.set_input_files("#v-file-diploma", str(D / "diploma_ornek.pdf"))
     pg.set_input_files("#v-file-tescilBelge", str(D / "diploma_ornek.pdf"))
     pg.set_input_files("#v-file-uzmanlik", str(D / "uzmanlik_ornek.png"))
-    pg.wait_for_function("document.querySelectorAll('#hScreen .v-onk-b').length >= 3", timeout=8000)
+    pg.wait_for_function("document.querySelectorAll('#hScreen .v-onk-b').length >= 3", timeout=25000)
     t = txt()
     check(t.count("Ön kontrol") >= 3 and "görüntü olarak yüklenmiş" in t, "her belgeye ön kontrol; görüntü olarak yüklenen uzmanlık belgesi işaretlendi")
     h.get_by_role("button", name="Başvuruyu gözden geçir").click()

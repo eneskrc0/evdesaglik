@@ -307,6 +307,7 @@
           if (i >= 0) REQ[i] = { ...REQ[i], ...v }; else REQ.push(v);
           uzakDegisikligiUygula(i >= 0 ? REQ[i] : v);
         }
+        cakismaCoz();
         if (P.request) { const mine = REQ.find((r) => r.id === P.request.id); if (mine) P.request = mine; }
         renderP(); renderH();
       }, () => { CAP.db = null; });
@@ -331,6 +332,36 @@
     takvimeIsle(r);
     if (r.status === "kabul" && !(H.accepted[r.provider_id] || []).some((v) => v.reqId === r.id))
       (H.accepted[r.provider_id] ||= []).push({ reqId: r.id, date: r.date || DATE, lat: r.patient.lat, lon: r.patient.lon, start_min: r.arrival_min, duration_min: svc(r.service).duration_min, service_code: r.service, uzaktan: uzaktanHizmet(r.service), earn: r.price ? r.price.provider_gets : 0 });
+  }
+  // Eşzamanlı rezervasyon (22.11 ikinci inceleme): iki hasta aynı anda onay verirse ikisi de kendi cihazında saati boş görebilir.
+  // Ortak kayıtta (claude db) işlem/kilit yok; bu yüzden herkesin aynı sonuca vardığı belirlenimci kural: aynı çalışanın aynı gün
+  // çakışan etkin talepleri arasında önce oluşturulan (created_at, sonra id) kazanır. Her cihaz kaybedeni takviminden çıkarır;
+  // kaybeden talep bu cihazda açıldıysa "Bu saat aynı anda başka bir hastaya verildi" olarak kapanır ve hastaya alternatif gösterilir.
+  // Böylece iki onaydan yalnızca biri kesinleşir. Gerçek tek-işlemli ayırma için sunucuda kilit gerekir (ör. Cloudflare Durable Object / D1).
+  function talepOnce(a, b) { const x = String(a.created_at || ""), y = String(b.created_at || ""); return x < y || (x === y && String(a.id) < String(b.id)); }
+  function cakisiyor(a, b) {
+    if (a.provider_id !== b.provider_id || (a.date || DATE) !== (b.date || DATE)) return false;
+    const da = svc(a.service).duration_min, db = svc(b.service).duration_min;
+    return a.arrival_min < b.arrival_min + db && b.arrival_min < a.arrival_min + da;
+  }
+  function cakismaCoz() {
+    if (!CAP.db) return [];
+    const etkin = REQ.filter((r) => (r.status === "bekliyor" || r.status === "kabul") && r.provider_id && r.arrival_min != null && !r.synthetic)
+      .sort((a, b) => (talepOnce(a, b) ? -1 : 1));
+    const tutulan = [], kaybeden = [];
+    for (const r of etkin) { if (tutulan.some((q) => cakisiyor(q, r))) kaybeden.push(r); else tutulan.push(r); }
+    for (const r of kaybeden) {
+      takvimdenSil(r.id);
+      const kazanan = tutulan.find((q) => cakisiyor(q, r)); takvimeIsle(kazanan);
+      if ((P.randevular || []).includes(r.id)) { // bu cihazdaki hastanın talebi: kapat, alternatif göster
+        const upd = { ...(P.request && P.request.id === r.id ? P.request : r), status: "red", cakisma: true, cakisma_kazanan: kazanan.id };
+        const i = REQ.findIndex((x) => x.id === r.id); if (i >= 0) REQ[i] = upd;
+        if (P.request && P.request.id === r.id) P.request = upd;
+        putRequest(upd);
+      }
+    }
+    if (kaybeden.length) { renderP(); renderH(); }
+    return kaybeden.map((r) => r.id);
   }
   function takvimdenSil(reqId) {
     for (const k of Object.keys(repo.scheduled)) repo.scheduled[k] = repo.scheduled[k].filter((v) => v.reqId !== reqId);
@@ -1434,9 +1465,13 @@
     const pl = yz.plan, o = pl.oneri, tohum = yz.key;
     const byPid = Object.fromEntries(pl.adaylar.map((a) => [a.pid, a]));
     const kmSira = P.cands.map((c) => byPid[c.provider_id]).filter(Boolean).sort((x, y) => (P.cands[x.idx].distance_km ?? 99) - (P.cands[y.idx].distance_km ?? 99));
-    const yontem = (sira) => {
+    // v5 sütunu hastaya gösterilen planın kendi cevaplarını okur (1. tur: pl.tur1, 2. tur: pl.tur2.cevaplar) — iki ekran aynı kişiyi ve
+    // süreyi gösterir (22.11 ikinci inceleme). Klasik sütunda bu kişilerden biri varsa aynı cevap kullanılır; yoksa aynı tohumla.
+    const planCevap = {}; pl.tur1.forEach((c) => { planCevap[c.pid] = c; }); pl.tur2.cevaplar.forEach((c) => { if (!planCevap[c.pid]) planCevap[c.pid] = c; });
+    const cevapOf = (a) => planCevap[a.pid] || TK.cevap(a, o, tohum);
+    const yontem = (sira, plandan) => {
       const t1 = sira.slice(0, 3), t2 = sira.slice(3, 6);
-      const c1 = t1.map((a) => ({ a, c: TK.cevap(a, o, tohum) })), c2 = t2.map((a) => ({ a, c: TK.cevap(a, o, tohum) })); // kişi başına tek zar: hangi turda sorulursa sorulsun aynı cevap
+      const c1 = t1.map((a, i) => ({ a, c: plandan ? pl.tur1[i] : cevapOf(a) })), c2 = t2.map((a, i) => ({ a, c: plandan ? pl.tur2.cevaplar[i] : cevapOf(a) }));
       const ilk1 = c1.filter((x) => x.c.verir).sort((x, y) => x.c.gecikmeDk - y.c.gecikmeDk)[0];
       const ilk2 = !ilk1 ? c2.filter((x) => x.c.verir).sort((x, y) => x.c.gecikmeDk - y.c.gecikmeDk)[0] : null;
       const sure = ilk1 ? ilk1.c.gecikmeDk : ilk2 ? 5 + ilk2.c.gecikmeDk : null;
@@ -1444,7 +1479,7 @@
         basari: 1 - t1.reduce((q, a) => q * (1 - a.p), 1) };
     };
     const v5Sira = [...pl.secilen, ...pl.tur2.secilen];
-    return { klasik: yontem(kmSira), v5: yontem(v5Sira) };
+    return { klasik: yontem(kmSira, false), v5: yontem(v5Sira, true) };
   }
   function karsilastirmaHtml(yz) {
     const k = karsilastirma(yz), pl = yz.plan, yuzde = (x) => Math.round(100 * x) + "%";
@@ -1602,7 +1637,7 @@
     const istenen = r.istenen_saat ?? r.arrival_min, simdi = r.gun ? 450 : SIMDI;
     const res = C.findCandidates(repo, r.service, altNokta(r), r.date || gunTarih(r.gun), istenen, SORTS.erken[1], 30, 500, simdi);
     const m = r.report && r.report.istenen_meslek, t = { profession: m || null, level: r.level };
-    const c = meslekSuz(t, res.candidates).filter((x) => x.provider_id !== r.provider_id && !((r.reddedenler || []).includes(x.provider_id)))
+    const c = meslekSuz(t, res.candidates).filter((x) => (r.cakisma || x.provider_id !== r.provider_id) && !((r.reddedenler || []).includes(x.provider_id)))
       .sort((a, b) => a.arrival_min - b.arrival_min || a.price.patient_pays - b.price.patient_pays)[0] || null;
     r._alt = { anahtar, c };
     return c;
@@ -1610,7 +1645,7 @@
   function alternatifKarti(r) {
     if (r.status !== "red") return "";
     const c = alternatifBul(r), ad = person(r.provider_id).first;
-    const neden = r.calisanIptal ? `${esc(ad)} gelemiyor.` : `${esc(ad)} bu talebi alamadı.`;
+    const neden = r.cakisma ? `Bu saat aynı anda başka bir hastaya verildi.` : r.calisanIptal ? `${esc(ad)} gelemiyor.` : `${esc(ad)} bu talebi alamadı.`;
     if (!c) return `<div class="card stack alt-kart" style="gap:8px"><b>${neden}</b><div class="small">Bu gün için aynı hizmette başka uygun kişi bulamadık. Saati ya da günü değiştirerek tekrar bakabilirsin.</div></div>`;
     const pp = person(c.provider_id);
     return `<div class="card stack alt-kart" id="altKart" style="gap:10px"><b>${neden} Aynı hizmet için en erken alternatif:</b>
@@ -1639,7 +1674,7 @@
     return `<div class="pad stack">
       ${stepsBar(4)}
       <div class="row between"><h2 style="font-size:22px">${st === "kabul" ? "Randevun kesinleşti" : st === "red" ? "Başka bir seçenek seçelim" : "Talebin gönderildi"}</h2>
-        <span class="pill ${st === "kabul" ? "good" : st === "red" ? "coral" : "sun"}">${st === "kabul" ? "Onaylandı" : st === "red" ? (r.calisanIptal ? "İptal edildi" : "Uygun değil") : "Onay bekleniyor"}</span></div>
+        <span class="pill ${st === "kabul" ? "good" : st === "red" ? "coral" : "sun"}">${st === "kabul" ? "Onaylandı" : st === "red" ? (r.cakisma ? "Saat doldu" : r.calisanIptal ? "İptal edildi" : "Uygun değil") : "Onay bekleniyor"}</span></div>
       <div class="card row" style="flex-wrap:nowrap"><span class="avatar">${esc(pp.initials)}</span><div style="flex:1"><b>${esc(pp.full)}</b><div class="tiny muted">${esc(svc(r.service).name_tr)}</div></div>
         <div style="text-align:right"><div class="when">${gunEki(r)}${C.hhmm(r.arrival_min)}</div><div class="small num">${tl(r.price.patient_pays)} TL</div></div></div>
       ${st === "kabul" && MAP && !r.gun ? `<div id="takip">${takipHtml(r)}</div>` : ""}
@@ -1730,6 +1765,10 @@
       .sort((a, b) => a.start_min - b.start_min);
     const v = stops.find((x) => x.start_min + (x.duration_min || 30) > SIMDI);
     if (!v) return null;
+    // Gerçek talep kaydı varsa onu kullan (açık adres, kapı tarifi, "Yoldayım", "Gelemiyorum" onunla çalışır); örnek ziyaret yalnızca
+    // talebi olmayan sentetik takvim kayıtları için (22.11 ikinci inceleme: gerçek randevu örnek ziyarete dönüşüyordu)
+    const gercek = talep(v.reqId);
+    if (gercek) return gercek;
     return (YOL_ORNEK[v.reqId] ||= { id: v.reqId, provider_id: pid, service: v.service_code, arrival_min: v.start_min, accepted_at: Date.now(), synthetic: true,
       patient: { lat: v.lat, lon: v.lon, district: (Object.values(repo.patients).find((q) => Math.abs(q.lat - v.lat) < 1e-6 && Math.abs(q.lon - v.lon) < 1e-6) || {}).district || "", adres: "", tarif: "" } });
   }
@@ -2000,6 +2039,7 @@
       H.tab = "rota"; H.open = null;
     }
     await putRequest(r);
+    cakismaCoz();
     renderP(); renderH();
     if (window.matchMedia("(max-width: 860px)").matches) P.toast = "Sağlık çalışanı ekranını görmek için üstten geçiş yap.";
   }
@@ -2294,7 +2334,7 @@
       H.bilgiAcik = null; H.toast = `Hastadan istendi: ${t.dataset.v}${r && r.synthetic ? " (örnek talep)" : ""}`; renderH(); renderP(); return;
     }
     if (a === "hYoldayim" || a === "hAra") {
-      const r = gzR(); if (!r) return;
+      const r = H.pid ? siradakiZiyaret(H.pid) : null; if (!r || r.synthetic) return;
       const pp = person(r.provider_id);
       if (a === "hAra") { H.toast = "Hasta aranıyor… (demo: numaralar gizli, platform bağlar)"; P.toast = `${pp.full} seni arıyor (demo).`; renderH(); renderP(); return; }
       const T = takipVerisi(r), d = takipDurumu(T, r), np = MAP.rotaNoktasi(T.rt, d.f);
@@ -2303,9 +2343,9 @@
       r.mesajlar = [...(r.mesajlar || []), { metin, saat: C.hhmm(Math.max(SIMDI, r.arrival_min - kalan)) }];
       putRequest(r); H.toast = "Mesaj hastaya gitti."; P.toast = `${pp.first}: ${metin}`; renderH(); renderP(); return;
     }
-    if (a === "hIptalSor" || a === "hIptalVazgec") { const r = gzR(); H.iptalSor = a === "hIptalSor" && r ? r.id : null; renderH(); return; }
+    if (a === "hIptalSor" || a === "hIptalVazgec") { const r = H.pid ? siradakiZiyaret(H.pid) : null; H.iptalSor = a === "hIptalSor" && r && !r.synthetic ? r.id : null; renderH(); return; }
     if (a === "hIptalEvet") {
-      const r = gzR(); H.iptalSor = null;
+      const r = H.pid ? siradakiZiyaret(H.pid) : null; H.iptalSor = null;
       if (!r || r.status !== "kabul" || (G.durum(r) || {}).checkin) { renderH(); return; }
       const upd = { ...r, status: "red", calisanIptal: true, iptal_at: Date.now() };
       takvimdenSil(r.id); await putRequest(upd); if (P.request && P.request.id === r.id) P.request = upd;
@@ -2460,7 +2500,7 @@
       const pp = person(r.provider_id), id = r.id, git = { tur: "takip", id };
       if (r.status === "kabul") bildir("p", id + ":kabul", { ikon: "✅", baslik: "Randevun kesinleşti", metin: `${pp.full} · ${gunEki(r)}${C.hhmm(r.arrival_min)} · ${tl(r.price.patient_pays)} TL`, hedef: git });
       if (r.status === "red") { const al = alternatifBul(r);
-        bildir("p", id + ":red", { ikon: "↩️", baslik: r.calisanIptal ? `${pp.first} gelemiyor` : "Sağlık çalışanı uygun değil", metin: al ? `En erken alternatif ${C.hhmm(al.arrival_min)} · ${person(al.provider_id).full} · toplam ${tl(al.price.patient_pays)} TL. Tek dokunuşla onaylayabilirsin.` : "Sana başka seçenekler gösterelim.", hedef: git }); }
+        bildir("p", id + ":red", { ikon: "↩️", baslik: r.cakisma ? "Bu saat başka bir hastaya verildi" : r.calisanIptal ? `${pp.first} gelemiyor` : "Sağlık çalışanı uygun değil", metin: al ? `En erken alternatif ${C.hhmm(al.arrival_min)} · ${person(al.provider_id).full} · toplam ${tl(al.price.patient_pays)} TL. Tek dokunuşla onaylayabilirsin.` : "Sana başka seçenekler gösterelim.", hedef: git }); }
       if (vgVar(r) && r.status === "kabul") { const s = VG.durum(r), dk = person(vgDoktor(r));
         if (VG.acikMi(r) && !VG.bitti(s)) bildir("p", id + ":vg-oda", { ikon: "🎥", baslik: "Görüşme odası açıldı", metin: `${dk.full} ile görüntülü görüşmen · ${C.hhmm(r.vgBaslangic ?? r.arrival_min)}`, hedef: git });
         if (s.durum === "tamamlandi") bildir("p", id + ":vg-bitti", { ikon: "✅", baslik: "Görüntülü görüşme tamamlandı", metin: `${dk.full} görüşmeyi tamamladı.`, hedef: git }); }
@@ -2721,6 +2761,24 @@
   window.KapidaTest.takvimde = (pid, id, gun) => (repo.scheduled[pid + "|" + (gun ? DATE2 : DATE)] || []).some((v) => v.reqId === id);
   window.KapidaTest.karsilastirma = () => (P.yz ? (({ klasik, v5 }) => ({ klasik: { kisiler: klasik.t1.map((x) => x.a.pid), sure: klasik.sure, bildirim: klasik.bildirim }, v5: { kisiler: v5.t1.map((x) => x.a.pid), sure: v5.sure, bildirim: v5.bildirim } }))(karsilastirma(P.yz)) : null);
   window.KapidaTest.sonTalep = () => (P.request ? P.request.id : null);
+  window.KapidaTest.siradakiTam = (pid) => { const v = siradakiZiyaret(pid || H.pid); return v ? { id: v.id, synthetic: !!v.synthetic, adres: v.patient.adres || "", status: v.status || null } : null; };
+  window.KapidaTest.cakismaCoz = () => cakismaCoz();
+  // Karşılaştırma ↔ hastanın gördüğü teklif uyumu: n farklı tohumla plan kur, v5 sütununun ilk teklif veren kişi ve süresini
+  // hastanın teklif akışından (1. tur, yoksa 2. tur) bağımsız hesapla ve karşılaştır
+  window.KapidaTest.uyumTara = (n) => {
+    if (!P.yz) return null;
+    const g = P.yz.plan, taban = g.oneri.taban; let uyumsuz = 0, ikinci = 0;
+    for (let i = 0; i < n; i++) {
+      const tohum = P.yz.key + "#t" + i, plan = TK.planla({ adaylar: g.adaylar.map(({ ozellik, p, adj, garanti, ...a }) => a), taban, simdi: gercekSimdi(), pencereSonu: P.info.when + 120, tohum });
+      const v = karsilastirma({ key: tohum, plan }).v5;
+      const ilk = (l) => l.filter((c) => c.verir).sort((a, b) => a.gecikmeDk - b.gecikmeDk)[0];
+      const t1 = ilk(plan.tur1), t2 = t1 ? null : ilk(plan.tur2.cevaplar);
+      const kim = t1 ? t1.pid : t2 ? t2.pid : null, sure = t1 ? t1.gecikmeDk : t2 ? 5 + t2.gecikmeDk : null;
+      if (!t1 && t2) ikinci++;
+      if (v.kim !== kim || v.sure !== sure) uyumsuz++;
+    }
+    return { n, uyumsuz, ikinci };
+  };
   window.KapidaTest.siradaki = (pid) => { const v = siradakiZiyaret(pid || H.pid); return v ? v.id : null; };
   window.KapidaTest.talepDurum = (id) => { const r = (P.request && P.request.id === id) ? P.request : REQ.find((x) => x.id === id); return r ? r.status : null; };
   // Başka bir hastanın aynı çalışanın aynı saatini aldığını taklit et (iki cihaz/yarış durumu provası)
