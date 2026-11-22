@@ -191,7 +191,7 @@ with sync_playwright() as pw:
     pg = br.new_page(viewport={"width": 1280, "height": 1000}); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     p, h = ac(pg); onayla_calisan(pg, h)
-    k = pg.evaluate("KapidaTest.randevuKur('ev_muayene')")
+    k = pg.evaluate("KapidaTest.randevuKur('tele_hemsire_destekli')")
     if h.locator("[data-act=haccept]").count() == 0: h.locator("[data-open]").first.click()
     h.locator("[data-act=haccept]").click(); pg.wait_for_timeout(500)
     p.locator("[data-act=home]").click(); pg.wait_for_timeout(200)
@@ -208,15 +208,15 @@ with sync_playwright() as pw:
     pg = br.new_page(viewport={"width": 1280, "height": 1000}); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     p, h = ac(pg); pg.evaluate("KapidaTest.sahteKayit(false)")
-    k = pg.evaluate("KapidaTest.randevuKur('ev_muayene')"); pg.wait_for_timeout(200)
-    rakip = {"id": "UZAK-ONCE", "created_at": "2000-01-01T00:00:00.000Z", "status": "bekliyor", "provider_id": k["pid"], "service": "ev_muayene", "arrival_min": k["varis"], "date": "2026-11-16", "gun": 0,
+    k = pg.evaluate("KapidaTest.randevuKur('tele_hemsire_destekli')"); pg.wait_for_timeout(200)
+    rakip = {"id": "UZAK-ONCE", "created_at": "2000-01-01T00:00:00.000Z", "status": "bekliyor", "provider_id": k["pid"], "service": "tele_hemsire_destekli", "arrival_min": k["varis"], "date": "2026-11-16", "gun": 0,
              "patient": {"lat": 38.46, "lon": 27.22, "district": "Bornova", "plan": "yok"}, "price": {"provider_gets": 1000, "patient_pays": 4000}, "report": {}}
     pg.evaluate("r => KapidaTest.uzaktanGelen(r)", rakip); pg.evaluate("KapidaTest.cakismaCoz()"); pg.wait_for_timeout(300)
     check(pg.evaluate(f"KapidaTest.talepDurum('{k['id']}')") == "red" and "başka bir hastaya verildi" in p.inner_text(), "önce onaylanan başka cihazdaki talep kazandı; bu hastaya 'saat başka hastaya verildi'")
     check(p.locator("#altKart").count() == 1, "kaybeden hastaya alternatif gösterildi")
     check(pg.evaluate(f"KapidaTest.takvimde('{k['pid']}', 'UZAK-ONCE')") and not pg.evaluate(f"KapidaTest.takvimde('{k['pid']}', '{k['id']}')"), "takvimde yalnızca kazanan var")
     p.locator("[data-act=home]").click()
-    k2 = pg.evaluate("KapidaTest.randevuKur('ev_muayene')"); pg.wait_for_timeout(200)
+    k2 = pg.evaluate("KapidaTest.randevuKur('tele_hemsire_destekli')"); pg.wait_for_timeout(200)
     sonra = {**rakip, "id": "UZAK-SONRA", "created_at": "2099-01-01T00:00:00.000Z", "provider_id": k2["pid"], "arrival_min": k2["varis"]}
     pg.evaluate("r => KapidaTest.uzaktanGelen(r)", sonra); pg.evaluate("KapidaTest.cakismaCoz()"); pg.wait_for_timeout(300)
     check(pg.evaluate(f"KapidaTest.talepDurum('{k2['id']}')") == "bekliyor" and not pg.evaluate(f"KapidaTest.takvimde('{k2['pid']}', 'UZAK-SONRA')"), "sonra gelen talep kaybetti: bu hastanınki duruyor, rakip takvimde yok")
