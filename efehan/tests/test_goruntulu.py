@@ -56,3 +56,45 @@ def test_js_ile_ayni():
     js = subprocess.run(["node", "-e", "const C=require('./core.js');const v=JSON.parse(require('fs').readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(v.map(x=>C.teleBaslangic(...x))))"],
                         input=json.dumps(vakalar), capture_output=True, text=True, cwd=kok, check=True).stdout
     assert json.loads(js) == [tele_baslangic(tuple(w), s, e, d) for w, s, e, d in vakalar]
+
+
+# ---- Ekip kararı (21.11): doktorlar yalnızca görüntülü hizmet verir ----
+from app.db import HEKIMLER, Patient, Repo  # noqa: E402
+from app.matching import find_candidates  # noqa: E402
+from app.triage import triage  # noqa: E402
+
+REPO = Repo()
+HASTA = Patient("X", "Bornova", 38.46, 27.22, False, False)
+YATAKTA = Patient("Y", "Bornova", 38.46, 27.22, True, False)
+
+
+def test_doktor_istegi_goruntuluye_gider():
+    for metin in ["Direkt doktora bağla beni", "Annem halsiz, doktor eve gelsin", "yaram var ama doktor gelsin", "doktor çağırmak istiyorum"]:
+        t = triage(REPO, metin, HASTA)
+        assert t.level == "TELE" and t.services == ["tele_muayene"], (metin, t.level, t.services)
+
+
+def test_yataga_bagimliya_hemsire_evde_doktor_goruntulu():
+    for metin in ["Babam yatağa bağımlı, doktor gelsin", "annemin yatak yarasi kotulesti", "Kanser hastası babamın ağrısı ağrı kesiciye rağmen geçmiyor"]:
+        t = triage(REPO, metin, YATAKTA)
+        assert t.level == "TELE_HEMSIRE" and t.services == ["tele_hemsire_destekli"], (metin, t.level, t.services)
+
+
+def test_acil_karari_degismez():
+    assert triage(REPO, "Babamın göğsü sıkışıyor nefes alamıyor, doktor gelsin", HASTA).is_emergency
+
+
+def test_hekimler_evde_hizmet_vermez():
+    assert {"ev_muayene", "palyatif_degerlendirme"} <= REPO.hekim_evde
+    for p in HEKIMLER:
+        assert not (REPO.profession_services.get(p, set()) & REPO.hekim_evde)
+    for pid, prov in REPO.providers.items():
+        if prov.profession_code in HEKIMLER:
+            assert not set(REPO.provider_services.get(pid, {})) & REPO.hekim_evde, pid
+            for (q, _), l in REPO.scheduled.items():
+                if q == pid:
+                    assert all(v.get("uzaktan") for v in l), pid  # eski ev ziyaretleri yolculuksuz blok
+    adaylar, _ = find_candidates(REPO, "ev_muayene", HASTA, "2026-11-16", 570, max_km=500, top_k=50)
+    assert adaylar == []
+    adaylar, _ = find_candidates(REPO, "tele_muayene", HASTA, "2026-11-16", 570, max_km=500, top_k=50)
+    assert adaylar and all(a.insertion is None for a in adaylar)
