@@ -501,6 +501,16 @@ tr.fail td { background: var(--crit-soft); }
     for (const r of data.availability) this.availability[r.provider_id + "|" + r.date] = [r.start_min, r.end_min];
     this.scheduled = {};
     for (const r of data.scheduled_visits) (this.scheduled[r.provider_id + "|" + r.date] ||= []).push({ ...r });
+    // Ekip kararı (21.11): doktorlar yalnızca görüntülü — hekimin evde verdiği hizmetler hekimlerden kalkar,
+    // hekimlerin takvimdeki eski ev ziyaretleri yolculuksuz görüntülü blok sayılır (Python: Repo.hekim_yalniz_goruntulu)
+    this.hekim_evde = new Set();
+    if (CFG.HEKIM_YALNIZ_GORUNTULU) {
+      const HK = ["hekim", "uzman_hekim"];
+      for (const p of HK) for (const s of this.profession_services[p] || []) if (!this.services[s].remote_possible) this.hekim_evde.add(s);
+      for (const p of HK) if (this.profession_services[p]) for (const s of this.hekim_evde) this.profession_services[p].delete(s);
+      for (const [pid, pr] of Object.entries(this.providers)) if (HK.includes(pr.profession_code) && this.provider_services[pid]) for (const s of this.hekim_evde) delete this.provider_services[pid][s];
+      for (const [k, l] of Object.entries(this.scheduled)) { const pr = this.providers[k.split("|")[0]]; if (pr && HK.includes(pr.profession_code)) l.forEach((v) => { v.uzaktan = true; }); }
+    }
     this.patients = {};
     for (const p of data.patients) {
       this.patients[p.id] = { ...p, bedridden: !!p.bedridden, has_physician_plan: !!p.has_physician_plan };
@@ -601,7 +611,20 @@ tr.fail td { background: var(--crit-soft); }
     return res;
   }
 
+  // Ekip kararı (21.11): doktorlar yalnızca görüntülü hizmet verir; "hekim ev ziyareti" kararı görüntülüye çevrilir
+  // (yatağa bağımlıysa hemşire evde + doktor görüntülü, S14). Acil kararı değişmez. Python: triage.hekim_goruntulu
   function triage(repo, complaint, patient) {
+    const res = triageHam(repo, complaint, patient);
+    return CFG.HEKIM_YALNIZ_GORUNTULU ? hekimGoruntulu(res, patient) : res;
+  }
+  function hekimGoruntulu(res, patient) {
+    if (res.level !== "HEKIM_EV") return res;
+    const level = patient.bedridden ? "TELE_HEMSIRE" : "TELE";
+    return { ...res, level, services: [LEVEL_DEFAULT_SERVICE[level]], message: `Önerilen: ${LEVEL_TEXT[level]}. ` + DISCLAIMER,
+      reasons: [...res.reasons, "Doktorlar yalnızca görüntülü hizmet verir: " + (patient.bedridden ? "yatağa bağımlı hasta için hemşire evde, doktor görüntülü" : "doktor görüntülü değerlendirir")],
+      sources: level === "TELE_HEMSIRE" ? [...new Set([...res.sources, "S14"])].sort() : res.sources };
+  }
+  function triageHam(repo, complaint, patient) {
     const text = normalize(complaint);
     const hits = [];
     for (const rf of repo.red_flags) {
@@ -673,7 +696,7 @@ tr.fail td { background: var(--crit-soft); }
 
   // ---------- routing.py ----------
   const CFG = {
-    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, TELE_TAMPON_MIN: 15, MIN_SAVED_KM: 1.0,
+    CITY_SPEED_KMH: 25.0, PARKING_MIN: 5, ROAD_FACTOR: 1.3, LEAD_TIME_MIN: 30, TELE_TAMPON_MIN: 15, HEKIM_YALNIZ_GORUNTULU: true, MIN_SAVED_KM: 1.0,
     TRAVEL_TL_PER_KM: 12.0, COMMISSION: 0.10, SPLIT: { hasta: 0.5, saglikci: 0.3, platform: 0.2 },
     PRICE_SENSITIVITY: 3.0, SPEED_HORIZON_MIN: 480,
   };

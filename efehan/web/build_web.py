@@ -62,7 +62,11 @@ def build_worker() -> Path:
     """sunucu/worker_sablon.js + istemler.js + hizmet listesi -> sunucu/worker.js (Cloudflare'e yapıştırılan dosya)."""
     src = (SUNUCU / "worker_sablon.js").read_text(encoding="utf-8")
     data = json.loads((WEB / "data.json").read_text(encoding="utf-8"))
-    hizmetler = "\n".join(f"{s['code']}: {s['name_tr']}" for s in data["services"])
+    # Doktorlar yalnızca görüntülü (ekip kararı 21.11): hekimin evde verdiği hizmetler YZ'ye önerilmez (kapida.js SERVICE_LIST ile aynı)
+    hekim = {r["service_code"] for r in data["profession_services"] if r["profession_code"] in ("hekim", "uzman_hekim")}
+    uzak = {s["code"] for s in data["services"] if s["remote_possible"]}
+    hekim_evde = {c for c in hekim - uzak if all(r["profession_code"] in ("hekim", "uzman_hekim") for r in data["profession_services"] if r["service_code"] == c)}
+    hizmetler = "\n".join(f"{s['code']}: {s['name_tr']}" for s in data["services"] if s["code"] not in hekim_evde)
     istem = (WEB / "istemler.js").read_text(encoding="utf-8")
     src = src.replace("/*__ISTEMLER__*/", istem + "\nconst { SOHBET_KURALLARI, RAPOR_SABLONU, raporIstemi, SES_IPUCU, RECETE_ISTEMI } = globalThis.KAPIDA_ISTEMLER;")
     src = src.replace('/*__HIZMETLER__*/""', json.dumps(hizmetler, ensure_ascii=False))
