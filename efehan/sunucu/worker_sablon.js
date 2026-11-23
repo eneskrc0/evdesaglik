@@ -48,20 +48,25 @@ const modelAdi = (env, ayar, ad) => env[ad] || (ayar.modeller && ayar.modeller[a
 
 const VARSAYILAN_KOKENLER = ["https://anindasaglik.com", "https://www.anindasaglik.com", "https://eneskrc0.github.io", "https://raw.githack.com", "http://localhost:8000", "http://127.0.0.1:8000"];
 
-// Uygulamanın kendi alan adı (anindasaglik.com): bu adreslere gelen GET isteklerinde uygulama sayfası sunulur.
-// Sayfa GitHub main'deki derlenmiş dosyadan gelir (main'e her birleştirmede site ~2 dk içinde güncellenir); gövde olduğu gibi
-// akıtılır (işlemci sınırı için okunmaz). SITE_ALANLARI / SITE_URL ortam değişkeniyle değiştirilebilir.
+// Kendi alan adı (anindasaglik.com): "/" tanıtım sitesi (efehan/site/dist/index.html), "/uygulama" uygulamanın kendisi
+// (efehan/web/dist/kapida.html). İkisi de GitHub main'deki derlenmiş dosyadan gelir (main'e her birleştirmede ~2 dk içinde
+// güncellenir); gövde olduğu gibi akıtılır (işlemci sınırı için okunmaz). SITE_ALANLARI / TANITIM_URL / UYGULAMA_URL
+// (eski adı SITE_URL) ortam değişkeniyle değiştirilebilir.
 const SITE_ALANLARI = ["anindasaglik.com", "www.anindasaglik.com"];
-const SITE_URL = "https://raw.githubusercontent.com/eneskrc0/evdesaglik/main/efehan/web/dist/kapida.html";
+const TANITIM_URL = "https://raw.githubusercontent.com/eneskrc0/evdesaglik/main/efehan/site/dist/index.html";
+const UYGULAMA_URL = "https://raw.githubusercontent.com/eneskrc0/evdesaglik/main/efehan/web/dist/kapida.html";
 const KISA_YOLLAR = { "/hasta": "hasta", "/calisan": "calisan", "/doktor": "doktor", "/ikisi": "ikisi", "/giris": "" };
 async function site(istek, env, url, yol) {
   if (url.hostname.startsWith("www.")) return Response.redirect("https://" + url.hostname.slice(4) + url.pathname + url.search, 301);
-  if (yol in KISA_YOLLAR) return Response.redirect(url.origin + "/" + (KISA_YOLLAR[yol] ? "#" + KISA_YOLLAR[yol] : ""), 302);
+  if (yol in KISA_YOLLAR) return Response.redirect(url.origin + "/uygulama" + (KISA_YOLLAR[yol] ? "#" + KISA_YOLLAR[yol] : ""), 302);
   if (yol === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-  if (yol !== "/" && yol !== "/index.html") return new Response("Sayfa bulunamadı · anindasaglik.com", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  let kaynak;
+  if (yol === "/" || yol === "/index.html") kaynak = env.TANITIM_URL || TANITIM_URL;
+  else if (yol === "/uygulama") kaynak = env.UYGULAMA_URL || env.SITE_URL || UYGULAMA_URL;
+  else return new Response("Sayfa bulunamadı · anindasaglik.com", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   let r;
-  try { r = await fetch(env.SITE_URL || SITE_URL, { cf: { cacheTtl: 120, cacheEverything: true } }); } catch (e) { r = null; }
-  if (!r || !r.ok) return new Response("<!doctype html><meta charset=utf-8><title>anında sağlık</title><p style='font:18px sans-serif;padding:24px'>Uygulama şu an yüklenemedi, birkaç dakika sonra tekrar dene.</p>", { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  try { r = await fetch(kaynak, { cf: { cacheTtl: 120, cacheEverything: true } }); } catch (e) { r = null; }
+  if (!r || !r.ok) return new Response("<!doctype html><meta charset=utf-8><title>anında sağlık</title><p style='font:18px sans-serif;padding:24px'>Sayfa şu an yüklenemedi, birkaç dakika sonra tekrar dene.</p>", { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } });
   return new Response(r.body, { status: 200, headers: {
     "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60",
     "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin",
