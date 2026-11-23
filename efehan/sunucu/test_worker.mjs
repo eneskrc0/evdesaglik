@@ -113,16 +113,23 @@ r = await w4.fetch(new Request("https://k.workers.dev/", { headers: { Origin: KO
 assert.equal(v.ayar_kaynagi, "gomulu"); assert.equal(v.ok, true); ok("GitHub'a ulaşılamazsa sunucu gömülü talimatla çalışmaya devam ediyor");
 // Kendi alan adı: anindasaglik.com uygulama sayfasını sunar, workers.dev adresi API olarak kalır
 const w5 = (await import(new URL("./worker.js?taze=4", import.meta.url))).default;
-sahte = (u) => (String(u).includes("kapida.html") ? new Response("<!doctype html><title>anında sağlık</title>", { status: 200 }) : String(u).includes("raw.githubusercontent") ? new Response(JSON.stringify(ayarSahte)) : groqYanit('{"reply":"ok"}'));
+sahte = (u) => (String(u).includes("kapida.html") ? new Response("<!doctype html><title>anında sağlık</title>", { status: 200 }) : String(u).includes("site/dist/index.html") ? new Response("<!doctype html><title>tanıtım</title>", { status: 200 }) : String(u).includes("raw.githubusercontent") ? new Response(JSON.stringify(ayarSahte)) : groqYanit('{"reply":"ok"}'));
 r = await w5.fetch(new Request("https://anindasaglik.com/"), ENV2);
-assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /text\/html/); assert.match(await r.text(), /anında sağlık/); assert.match(r.headers.get("permissions-policy"), /microphone=\(self\)/);
-ok("anindasaglik.com/ uygulama sayfasını sunuyor (mikrofon izni aynı kökene)");
+assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /text\/html/); assert.match(await r.text(), /tanıtım/);
+ok("anindasaglik.com/ tanıtım sitesini sunuyor");
+r = await w5.fetch(new Request("https://anindasaglik.com/uygulama"), ENV2);
+assert.equal(r.status, 200); assert.match(await r.text(), /anında sağlık/); assert.match(r.headers.get("permissions-policy"), /microphone=\(self\)/);
+r = await w5.fetch(new Request("https://anindasaglik.com/uygulama/"), ENV2); assert.equal(r.status, 200);
+ok("anindasaglik.com/uygulama uygulama sayfasını sunuyor (mikrofon izni aynı kökene)");
+r = await w5.fetch(new Request("https://anindasaglik.com/yok"), ENV2); assert.equal(r.status, 404); ok("bilinmeyen yol 404");
 r = await w5.fetch(new Request("https://www.anindasaglik.com/hasta"), ENV2); assert.equal(r.status, 301); assert.equal(r.headers.get("location"), "https://anindasaglik.com/hasta");
-r = await w5.fetch(new Request("https://anindasaglik.com/hasta"), ENV2); assert.equal(r.status, 302); assert.equal(r.headers.get("location"), "https://anindasaglik.com/#hasta");
-ok("www → anindasaglik.com, /hasta → /#hasta yönlendirmesi");
+r = await w5.fetch(new Request("https://anindasaglik.com/hasta"), ENV2); assert.equal(r.status, 302); assert.equal(r.headers.get("location"), "https://anindasaglik.com/uygulama#hasta");
+r = await w5.fetch(new Request("https://anindasaglik.com/ikisi"), ENV2); assert.equal(r.headers.get("location"), "https://anindasaglik.com/uygulama#ikisi");
+ok("www → anindasaglik.com, /hasta → /uygulama#hasta yönlendirmesi")
 r = await w5.fetch(new Request("https://anindasaglik.com/sohbet", { method: "POST", headers: { Origin: "https://anindasaglik.com", "Content-Type": "application/json" }, body: JSON.stringify({ turlar: [{ role: "user", content: "a" }] }) }), ENV2);
 assert.equal(r.status, 200); assert.equal(r.headers.get("access-control-allow-origin"), "https://anindasaglik.com"); ok("anindasaglik.com kökü API'yi kullanabiliyor (CORS)");
 r = await w5.fetch(new Request("https://k.workers.dev/"), ENV2); assert.equal((await r.json()).ok, true); ok("workers.dev adresi hâlâ API durum yanıtı veriyor");
-sahte = (u) => (String(u).includes("kapida.html") ? new Response("yok", { status: 404 }) : groqYanit('{"reply":"ok"}'));
-r = await w5.fetch(new Request("https://anindasaglik.com/"), ENV2); assert.equal(r.status, 503); ok("GitHub'dan sayfa alınamazsa anlaşılır hata sayfası");
+sahte = (u) => (String(u).includes("kapida.html") || String(u).includes("site/dist") ? new Response("yok", { status: 404 }) : groqYanit('{"reply":"ok"}'));
+r = await w5.fetch(new Request("https://anindasaglik.com/"), ENV2); assert.equal(r.status, 503);
+r = await w5.fetch(new Request("https://anindasaglik.com/uygulama"), ENV2); assert.equal(r.status, 503); ok("GitHub'dan sayfa alınamazsa anlaşılır hata sayfası");
 console.log(`\nTamam: ${n} kontrol geçti.`);
